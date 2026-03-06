@@ -1,0 +1,467 @@
+// =============================================================================
+// Travel App — Prisma Schema
+// Full data model as designed in business plan
+// =============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// =============================================================================
+// USER & FAMILY
+// =============================================================================
+
+model User {
+  id                String        @id @default(cuid())
+  clerkId           String        @unique
+  email             String        @unique
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  subscriptionTier  SubTier       @default(FREE)
+  isPrimaryPlanner  Boolean       @default(true)
+  isDiscoverable    Boolean       @default(false)
+  familyProfile     FamilyProfile?
+  following         Follow[]      @relation("Follower")
+  followers         Follow[]      @relation("Following")
+  pingsSent         Ping[]        @relation("PingSender")
+  pingsReceived     Ping[]        @relation("PingReceiver")
+  messagesSent      Message[]     @relation("MessageSender")
+  messagesReceived  Message[]     @relation("MessageReceiver")
+  questionsAsked    Question[]    @relation("QuestionAsker")
+  questionsAnswered Question[]    @relation("QuestionAnswerer")
+}
+
+enum SubTier {
+  FREE
+  PREMIUM
+}
+
+model FamilyProfile {
+  id               String              @id @default(cuid())
+  userId           String              @unique
+  user             User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  familyName       String?
+  homeCity         String?
+  homeCountry      String?
+  travelFrequency  TravelFrequency?
+  budgetRange      BudgetRange?
+  accessibilityNotes String?
+  travelStyle      TravelStyle?
+  pace             Pace?
+  planningStyle    PlanningStyle?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  members          FamilyMember[]
+  interests        DeclaredInterest[]
+  trips            Trip[]
+  savedItems       SavedItem[]
+  behavioralProfile BehavioralProfile[]
+  communityProfile CommunityProfile?
+  points           Int                 @default(0)
+  tier             CommunityTier       @default(EXPLORER)
+}
+
+enum TravelFrequency {
+  ONE_TWO
+  THREE_FIVE
+  SIX_PLUS
+}
+
+enum BudgetRange {
+  BUDGET
+  MID
+  PREMIUM
+  LUXURY
+}
+
+enum TravelStyle {
+  ADVENTUROUS
+  BALANCED
+  RELAXED
+}
+
+enum Pace {
+  RELAXED
+  BALANCED
+  PACKED
+}
+
+enum PlanningStyle {
+  STRUCTURED
+  BALANCED
+  SPONTANEOUS
+}
+
+enum CommunityTier {
+  EXPLORER
+  NAVIGATOR
+  PIONEER
+}
+
+model FamilyMember {
+  id               String        @id @default(cuid())
+  familyProfileId  String
+  familyProfile    FamilyProfile @relation(fields: [familyProfileId], references: [id], onDelete: Cascade)
+  role             MemberRole
+  birthDate        DateTime?
+  dietaryRequirements DietaryReq[]
+  mobilityNotes    String?
+  createdAt        DateTime      @default(now())
+}
+
+enum MemberRole {
+  ADULT
+  CHILD
+}
+
+enum DietaryReq {
+  HALAL
+  KOSHER
+  VEGETARIAN
+  VEGAN
+  GLUTEN_FREE
+  NUT_FREE
+  DAIRY_FREE
+  OTHER
+}
+
+// =============================================================================
+// INTERESTS
+// =============================================================================
+
+model DeclaredInterest {
+  id              String        @id @default(cuid())
+  familyProfileId String
+  familyProfile   FamilyProfile @relation(fields: [familyProfileId], references: [id], onDelete: Cascade)
+  category        InterestCategory
+  interestKey     String
+  tier            InterestTier  @default(SIGNUP)
+  weight          Float         @default(1.0)
+  selectedAt      DateTime      @default(now())
+
+  @@unique([familyProfileId, interestKey])
+}
+
+enum InterestCategory {
+  FOOD
+  OUTDOOR
+  CULTURE
+  KIDS
+  ENTERTAINMENT
+  SHOPPING
+  WELLNESS
+  STYLE
+}
+
+enum InterestTier {
+  SIGNUP
+  PROFILE
+}
+
+// =============================================================================
+// TRIPS
+// =============================================================================
+
+model Trip {
+  id               String        @id @default(cuid())
+  familyProfileId  String
+  familyProfile    FamilyProfile @relation(fields: [familyProfileId], references: [id], onDelete: Cascade)
+  title            String
+  destinationCity  String?
+  destinationCountry String?
+  startDate        DateTime?
+  endDate          DateTime?
+  status           TripStatus    @default(PLANNING)
+  privacy          TripPrivacy   @default(NETWORK)
+  accommodationLat Float?
+  accommodationLng Float?
+  heroImageUrl     String?
+  viewCount        Int           @default(0)
+  cloneCount       Int           @default(0)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  savedItems       SavedItem[]
+  scores           RecommendationScore[]
+  collaborators    TripCollaborator[]
+  questions        Question[]
+}
+
+enum TripStatus {
+  PLANNING
+  ACTIVE
+  COMPLETED
+}
+
+enum TripPrivacy {
+  PUBLIC
+  NETWORK
+  PRIVATE
+}
+
+model TripCollaborator {
+  id        String   @id @default(cuid())
+  tripId    String
+  trip      Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  userId    String
+  role      CollaboratorRole @default(VIEWER)
+  joinedAt  DateTime @default(now())
+
+  @@unique([tripId, userId])
+}
+
+enum CollaboratorRole {
+  VIEWER
+  COLLABORATOR
+}
+
+// =============================================================================
+// SAVED ITEMS (core table)
+// =============================================================================
+
+model SavedItem {
+  id                  String        @id @default(cuid())
+  familyProfileId     String
+  familyProfile       FamilyProfile @relation(fields: [familyProfileId], references: [id], onDelete: Cascade)
+  tripId              String?
+  trip                Trip?         @relation(fields: [tripId], references: [id])
+  sourceType          SourceType
+  sourceUrl           String?
+  rawTitle            String?
+  rawDescription      String?
+  mediaThumbnailUrl   String?
+  savedAt             DateTime      @default(now())
+  destinationCity     String?
+  destinationCountry  String?
+  lat                 Float?
+  lng                 Float?
+  categoryTags        String[]
+  interestKeys        String[]
+  relevanceScore      Float?
+  status              SavedItemStatus @default(UNORGANIZED)
+  extractionStatus    ExtractionStatus @default(PENDING)
+  dayIndex            Int?
+  notes               String?
+}
+
+enum SourceType {
+  INSTAGRAM
+  TIKTOK
+  GOOGLE_MAPS
+  MANUAL
+  IN_APP
+  EMAIL_IMPORT
+  PHOTO_IMPORT
+}
+
+enum SavedItemStatus {
+  UNORGANIZED
+  TRIP_ASSIGNED
+  ARCHIVED
+}
+
+enum ExtractionStatus {
+  PENDING
+  PROCESSING
+  ENRICHED
+  FAILED
+}
+
+// =============================================================================
+// RECOMMENDED ITEMS
+// =============================================================================
+
+model RecommendedItem {
+  id               String    @id @default(cuid())
+  itemType         ItemType
+  title            String
+  description      String?
+  lat              Float?
+  lng              Float?
+  city             String?
+  country          String?
+  source           ItemSource @default(COMMUNITY)
+  interestKeys     String[]
+  ageMin           Int?
+  ageMax           Int?
+  priceTier        BudgetRange?
+  durationMinutes  Int?
+  requiresBooking  Boolean   @default(false)
+  affiliateUrl     String?
+  communitySaveCount Int     @default(0)
+  communityRating  Float?
+  heroImageUrl     String?
+  createdAt        DateTime  @default(now())
+  scores           RecommendationScore[]
+}
+
+enum ItemType {
+  RESTAURANT
+  HOTEL
+  ACTIVITY
+  ATTRACTION
+  EXPERIENCE
+  TRANSIT
+  NEIGHBORHOOD
+}
+
+enum ItemSource {
+  INTERNAL
+  PARTNER
+  COMMUNITY
+}
+
+model RecommendationScore {
+  id                       String          @id @default(cuid())
+  recommendedItemId        String
+  recommendedItem          RecommendedItem @relation(fields: [recommendedItemId], references: [id], onDelete: Cascade)
+  familyProfileId          String
+  tripId                   String?
+  trip                     Trip?           @relation(fields: [tripId], references: [id])
+  hardFilterPass           Boolean         @default(false)
+  interestMatchScore       Float           @default(0)
+  behavioralAlignmentScore Float           @default(0)
+  communityScore           Float           @default(0)
+  proximityScore           Float           @default(0)
+  recencyScore             Float           @default(0)
+  compositeScore           Float           @default(0)
+  scoreExplanation         Json?
+  generatedAt              DateTime        @default(now())
+
+  @@unique([recommendedItemId, familyProfileId, tripId])
+}
+
+// =============================================================================
+// BEHAVIORAL & COMMUNITY PROFILES
+// =============================================================================
+
+model BehavioralProfile {
+  id               String        @id @default(cuid())
+  familyProfileId  String
+  familyProfile    FamilyProfile @relation(fields: [familyProfileId], references: [id], onDelete: Cascade)
+  interestKey      String
+  declaredWeight   Float         @default(1.0)
+  behavioralWeight Float         @default(0.0)
+  compositeWeight  Float         @default(1.0)
+  saveCount        Int           @default(0)
+  lastUpdated      DateTime      @updatedAt
+
+  @@unique([familyProfileId, interestKey])
+}
+
+model CommunityProfile {
+  id               String        @id @default(cuid())
+  familyProfileId  String        @unique
+  familyProfile    FamilyProfile @relation(fields: [familyProfileId], references: [id], onDelete: Cascade)
+  youngestChildAge Int?
+  oldestChildAge   Int?
+  childCount       Int           @default(0)
+  primaryInterests String[]
+  destinationCluster String[]
+  travelStyle      TravelStyle?
+  computedAt       DateTime      @default(now())
+}
+
+// =============================================================================
+// SOCIAL GRAPH
+// =============================================================================
+
+model Follow {
+  id          String   @id @default(cuid())
+  followerId  String
+  follower    User     @relation("Follower", fields: [followerId], references: [id], onDelete: Cascade)
+  followingId String
+  following   User     @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@unique([followerId, followingId])
+}
+
+model Ping {
+  id         String     @id @default(cuid())
+  senderId   String
+  sender     User       @relation("PingSender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiverId String
+  receiver   User       @relation("PingReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  status     PingStatus @default(PENDING)
+  createdAt  DateTime   @default(now())
+
+  @@unique([senderId, receiverId])
+}
+
+enum PingStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+model Message {
+  id         String   @id @default(cuid())
+  senderId   String
+  sender     User     @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiverId String
+  receiver   User     @relation("MessageReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  body       String
+  readAt     DateTime?
+  createdAt  DateTime @default(now())
+}
+
+// =============================================================================
+// COMMUNITY Q&A
+// =============================================================================
+
+model Question {
+  id            String         @id @default(cuid())
+  askerId       String
+  asker         User           @relation("QuestionAsker", fields: [askerId], references: [id], onDelete: Cascade)
+  answeredById  String?
+  answeredBy    User?          @relation("QuestionAnswerer", fields: [answeredById], references: [id])
+  tripId        String?
+  trip          Trip?          @relation(fields: [tripId], references: [id])
+  destinationCity String?
+  destinationCountry String?
+  body          String
+  answer        String?
+  answerMode    AnswerMode?
+  helpfulCount  Int            @default(0)
+  createdAt     DateTime       @default(now())
+  answeredAt    DateTime?
+}
+
+enum AnswerMode {
+  PUBLIC
+  PRIVATE
+}
+
+// =============================================================================
+// GAMIFICATION
+// =============================================================================
+
+model PointTransaction {
+  id              String      @id @default(cuid())
+  familyProfileId String
+  points          Int
+  action          PointAction
+  referenceId     String?
+  createdAt       DateTime    @default(now())
+}
+
+enum PointAction {
+  TRIP_ADDED
+  HOTEL_REVIEWED
+  DESTINATION_GUIDE_COMPLETED
+  TIP_SUBMITTED
+  PHOTO_UPLOADED
+  USER_REFERRED
+  ITINERARY_CLONED
+  FOLLOWER_GAINED
+  TRIP_VIEWED
+  TIP_SAVED_BY_OTHER
+  TRIP_SHARED_EXTERNALLY
+  QUESTION_ANSWERED
+  ANSWER_MARKED_HELPFUL
+  FEATURED_IN_TOP_LIST
+}
