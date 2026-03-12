@@ -131,12 +131,15 @@ export function SaveDetailModal({ itemId, onClose }: { itemId: string; onClose: 
   const tags = item?.categoryTags ?? [];
   const gradient = getGradient(tags);
   const location = [item?.destinationCity, item?.destinationCountry].filter(Boolean).join(", ");
-  const mapsUrl = item?.lat && item?.lng
-    ? `https://maps.apple.com/?q=${encodeURIComponent(item.rawTitle ?? "")}&ll=${item.lat},${item.lng}`
+  const mapsUrl = item
+    ? item.lat && item.lng
+      ? `https://maps.apple.com/?q=${encodeURIComponent(item.rawTitle ?? "")}&ll=${item.lat},${item.lng}`
+      : `https://maps.apple.com/?q=${encodeURIComponent([item.rawTitle, location].filter(Boolean).join(" "))}`
     : null;
 
   return (
     <>
+      <style>{`.directions-link:hover { text-decoration: underline; }`}</style>
       {/* Backdrop */}
       <div
         onClick={onClose}
@@ -348,13 +351,13 @@ export function SaveDetailModal({ itemId, onClose }: { itemId: string; onClose: 
                 href={mapsUrl}
                 target="_blank"
                 rel="noopener noreferrer"
+                className="directions-link"
                 style={{
-                  display: "flex", alignItems: "center", justifyContent: "center", gap: "4px",
-                  marginTop: "10px", fontSize: "13px", fontWeight: 600, color: "#717171",
+                  display: "block", textAlign: "center",
+                  marginTop: "10px", fontSize: "14px", fontWeight: 500, color: "#717171",
                   textDecoration: "none",
                 }}
               >
-                <Navigation size={12} />
                 Get directions
               </a>
             )}
