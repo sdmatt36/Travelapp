@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { BottomNav } from "@/components/ui/BottomNav";
 import Link from "next/link";
+import { SaveDetailModal } from "@/components/features/saves/SaveDetailModal";
 import {
   Search,
   MapPin,
@@ -122,15 +123,16 @@ type SaveCardProps = {
   setOpenDropdown: (id: string | null) => void;
   assignTrip: (id: string, trip: string) => void;
   onTripClick: (tripName: string) => void;
+  onCardClick: (id: string) => void;
 };
 
-function SaveCard({ save, openDropdown, setOpenDropdown, assignTrip, onTripClick }: SaveCardProps) {
+function SaveCard({ save, openDropdown, setOpenDropdown, assignTrip, onTripClick, onCardClick }: SaveCardProps) {
   const visibleTags = save.tags.slice(0, 3);
   const extraTags = save.tags.length - visibleTags.length;
   const isDropdownOpen = openDropdown === save.id;
 
   return (
-    <Link href={`/saves/${save.id}`} style={{ textDecoration: "none" }}>
+    <div onClick={() => onCardClick(save.id)} style={{ cursor: "pointer" }}>
     <div
       style={{
         backgroundColor: "#FAFAFA",
@@ -339,7 +341,7 @@ function SaveCard({ save, openDropdown, setOpenDropdown, assignTrip, onTripClick
         )}
       </div>
     </div>
-    </Link>
+    </div>
   );
 }
 
@@ -369,17 +371,18 @@ function SectionHeader({ icon, title, badge, count, action }: {
 
 // ─── CardGrid ─────────────────────────────────────────────────────────────────
 
-function CardGrid({ cards, openDropdown, setOpenDropdown, assignTrip, onTripClick }: {
+function CardGrid({ cards, openDropdown, setOpenDropdown, assignTrip, onTripClick, onCardClick }: {
   cards: Save[];
   openDropdown: string | null;
   setOpenDropdown: (id: string | null) => void;
   assignTrip: (id: string, trip: string) => void;
   onTripClick: (tripName: string) => void;
+  onCardClick: (id: string) => void;
 }) {
   return (
     <div className="grid grid-cols-3 lg:grid-cols-3 md:grid-cols-2 sm:grid-cols-1" style={{ gap: "16px" }}>
       {cards.map((save) => (
-        <SaveCard key={save.id} save={save} openDropdown={openDropdown} setOpenDropdown={setOpenDropdown} assignTrip={assignTrip} onTripClick={onTripClick} />
+        <SaveCard key={save.id} save={save} openDropdown={openDropdown} setOpenDropdown={setOpenDropdown} assignTrip={assignTrip} onTripClick={onTripClick} onCardClick={onCardClick} />
       ))}
     </div>
   );
@@ -395,6 +398,7 @@ export function SavesScreen() {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [showFabModal, setShowFabModal] = useState(false);
   const [fabUrl, setFabUrl] = useState("");
+  const [modalItemId, setModalItemId] = useState<string | null>(null);
 
   const unorganizedCount = saves.filter((s) => s.assigned === null).length;
 
@@ -528,7 +532,7 @@ export function SavesScreen() {
               count={cards.length}
               action={{ label: "View trip →", onClick: () => router.push('/trips/1') }}
             />
-            <CardGrid cards={cards} openDropdown={openDropdown} setOpenDropdown={setOpenDropdown} assignTrip={assignTrip} onTripClick={(name) => router.push('/trips/1')} />
+            <CardGrid cards={cards} openDropdown={openDropdown} setOpenDropdown={setOpenDropdown} assignTrip={assignTrip} onTripClick={(name) => router.push('/trips/1')} onCardClick={(id) => setModalItemId(id)} />
           </div>
         ))}
 
@@ -541,11 +545,16 @@ export function SavesScreen() {
               count={unorganizedCards.length}
               action={{ label: "Assign all →", onClick: () => setActiveFilter("Unorganized") }}
             />
-            <CardGrid cards={unorganizedCards} openDropdown={openDropdown} setOpenDropdown={setOpenDropdown} assignTrip={assignTrip} onTripClick={(name) => router.push('/trips/1')} />
+            <CardGrid cards={unorganizedCards} openDropdown={openDropdown} setOpenDropdown={setOpenDropdown} assignTrip={assignTrip} onTripClick={(name) => router.push('/trips/1')} onCardClick={(id) => setModalItemId(id)} />
           </div>
         )}
 
       </div>
+
+      {/* Save detail modal */}
+      {modalItemId && (
+        <SaveDetailModal itemId={modalItemId} onClose={() => setModalItemId(null)} />
+      )}
 
       {/* FAB MODAL */}
       {showFabModal && (

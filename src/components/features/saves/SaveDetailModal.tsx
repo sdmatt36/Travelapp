@@ -1,0 +1,368 @@
+"use client";
+
+import { useEffect, useState, useRef } from "react";
+import Link from "next/link";
+import { X, MapPin, Sparkles, Navigation, ExternalLink, ChevronDown } from "lucide-react";
+
+type SaveItem = {
+  id: string;
+  rawTitle: string | null;
+  rawDescription: string | null;
+  mediaThumbnailUrl: string | null;
+  destinationCity: string | null;
+  destinationCountry: string | null;
+  categoryTags: string[];
+  sourceType: string;
+  savedAt: string;
+  notes: string | null;
+  lat: number | null;
+  lng: number | null;
+  affiliateUrl: string | null;
+  websiteUrl: string | null;
+  trip: { id: string; title: string } | null;
+};
+
+type Trip = { id: string; title: string };
+
+const SOURCE_LABEL: Record<string, string> = {
+  INSTAGRAM: "Instagram", TIKTOK: "TikTok", GOOGLE_MAPS: "Google Maps",
+  MANUAL: "Manually added", IN_APP: "In-app", EMAIL_IMPORT: "Email", PHOTO_IMPORT: "Photo",
+};
+
+const TAG_GRADIENT: Record<string, string> = {
+  Food: "linear-gradient(135deg,#f97316,#ea580c)",
+  "Street Food": "linear-gradient(135deg,#f97316,#ea580c)",
+  Outdoor: "linear-gradient(135deg,#22c55e,#15803d)",
+  Hiking: "linear-gradient(135deg,#22c55e,#15803d)",
+  Beach: "linear-gradient(135deg,#0ea5e9,#0284c7)",
+  Kids: "linear-gradient(135deg,#3b82f6,#1d4ed8)",
+  Activity: "linear-gradient(135deg,#3b82f6,#1d4ed8)",
+  Culture: "linear-gradient(135deg,#8b5cf6,#6d28d9)",
+  History: "linear-gradient(135deg,#8b5cf6,#6d28d9)",
+  Wellness: "linear-gradient(135deg,#06b6d4,#0e7490)",
+  Lodging: "linear-gradient(135deg,#f59e0b,#d97706)",
+  Luxury: "linear-gradient(135deg,#f59e0b,#d97706)",
+};
+
+function getGradient(tags: string[]) {
+  for (const t of tags) if (TAG_GRADIENT[t]) return TAG_GRADIENT[t];
+  return "linear-gradient(135deg,#2d3436,#636e72)";
+}
+
+function buildMatchReason(tags: string[], interestKeys: string[]): string {
+  if (tags.some(t => ["Kids","Activity","Educational"].includes(t)) || interestKeys.some(k => ["theme_parks","zoos","educational","hands_on","playgrounds"].includes(k)))
+    return "A great pick for the whole family — built for kids but enjoyable for adults too.";
+  if (tags.some(t => ["Food","Street Food"].includes(t)) || interestKeys.some(k => ["street_food","local_markets","food_tours","cafes"].includes(k)))
+    return "Matches your family's love of local food — a must-try for food explorers.";
+  if (tags.some(t => ["Culture","History","Museum"].includes(t)) || interestKeys.some(k => ["museums","history","art","architecture"].includes(k)))
+    return "Lines up with your interest in culture and history — a rich local experience.";
+  if (tags.some(t => ["Beach","Outdoor","Hiking","Water"].includes(t)) || interestKeys.some(k => ["beaches","hiking","national_parks","water_sports","wildlife"].includes(k)))
+    return "Fits your family's taste for outdoor adventures and nature.";
+  return "Saved based on your family's travel interests and upcoming trip.";
+}
+
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+export function SaveDetailModal({ itemId, onClose }: { itemId: string; onClose: () => void }) {
+  const [item, setItem] = useState<SaveItem | null>(null);
+  const [interestKeys, setInterestKeys] = useState<string[]>([]);
+  const [trips, setTrips] = useState<Trip[]>([]);
+  const [notes, setNotes] = useState("");
+  const [noteSaving, setNoteSaving] = useState(false);
+  const [noteSaved, setNoteSaved] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [tripDropdownOpen, setTripDropdownOpen] = useState(false);
+  const [assignedTrip, setAssignedTrip] = useState<{ id: string; title: string } | null>(null);
+  const noteTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const initialNotes = useRef("");
+
+  useEffect(() => {
+    requestAnimationFrame(() => setMounted(true));
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = ""; };
+  }, []);
+
+  useEffect(() => {
+    fetch(`/api/saves/${itemId}`)
+      .then(r => r.json())
+      .then(data => {
+        setItem(data.item);
+        setInterestKeys(data.interestKeys ?? []);
+        setNotes(data.item?.notes ?? "");
+        setAssignedTrip(data.item?.trip ?? null);
+        initialNotes.current = data.item?.notes ?? "";
+      });
+    fetch("/api/trips")
+      .then(r => r.json())
+      .then(data => setTrips(data.trips ?? []));
+  }, [itemId]);
+
+  async function handleNotesBlur() {
+    if (notes === initialNotes.current) return;
+    setNoteSaving(true);
+    try {
+      await fetch(`/api/saves/${itemId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ notes }),
+      });
+      initialNotes.current = notes;
+      setNoteSaved(true);
+      if (noteTimer.current) clearTimeout(noteTimer.current);
+      noteTimer.current = setTimeout(() => setNoteSaved(false), 2000);
+    } catch { /* silent */ }
+    finally { setNoteSaving(false); }
+  }
+
+  async function handleAssignTrip(trip: Trip) {
+    setTripDropdownOpen(false);
+    try {
+      await fetch(`/api/saves/activity`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sourceItemId: itemId, targetTripId: trip.id }),
+      });
+      setAssignedTrip(trip);
+    } catch { /* silent */ }
+  }
+
+  const tags = item?.categoryTags ?? [];
+  const gradient = getGradient(tags);
+  const location = [item?.destinationCity, item?.destinationCountry].filter(Boolean).join(", ");
+  const mapsUrl = item?.lat && item?.lng
+    ? `https://maps.apple.com/?q=${encodeURIComponent(item.rawTitle ?? "")}&ll=${item.lat},${item.lng}`
+    : null;
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        onClick={onClose}
+        style={{
+          position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.5)",
+          zIndex: 100,
+          opacity: mounted ? 1 : 0,
+          transition: "opacity 0.25s ease",
+        }}
+      />
+
+      {/* Modal panel */}
+      <div
+        style={{
+          position: "fixed", bottom: 0, left: "50%",
+          transform: mounted ? "translate(-50%, 0)" : "translate(-50%, 100%)",
+          transition: "transform 0.3s cubic-bezier(0.32,0.72,0,1)",
+          width: "100%", maxWidth: "560px",
+          maxHeight: "92vh", overflowY: "auto",
+          backgroundColor: "#fff",
+          borderRadius: "20px 20px 0 0",
+          boxShadow: "0 -8px 40px rgba(0,0,0,0.18)",
+          zIndex: 101,
+        }}
+      >
+        {/* Hero */}
+        <div style={{ height: "220px", position: "relative", flexShrink: 0 }}>
+          {item?.mediaThumbnailUrl ? (
+            <div style={{ width: "100%", height: "100%", backgroundImage: `url('${item.mediaThumbnailUrl}')`, backgroundSize: "cover", backgroundPosition: "center" }} />
+          ) : (
+            <div style={{ width: "100%", height: "100%", background: gradient }} />
+          )}
+          {/* dark overlay for text legibility */}
+          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(0,0,0,0.0) 30%, rgba(0,0,0,0.65) 100%)" }} />
+
+          {/* Close button */}
+          <button
+            onClick={onClose}
+            style={{
+              position: "absolute", top: "14px", right: "14px", zIndex: 2,
+              width: "32px", height: "32px", borderRadius: "50%",
+              backgroundColor: "rgba(0,0,0,0.45)", border: "none",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              cursor: "pointer",
+            }}
+          >
+            <X size={16} color="#fff" />
+          </button>
+
+          {/* Title + location */}
+          {item && (
+            <div style={{ position: "absolute", bottom: "16px", left: "20px", right: "48px", zIndex: 2 }}>
+              <h2 style={{ fontSize: "22px", fontWeight: 900, color: "#fff", lineHeight: 1.1, marginBottom: "4px", textShadow: "0 2px 8px rgba(0,0,0,0.4)" }}>
+                {item.rawTitle ?? "Saved place"}
+              </h2>
+              {location && (
+                <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                  <MapPin size={12} style={{ color: "rgba(255,255,255,0.85)" }} />
+                  <span style={{ fontSize: "13px", color: "rgba(255,255,255,0.9)", fontWeight: 500 }}>{location}</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Body */}
+        {!item ? (
+          <div style={{ padding: "32px", textAlign: "center", color: "#999", fontSize: "14px" }}>Loading…</div>
+        ) : (
+          <div style={{ padding: "20px 20px 100px" }}>
+
+            {/* Tags + source */}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginBottom: "6px" }}>
+              {tags.map(tag => (
+                <span key={tag} style={{ fontSize: "11px", fontWeight: 600, background: "rgba(0,0,0,0.06)", color: "#555", borderRadius: "999px", padding: "3px 10px" }}>
+                  {tag}
+                </span>
+              ))}
+            </div>
+            <p style={{ fontSize: "12px", color: "#aaa", marginBottom: "16px" }}>
+              Saved from {SOURCE_LABEL[item.sourceType] ?? item.sourceType} · {formatDate(item.savedAt)}
+            </p>
+
+            {/* Match reason */}
+            <div style={{ background: "#FDF6F3", borderRadius: "12px", padding: "12px 14px", marginBottom: "16px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "5px" }}>
+                <Sparkles size={13} style={{ color: "#C4664A" }} />
+                <span style={{ fontSize: "12px", fontWeight: 700, color: "#C4664A" }}>Why this works for your family</span>
+              </div>
+              <p style={{ fontSize: "13px", color: "#555", lineHeight: 1.5, margin: 0 }}>
+                {buildMatchReason(tags, interestKeys)}
+              </p>
+            </div>
+
+            {/* Description */}
+            {item.rawDescription && (
+              <p style={{ fontSize: "14px", color: "#444", lineHeight: 1.6, marginBottom: "16px" }}>
+                {item.rawDescription}
+              </p>
+            )}
+
+            {/* Trip assignment */}
+            <div style={{ marginBottom: "16px", padding: "12px 14px", borderRadius: "12px", border: "1px solid rgba(0,0,0,0.08)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              {assignedTrip ? (
+                <>
+                  <span style={{ fontSize: "13px", color: "#555" }}>Added to trip</span>
+                  <Link href={`/trips/${assignedTrip.id}`} onClick={onClose} style={{ fontSize: "13px", fontWeight: 700, color: "#C4664A", textDecoration: "none" }}>
+                    {assignedTrip.title} →
+                  </Link>
+                </>
+              ) : (
+                <span style={{ fontSize: "13px", color: "#999" }}>Not assigned to a trip yet</span>
+              )}
+            </div>
+
+            {/* Notes */}
+            <div style={{ marginBottom: "8px" }}>
+              <p style={{ fontSize: "13px", fontWeight: 700, color: "#1a1a1a", marginBottom: "8px" }}>Your notes</p>
+              <div style={{ position: "relative" }}>
+                <textarea
+                  value={notes}
+                  onChange={e => setNotes(e.target.value)}
+                  onBlur={handleNotesBlur}
+                  placeholder="Add your own notes..."
+                  rows={3}
+                  style={{
+                    width: "100%", padding: "10px 12px", borderRadius: "10px",
+                    border: "1px solid rgba(0,0,0,0.12)", fontSize: "13px",
+                    color: "#333", resize: "none", outline: "none",
+                    fontFamily: "-apple-system,BlinkMacSystemFont,sans-serif",
+                    lineHeight: 1.5, boxSizing: "border-box",
+                  }}
+                />
+                {(noteSaving || noteSaved) && (
+                  <span style={{ position: "absolute", bottom: "8px", right: "10px", fontSize: "11px", color: "#aaa" }}>
+                    {noteSaving ? "Saving…" : "Saved"}
+                  </span>
+                )}
+              </div>
+            </div>
+
+          </div>
+        )}
+
+        {/* Bottom action row — fixed within modal */}
+        {item && (
+          <div style={{
+            position: "sticky", bottom: 0, backgroundColor: "#fff",
+            borderTop: "1px solid rgba(0,0,0,0.08)",
+            padding: "12px 20px 24px",
+            display: "flex", gap: "10px", alignItems: "center",
+          }}>
+            {/* Get directions */}
+            {mapsUrl && (
+              <a
+                href={mapsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "5px",
+                  padding: "11px", borderRadius: "999px", border: "1.5px solid rgba(0,0,0,0.12)",
+                  fontSize: "13px", fontWeight: 600, color: "#333", textDecoration: "none",
+                  backgroundColor: "#fff",
+                }}
+              >
+                <Navigation size={13} />
+                Directions
+              </a>
+            )}
+
+            {/* Book now / Add to trip */}
+            {item.affiliateUrl ? (
+              <a
+                href={item.affiliateUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  flex: 2, display: "flex", alignItems: "center", justifyContent: "center", gap: "5px",
+                  padding: "11px", borderRadius: "999px", backgroundColor: "#C4664A",
+                  fontSize: "13px", fontWeight: 700, color: "#fff", textDecoration: "none",
+                }}
+              >
+                <ExternalLink size={13} />
+                Book now
+              </a>
+            ) : (
+              <div style={{ flex: 2, position: "relative" }}>
+                <button
+                  onClick={() => setTripDropdownOpen(o => !o)}
+                  style={{
+                    width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: "5px",
+                    padding: "11px", borderRadius: "999px", backgroundColor: "#C4664A",
+                    fontSize: "13px", fontWeight: 700, color: "#fff", border: "none", cursor: "pointer",
+                  }}
+                >
+                  {assignedTrip ? "Move to trip" : "Add to trip"}
+                  <ChevronDown size={13} />
+                </button>
+                {tripDropdownOpen && trips.length > 0 && (
+                  <div style={{
+                    position: "absolute", bottom: "calc(100% + 6px)", left: 0, right: 0,
+                    backgroundColor: "#fff", borderRadius: "12px",
+                    boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
+                    overflow: "hidden", zIndex: 10,
+                  }}>
+                    {trips.map(trip => (
+                      <button
+                        key={trip.id}
+                        onClick={() => handleAssignTrip(trip)}
+                        style={{
+                          width: "100%", padding: "12px 16px", textAlign: "left",
+                          background: "none", border: "none", borderBottom: "1px solid rgba(0,0,0,0.06)",
+                          fontSize: "14px", color: "#1a1a1a", cursor: "pointer",
+                          fontWeight: 500,
+                        }}
+                      >
+                        {trip.title}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </>
+  );
+}

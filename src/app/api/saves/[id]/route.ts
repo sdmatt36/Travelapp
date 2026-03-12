@@ -12,7 +12,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
     const user = await db.user.findUnique({
       where: { clerkId: userId },
-      include: { familyProfile: true },
+      include: { familyProfile: { include: { interests: true } } },
     });
     if (!user?.familyProfile) return NextResponse.json({ error: "No profile" }, { status: 400 });
 
@@ -25,7 +25,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ item });
+    const interestKeys = user.familyProfile.interests.map(i => i.interestKey);
+    return NextResponse.json({ item, interestKeys });
   } catch {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
