@@ -15,8 +15,7 @@ import {
   Link as LinkIcon,
   Play,
   Calendar,
-  Fish,
-  Landmark,
+
 } from "lucide-react";
 import { BottomNav } from "@/components/ui/BottomNav";
 import { AddTripButton } from "@/components/features/home/AddTripModal";
@@ -274,65 +273,50 @@ export default async function HomePage() {
                 </Link>
               </div>
               <div className="grid grid-cols-3 md:grid-cols-3 sm:grid-cols-1" style={{ gap: "16px" }}>
-
-                {/* Card 1: Churaumi Aquarium — fallback thumbnail */}
-                <Link href="/saves" style={{ textDecoration: "none" }}>
-                  <div style={{ backgroundColor: "#FAFAFA", borderRadius: "12px", boxShadow: "0 1px 4px rgba(0,0,0,0.08)", overflow: "hidden" }}>
-                    <div style={{ height: "130px", backgroundColor: "#F5F5F5", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <Fish size={28} style={{ color: "#999" }} />
-                    </div>
-                    <div style={{ padding: "12px" }}>
-                      <p style={{ fontSize: "14px", fontWeight: 700, color: "#1a1a1a", marginBottom: "2px", lineHeight: 1.3 }}>Churaumi Aquarium</p>
-                      <div style={{ display: "flex", alignItems: "center", gap: "3px", marginBottom: "6px" }}>
-                        <MapPin size={10} style={{ color: "#717171", flexShrink: 0 }} />
-                        <span style={{ fontSize: "12px", color: "#717171" }}>Motobu, Okinawa</span>
+                {profile.savedItems.map((item) => {
+                  const tags = item.categoryTags ?? [];
+                  const loc = [item.destinationCity, item.destinationCountry].filter(Boolean).join(", ");
+                  const gradients: Record<string, string> = {
+                    Kids: "linear-gradient(135deg,#3b82f6,#1d4ed8)",
+                    Activity: "linear-gradient(135deg,#3b82f6,#1d4ed8)",
+                    Culture: "linear-gradient(135deg,#8b5cf6,#6d28d9)",
+                    History: "linear-gradient(135deg,#8b5cf6,#6d28d9)",
+                    Food: "linear-gradient(135deg,#f97316,#ea580c)",
+                    Outdoor: "linear-gradient(135deg,#22c55e,#15803d)",
+                    Beach: "linear-gradient(135deg,#0ea5e9,#0284c7)",
+                    Lodging: "linear-gradient(135deg,#f59e0b,#d97706)",
+                  };
+                  const fallback = tags.map(t => gradients[t]).find(Boolean) ?? "linear-gradient(135deg,#C4664A,#a85039)";
+                  return (
+                    <Link key={item.id} href={`/saves/${item.id}`} style={{ textDecoration: "none" }}>
+                      <div style={{ backgroundColor: "#FAFAFA", borderRadius: "12px", boxShadow: "0 1px 4px rgba(0,0,0,0.08)", overflow: "hidden" }}>
+                        <div style={{
+                          height: "130px",
+                          background: item.mediaThumbnailUrl ? undefined : fallback,
+                          backgroundImage: item.mediaThumbnailUrl ? `url(${item.mediaThumbnailUrl})` : undefined,
+                          backgroundSize: "cover",
+                          backgroundPosition: "center",
+                        }} />
+                        <div style={{ padding: "12px" }}>
+                          <p style={{ fontSize: "14px", fontWeight: 700, color: "#1a1a1a", marginBottom: "2px", lineHeight: 1.3 }}>
+                            {item.rawTitle ?? "Saved place"}
+                          </p>
+                          {loc && (
+                            <div style={{ display: "flex", alignItems: "center", gap: "3px", marginBottom: "6px" }}>
+                              <MapPin size={10} style={{ color: "#717171", flexShrink: 0 }} />
+                              <span style={{ fontSize: "12px", color: "#717171" }}>{loc}</span>
+                            </div>
+                          )}
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
+                            {tags.slice(0, 2).map(tag => (
+                              <span key={tag} style={{ fontSize: "11px", backgroundColor: "rgba(0,0,0,0.05)", color: "#666", borderRadius: "20px", padding: "2px 8px" }}>{tag}</span>
+                            ))}
+                          </div>
+                        </div>
                       </div>
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
-                        <span style={{ fontSize: "11px", backgroundColor: "rgba(0,0,0,0.05)", color: "#666", borderRadius: "20px", padding: "2px 8px" }}>Kids</span>
-                        <span style={{ fontSize: "11px", backgroundColor: "rgba(0,0,0,0.05)", color: "#666", borderRadius: "20px", padding: "2px 8px" }}>Activity</span>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-
-                {/* Card 2: Katsuren Castle Ruins — fallback thumbnail */}
-                <Link href="/saves" style={{ textDecoration: "none" }}>
-                  <div style={{ backgroundColor: "#FAFAFA", borderRadius: "12px", boxShadow: "0 1px 4px rgba(0,0,0,0.08)", overflow: "hidden" }}>
-                    <div style={{ height: "130px", backgroundColor: "#F5F5F5", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <Landmark size={28} style={{ color: "#999" }} />
-                    </div>
-                    <div style={{ padding: "12px" }}>
-                      <p style={{ fontSize: "14px", fontWeight: 700, color: "#1a1a1a", marginBottom: "2px", lineHeight: 1.3 }}>Katsuren Castle Ruins</p>
-                      <div style={{ display: "flex", alignItems: "center", gap: "3px", marginBottom: "6px" }}>
-                        <MapPin size={10} style={{ color: "#717171", flexShrink: 0 }} />
-                        <span style={{ fontSize: "12px", color: "#717171" }}>Uruma, Okinawa</span>
-                      </div>
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
-                        <span style={{ fontSize: "11px", backgroundColor: "rgba(0,0,0,0.05)", color: "#666", borderRadius: "20px", padding: "2px 8px" }}>Culture</span>
-                        <span style={{ fontSize: "11px", backgroundColor: "rgba(0,0,0,0.05)", color: "#666", borderRadius: "20px", padding: "2px 8px" }}>Free</span>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-
-                {/* Card 3: Kokusai-dori — working image */}
-                <Link href="/saves" style={{ textDecoration: "none" }}>
-                  <div style={{ backgroundColor: "#FAFAFA", borderRadius: "12px", boxShadow: "0 1px 4px rgba(0,0,0,0.08)", overflow: "hidden" }}>
-                    <div style={{ height: "130px", backgroundColor: "#F5F5F5", backgroundImage: "url(https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400&auto=format&fit=crop&q=80)", backgroundSize: "cover", backgroundPosition: "center" }} />
-                    <div style={{ padding: "12px" }}>
-                      <p style={{ fontSize: "14px", fontWeight: 700, color: "#1a1a1a", marginBottom: "2px", lineHeight: 1.3 }}>Kokusai-dori Street Food</p>
-                      <div style={{ display: "flex", alignItems: "center", gap: "3px", marginBottom: "6px" }}>
-                        <MapPin size={10} style={{ color: "#717171", flexShrink: 0 }} />
-                        <span style={{ fontSize: "12px", color: "#717171" }}>Naha, Okinawa</span>
-                      </div>
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
-                        <span style={{ fontSize: "11px", backgroundColor: "rgba(0,0,0,0.05)", color: "#666", borderRadius: "20px", padding: "2px 8px" }}>Food</span>
-                        <span style={{ fontSize: "11px", backgroundColor: "rgba(0,0,0,0.05)", color: "#666", borderRadius: "20px", padding: "2px 8px" }}>Evening</span>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-
+                    </Link>
+                  );
+                })}
               </div>
             </div>
 

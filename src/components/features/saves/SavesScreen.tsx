@@ -130,6 +130,7 @@ function SaveCard({ save, openDropdown, setOpenDropdown, assignTrip, onTripClick
   const isDropdownOpen = openDropdown === save.id;
 
   return (
+    <Link href={`/saves/${save.id}`} style={{ textDecoration: "none" }}>
     <div
       style={{
         backgroundColor: "#FAFAFA",
@@ -338,6 +339,7 @@ function SaveCard({ save, openDropdown, setOpenDropdown, assignTrip, onTripClick
         )}
       </div>
     </div>
+    </Link>
   );
 }
 

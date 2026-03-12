@@ -246,6 +246,8 @@ model SavedItem {
   extractionStatus    ExtractionStatus @default(PENDING)
   dayIndex            Int?
   notes               String?
+  affiliateUrl        String?
+  websiteUrl          String?
 }
 
 enum SourceType {
