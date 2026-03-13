@@ -483,16 +483,19 @@ function SavedHorizCard({ item, isDesktop }: {
       <div style={{ padding: "10px 12px", flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", gap: "3px", minWidth: 0 }}>
         <p style={{ fontSize: "13px", fontWeight: 700, color: "#1a1a1a", lineHeight: 1.3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.title}</p>
         <p style={{ fontSize: "12px", color: "#717171", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.detail}</p>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "2px" }}>
-          <span style={{
-            fontSize: "11px", fontWeight: 600, borderRadius: "20px", padding: "2px 8px",
-            backgroundColor: item.statusBooked ? "rgba(74,124,89,0.1)" : "rgba(0,0,0,0.05)",
-            color: item.statusBooked ? "#4a7c59" : "#717171",
-            border: item.statusBooked ? "1px solid rgba(74,124,89,0.2)" : "1px solid #E0E0E0",
-          }}>
-            {item.status}
-          </span>
-        </div>
+        {item.statusBooked ? (
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "2px" }}>
+            <span style={{ fontSize: "11px", fontWeight: 600, borderRadius: "20px", padding: "2px 8px", backgroundColor: "rgba(74,124,89,0.1)", color: "#4a7c59", border: "1px solid rgba(74,124,89,0.2)" }}>
+              {item.status}
+            </span>
+          </div>
+        ) : (
+          <div style={{ display: "flex", gap: "5px", marginTop: "4px", flexWrap: "wrap" }}>
+            <button type="button" style={{ fontSize: "10px", fontWeight: 600, padding: "3px 8px", borderRadius: "20px", border: "1px solid rgba(196,102,74,0.3)", backgroundColor: "transparent", color: "#C4664A", cursor: "pointer", whiteSpace: "nowrap" }}>+ Itinerary</button>
+            <button type="button" style={{ fontSize: "10px", fontWeight: 600, padding: "3px 8px", borderRadius: "20px", border: "1px solid #E0E0E0", backgroundColor: "transparent", color: "#555", cursor: "pointer", whiteSpace: "nowrap" }}>Book</button>
+            <button type="button" style={{ fontSize: "10px", fontWeight: 600, padding: "3px 8px", borderRadius: "20px", border: "1px solid #E0E0E0", backgroundColor: "transparent", color: "#555", cursor: "pointer", whiteSpace: "nowrap" }}>Learn more</button>
+          </div>
+        )}
         <div style={{ display: "flex", alignItems: "center", gap: "4px", marginTop: "1px" }}>
           <Users size={10} style={{ color: "#BBBBBB", flexShrink: 0 }} />
           <span style={{ fontSize: "11px", color: "#BBBBBB" }}>{item.families}</span>
@@ -573,9 +576,58 @@ const ACCORDION_DAYS = [
   { dayNum: 5, dateStr: "Thu, May 8",  weatherIcon: <Sun size={12} style={{ color: "#717171" }} />,        temp: "28°C", cost: "$150", previews: ["Halekulani Checkout"] },
 ];
 
+function TaskModal({ onClose }: { onClose: () => void }) {
+  const NEEDS_BOOKING = [
+    { title: "Ocean Expo Park Churaumi Aquarium", note: "Tickets recommended in advance — sells out in May", url: "https://churaumi.okinawa/en/", price: "¥2,180 / adult" },
+    { title: "Katsuren Castle Ruins", note: "No booking required, but check opening hours", url: "https://www.katsuren-jo.jp/", price: "¥600 / adult" },
+  ];
+  const EMPTY_DAYS = [
+    { dateStr: "Tue, May 6", dayNum: 3 },
+    { dateStr: "Wed, May 7", dayNum: 4 },
+  ];
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.5)", zIndex: 300, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+      <div onClick={e => e.stopPropagation()} style={{ backgroundColor: "#fff", borderRadius: "20px 20px 0 0", width: "100%", maxWidth: "560px", maxHeight: "85vh", overflowY: "auto", padding: "24px 20px 32px", paddingBottom: "env(safe-area-inset-bottom, 32px)" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
+          <p style={{ fontSize: "17px", fontWeight: 800, color: "#1a1a1a" }}>What needs attention</p>
+          <button onClick={onClose} style={{ background: "none", border: "none", fontSize: "20px", cursor: "pointer", color: "#999", padding: "4px" }}>×</button>
+        </div>
+
+        {/* Needs booking */}
+        <p style={{ fontSize: "11px", fontWeight: 700, color: "#717171", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "10px" }}>Needs reservation</p>
+        {NEEDS_BOOKING.map(item => (
+          <div key={item.title} style={{ backgroundColor: "#FAFAFA", borderRadius: "12px", border: "1px solid #EEEEEE", padding: "14px", marginBottom: "10px" }}>
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "8px" }}>
+              <div style={{ flex: 1 }}>
+                <p style={{ fontSize: "14px", fontWeight: 700, color: "#1a1a1a", marginBottom: "2px" }}>{item.title}</p>
+                <p style={{ fontSize: "12px", color: "#717171", marginBottom: "8px" }}>{item.note}</p>
+                <span style={{ fontSize: "12px", fontWeight: 600, color: "#4a7c59" }}>{item.price}</span>
+              </div>
+              <a href={item.url} target="_blank" rel="noopener noreferrer" style={{ flexShrink: 0, padding: "8px 14px", borderRadius: "999px", backgroundColor: "#C4664A", color: "#fff", fontSize: "12px", fontWeight: 700, textDecoration: "none" }}>Book →</a>
+            </div>
+          </div>
+        ))}
+
+        {/* Empty days */}
+        <p style={{ fontSize: "11px", fontWeight: 700, color: "#717171", textTransform: "uppercase", letterSpacing: "0.08em", margin: "16px 0 10px" }}>Unplanned days</p>
+        {EMPTY_DAYS.map(day => (
+          <div key={day.dayNum} style={{ backgroundColor: "#FAFAFA", borderRadius: "12px", border: "1.5px dashed #E0E0E0", padding: "14px", marginBottom: "10px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div>
+              <p style={{ fontSize: "14px", fontWeight: 700, color: "#1a1a1a" }}>Day {day.dayNum} — {day.dateStr}</p>
+              <p style={{ fontSize: "12px", color: "#aaa" }}>Nothing planned yet</p>
+            </div>
+            <button onClick={onClose} style={{ padding: "7px 14px", borderRadius: "999px", border: "1.5px solid #C4664A", backgroundColor: "transparent", color: "#C4664A", fontSize: "12px", fontWeight: 700, cursor: "pointer" }}>Add saves →</button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function ItineraryContent({ flyTarget, onFlyTargetConsumed }: { flyTarget: { lat: number; lng: number } | null; onFlyTargetConsumed: () => void }) {
   const [openDay, setOpenDay] = useState(0); // -1 = all collapsed
   const [notes, setNotes] = useState(["", "", "", "", ""]);
+  const [showTaskModal, setShowTaskModal] = useState(false);
   const [leftHeight, setLeftHeight] = useState<number | null>(null);
   const leftPanelRef = useRef<HTMLDivElement>(null);
 
@@ -648,12 +700,8 @@ function ItineraryContent({ flyTarget, onFlyTargetConsumed }: { flyTarget: { lat
             <span style={{ fontSize: "13px", color: "#717171" }}>3 days unplanned</span>
           </div>
         </div>
-        {/* TODO: "Handle it" opens a slide-up panel showing
-            items with requires_booking: true for this trip
-            Each item shows: name, booking URL (affiliate_url),
-            estimated cost, and a "Book now" CTA
-            Priority: Phase 2 — affiliate/booking layer */}
         <button
+          onClick={() => setShowTaskModal(true)}
           style={{
             display: "flex", alignItems: "center", gap: "4px",
             backgroundColor: "transparent", border: "none", padding: 0,
@@ -661,7 +709,7 @@ function ItineraryContent({ flyTarget, onFlyTargetConsumed }: { flyTarget: { lat
             fontSize: "13px", fontWeight: 700,
           }}
         >
-          Handle it
+          See what&apos;s needed
           <ArrowRight size={13} />
         </button>
       </div>
@@ -815,6 +863,8 @@ function ItineraryContent({ flyTarget, onFlyTargetConsumed }: { flyTarget: { lat
         </div>{/* end right panel */}
 
       </div>
+
+      {showTaskModal && <TaskModal onClose={() => setShowTaskModal(false)} />}
     </div>
   );
 }
@@ -1058,6 +1108,125 @@ function PackingContent() {
   );
 }
 
+// ── Rec detail modal ──────────────────────────────────────────────────────────
+
+function RecDetailModal({
+  rec,
+  isSaved,
+  isSaving,
+  onSave,
+  onViewOnMap,
+  onClose,
+  dayPills,
+}: {
+  rec: typeof RECOMMENDATIONS[0];
+  isSaved: boolean;
+  isSaving: boolean;
+  onSave: (dayIndex: number | null) => void;
+  onViewOnMap: (lat: number, lng: number) => void;
+  onClose: () => void;
+  dayPills: { dayIndex: number; label: string }[];
+}) {
+  const [imgFailed, setImgFailed] = useState(false);
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
+  const [showDayPicker, setShowDayPicker] = useState(false);
+  const category = rec.tags.split(" · ")[0];
+  const price = rec.tags.split(" · ")[1] ?? "";
+  const duration = rec.tags.split(" · ")[2] ?? "";
+
+  return (
+    <div
+      onClick={onClose}
+      style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.5)", zIndex: 300, display: "flex", alignItems: "flex-end", justifyContent: "center" }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{ backgroundColor: "#fff", borderRadius: "20px 20px 0 0", width: "100%", maxWidth: "560px", maxHeight: "90vh", overflowY: "auto", paddingBottom: "env(safe-area-inset-bottom, 16px)" }}
+      >
+        {/* Hero image */}
+        <div style={{ position: "relative" }}>
+          {imgFailed ? (
+            <div style={{ height: "220px", backgroundColor: "#F5F5F5", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Compass size={36} style={{ color: "#ccc" }} />
+            </div>
+          ) : (
+            <>
+              <div style={{ height: "220px", backgroundImage: `url('${rec.img}')`, backgroundSize: "cover", backgroundPosition: "center" }} />
+              <img src={rec.img} alt="" onError={() => setImgFailed(true)} style={{ display: "none" }} />
+            </>
+          )}
+          <button onClick={onClose} style={{ position: "absolute", top: "12px", right: "12px", width: "32px", height: "32px", borderRadius: "50%", backgroundColor: "rgba(0,0,0,0.5)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: "18px", lineHeight: 1 }}>×</button>
+          <span style={{ position: "absolute", bottom: "12px", left: "12px", fontSize: "11px", fontWeight: 700, backgroundColor: "rgba(196,102,74,0.9)", color: "#fff", borderRadius: "20px", padding: "3px 10px" }}>{category}</span>
+        </div>
+
+        {/* Content */}
+        <div style={{ padding: "20px 20px 8px" }}>
+          <p style={{ fontSize: "20px", fontWeight: 800, color: "#1a1a1a", marginBottom: "4px" }}>{rec.title}</p>
+          <div style={{ display: "flex", alignItems: "center", gap: "4px", marginBottom: "12px" }}>
+            <MapPin size={12} style={{ color: "#717171" }} />
+            <span style={{ fontSize: "13px", color: "#717171" }}>{rec.location}</span>
+          </div>
+
+          {/* Stats row */}
+          <div style={{ display: "flex", gap: "16px", marginBottom: "16px" }}>
+            {price && <div style={{ textAlign: "center" }}><p style={{ fontSize: "15px", fontWeight: 700, color: "#1a1a1a" }}>{price}</p><p style={{ fontSize: "11px", color: "#999" }}>price</p></div>}
+            {duration && <div style={{ textAlign: "center" }}><p style={{ fontSize: "15px", fontWeight: 700, color: "#1a1a1a" }}>{duration}</p><p style={{ fontSize: "11px", color: "#999" }}>duration</p></div>}
+            <div style={{ textAlign: "center" }}><p style={{ fontSize: "15px", fontWeight: 700, color: "#1a1a1a" }}>{rec.saved.toLocaleString()}</p><p style={{ fontSize: "11px", color: "#999" }}>families saved</p></div>
+          </div>
+
+          {/* Match reason */}
+          <div style={{ backgroundColor: "rgba(196,102,74,0.07)", borderRadius: "10px", padding: "12px 14px", marginBottom: "16px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "4px" }}>
+              <Sparkles size={13} style={{ color: "#C4664A" }} />
+              <span style={{ fontSize: "12px", fontWeight: 700, color: "#C4664A" }}>Why we picked this for you</span>
+            </div>
+            <p style={{ fontSize: "13px", color: "#555", lineHeight: 1.5 }}>{rec.match}</p>
+          </div>
+
+          {/* Day picker */}
+          {showDayPicker && dayPills.length > 0 && (
+            <div style={{ marginBottom: "16px" }}>
+              <p style={{ fontSize: "12px", fontWeight: 700, color: "#555", marginBottom: "8px" }}>Add to which day?</p>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                <button type="button" onClick={() => setSelectedDay(null)} style={{ padding: "5px 12px", borderRadius: "999px", fontSize: "11px", fontWeight: 600, border: "1.5px solid", borderColor: selectedDay === null ? "#C4664A" : "#DDD", backgroundColor: selectedDay === null ? "#C4664A" : "#fff", color: selectedDay === null ? "#fff" : "#666", cursor: "pointer" }}>No specific day</button>
+                {dayPills.map(({ dayIndex, label }) => (
+                  <button type="button" key={dayIndex} onClick={() => setSelectedDay(dayIndex)} style={{ padding: "5px 12px", borderRadius: "999px", fontSize: "11px", fontWeight: 600, border: "1.5px solid", borderColor: selectedDay === dayIndex ? "#C4664A" : "#DDD", backgroundColor: selectedDay === dayIndex ? "#C4664A" : "#fff", color: selectedDay === dayIndex ? "#fff" : "#666", cursor: "pointer" }}>{label}</button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Actions */}
+          <div style={{ display: "flex", gap: "10px", marginBottom: "12px" }}>
+            {isSaved ? (
+              <div style={{ flex: 1, padding: "12px", borderRadius: "12px", backgroundColor: "rgba(74,124,89,0.1)", border: "1px solid rgba(74,124,89,0.2)", textAlign: "center", fontSize: "14px", fontWeight: 700, color: "#4a7c59" }}>Saved to trip ✓</div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  if (!showDayPicker && dayPills.length > 0) { setShowDayPicker(true); return; }
+                  onSave(selectedDay);
+                }}
+                style={{ flex: 1, padding: "12px", borderRadius: "12px", border: "none", backgroundColor: "#C4664A", fontSize: "14px", fontWeight: 700, color: "#fff", cursor: isSaving ? "default" : "pointer", opacity: isSaving ? 0.7 : 1 }}
+              >
+                {isSaving ? "Saving..." : showDayPicker ? (selectedDay !== null ? `Save to Day ${selectedDay} →` : "Save to trip →") : "+ Add to itinerary"}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => { onViewOnMap(rec.lat, rec.lng); onClose(); }}
+              style={{ padding: "12px 16px", borderRadius: "12px", border: "1.5px solid #EEEEEE", backgroundColor: "#fff", fontSize: "14px", fontWeight: 600, color: "#C4664A", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
+            >
+              <MapPin size={14} style={{ color: "#C4664A" }} />
+              Map
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Recommended tab ───────────────────────────────────────────────────────────
 
 const RECOMMENDATIONS = [
@@ -1142,6 +1311,7 @@ function RecommendedContent({
   const [pendingRec, setPendingRec] = useState<string | null>(null);
   const [pendingDayIndex, setPendingDayIndex] = useState<number | null>(null);
   const [pendingCategory, setPendingCategory] = useState<string>("");
+  const [detailRec, setDetailRec] = useState<typeof RECOMMENDATIONS[0] | null>(null);
 
   function generateDayPillsForRec(start: string | null, end: string | null): { dayIndex: number; label: string }[] {
     if (!start) return [];
@@ -1231,6 +1401,7 @@ function RecommendedContent({
                   setPendingCategory(rec.tags.split(" · ")[0]);
                 }}
                 onViewOnMap={(lat, lng) => onViewOnMap(lat, lng)}
+                onOpenDetail={() => setDetailRec(rec)}
               />
                   {isPending && (
                     <div style={{ backgroundColor: "#FAFAFA", borderRadius: "0 0 12px 12px", border: "1px solid #EEEEEE", borderTop: "none", padding: "12px 14px", display: "flex", flexDirection: "column", gap: "10px" }}>
@@ -1274,14 +1445,30 @@ function RecommendedContent({
               );
           })}
       </div>
+
+      {/* Rec detail modal */}
+      {detailRec && (
+        <RecDetailModal
+          rec={detailRec}
+          isSaved={savedSet.has(detailRec.title)}
+          isSaving={savingTitle === detailRec.title}
+          onSave={(dayIndex) => {
+            handleSave(detailRec, dayIndex, detailRec.tags.split(" · ")[0]);
+            setDetailRec(null);
+          }}
+          onViewOnMap={onViewOnMap}
+          onClose={() => setDetailRec(null)}
+          dayPills={recDayPills}
+        />
+      )}
     </div>
   );
 }
 
-function RecCard({ rec, isSaved, isSaving, onToggle, onViewOnMap }: { rec: typeof RECOMMENDATIONS[0]; isSaved: boolean; isSaving: boolean; onToggle: () => void; onViewOnMap: (lat: number, lng: number) => void }) {
+function RecCard({ rec, isSaved, isSaving, onToggle, onViewOnMap, onOpenDetail }: { rec: typeof RECOMMENDATIONS[0]; isSaved: boolean; isSaving: boolean; onToggle: () => void; onViewOnMap: (lat: number, lng: number) => void; onOpenDetail: () => void }) {
   const [imgFailed, setImgFailed] = useState(false);
   return (
-    <div style={{ backgroundColor: "#fff", borderRadius: "12px", boxShadow: "0 1px 6px rgba(0,0,0,0.08)", border: "1px solid #EEEEEE", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+    <div onClick={onOpenDetail} style={{ backgroundColor: "#fff", borderRadius: "12px", boxShadow: "0 1px 6px rgba(0,0,0,0.08)", border: "1px solid #EEEEEE", overflow: "hidden", display: "flex", flexDirection: "column", cursor: "pointer" }}>
       {imgFailed ? (
         <div style={{ width: "100%", height: "180px", backgroundColor: "#F5F5F5", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
           <Compass size={28} style={{ color: "#999" }} />
@@ -1305,13 +1492,13 @@ function RecCard({ rec, isSaved, isSaving, onToggle, onViewOnMap }: { rec: typeo
         </p>
         <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap", marginTop: "4px" }}>
           <span
-            onClick={isSaved || isSaving ? undefined : onToggle}
+            onClick={e => { e.stopPropagation(); if (!isSaved && !isSaving) onToggle(); }}
             style={{ fontSize: "12px", fontWeight: 600, color: isSaved ? "#4a7c59" : isSaving ? "#717171" : "#C4664A", backgroundColor: isSaved ? "rgba(74,124,89,0.1)" : isSaving ? "rgba(0,0,0,0.05)" : "transparent", border: isSaved ? "1px solid rgba(74,124,89,0.2)" : isSaving ? "1px solid #ddd" : "none", borderRadius: "20px", padding: (isSaved || isSaving) ? "3px 10px" : "0", cursor: (isSaved || isSaving) ? "default" : "pointer" }}
           >
             {isSaved ? "Saved ✓" : isSaving ? "Saving..." : "+ Save to trip"}
           </span>
           <button
-            onClick={() => onViewOnMap(rec.lat, rec.lng)}
+            onClick={e => { e.stopPropagation(); onViewOnMap(rec.lat, rec.lng); }}
             style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontSize: "12px", fontWeight: 600, color: "#C4664A", display: "flex", alignItems: "center", gap: "3px" }}
           >
             <MapPin size={11} style={{ color: "#C4664A" }} />

@@ -9,16 +9,11 @@ import {
   Bookmark,
   Plus,
   Compass,
-  Instagram,
-  Youtube,
-  Link as LinkIcon,
-  Play,
   Calendar,
-
 } from "lucide-react";
 import { AddTripButton } from "@/components/features/home/AddTripModal";
-import { RecentSavesCards } from "@/components/features/home/RecentSavesCards";
 import { DropLinkTile } from "@/components/features/home/DropLinkTile";
+import { SourceFilterSaves } from "@/components/features/home/SourceFilterSaves";
 
 const playfair = Playfair_Display({ subsets: ["latin"], weight: ["700", "900"] });
 
@@ -116,7 +111,7 @@ export default async function HomePage() {
           },
           savedItems: {
             orderBy: { savedAt: "desc" },
-            take: 3,
+            take: 20,
           },
         },
       },
@@ -125,6 +120,15 @@ export default async function HomePage() {
 
   const profile = user?.familyProfile;
   if (!profile) redirect("/onboarding");
+
+  // Deduplicate saved items by rawTitle (keeps most recent), then take 6
+  const seenTitles = new Set<string>();
+  const dedupedSaves = profile.savedItems.filter(item => {
+    const key = item.rawTitle ?? item.id;
+    if (seenTitles.has(key)) return false;
+    seenTitles.add(key);
+    return true;
+  }).slice(0, 6);
 
   const greeting = getGreeting();
   const displayName = profile.familyName ?? "there";
@@ -221,51 +225,21 @@ export default async function HomePage() {
             </div>
             </div>{/* end tiles order wrapper */}
 
-            {/* Where do you find travel ideas? — mobile order 6 */}
+            {/* Source filter + recent saves — mobile order 6/7 */}
             <div className="order-6 md:order-none">
-            <div style={{ backgroundColor: "#F5F5F5", border: "1px solid rgba(196,102,74,0.18)", borderRadius: "16px", padding: "16px" }}>
-              <p style={{ fontWeight: 700, fontSize: "14px", color: "#1a1a1a", marginBottom: "4px" }}>Where do you find travel ideas?</p>
-              <p style={{ fontSize: "12px", color: "#717171", lineHeight: 1.5, marginBottom: "12px" }}>
-                Share anything from these apps directly to Flokk — we&apos;ll pull out the location, details, and context automatically.
-              </p>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-                {[
-                  { label: "Instagram", icon: Instagram, color: "#E1306C" },
-                  { label: "TikTok", icon: Play, color: "#010101" },
-                  { label: "YouTube", icon: Youtube, color: "#FF0000" },
-                  { label: "Anywhere else →", icon: LinkIcon, color: "#717171" },
-                ].map(({ label, icon: Icon, color }) => (
-                  <button
-                    key={label}
-                    style={{ display: "flex", alignItems: "center", gap: "6px", padding: "8px 12px", borderRadius: "999px", fontSize: "12px", fontWeight: 600, border: "1px solid rgba(196,102,74,0.25)", color: "#717171", backgroundColor: "#fff", cursor: "pointer" }}
-                  >
-                    <Icon size={13} style={{ color }} />
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            </div>{/* end where-to-find order wrapper */}
-
-            {/* Recent saves — mobile order 7 */}
-            <div className="order-7 md:order-none">
-            <div>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
-                <h2 style={{ fontWeight: 700, color: "#1a1a1a", fontSize: "15px" }}>Recent saves</h2>
-                <Link href="/saves" style={{ fontSize: "13px", fontWeight: 600, color: "#C4664A", textDecoration: "none" }}>
-                  See all
-                </Link>
-              </div>
-              <RecentSavesCards items={profile.savedItems.map(item => ({
+            <SourceFilterSaves
+              items={dedupedSaves.map(item => ({
                 id: item.id,
                 rawTitle: item.rawTitle,
                 mediaThumbnailUrl: item.mediaThumbnailUrl,
                 destinationCity: item.destinationCity,
                 destinationCountry: item.destinationCountry,
                 categoryTags: item.categoryTags,
-              }))} />
-            </div>
-            </div>{/* end saves order wrapper */}
+                sourceType: item.sourceType,
+              }))}
+              trips={profile.trips.map(t => ({ id: t.id, title: t.title, startDate: t.startDate ? t.startDate.toISOString() : null, endDate: t.endDate ? t.endDate.toISOString() : null }))}
+            />
+            </div>{/* end source filter wrapper */}
 
           </div>
 
