@@ -381,6 +381,7 @@ function SavedContent({ tripId }: { tripId?: string }) {
   const [loadingItems, setLoadingItems] = useState(!!tripId);
 
   useEffect(() => {
+    console.log("[SavedContent] tripId received:", tripId);
     if (!tripId) { setLoadingItems(false); return; }
     function fetchItems() {
       fetch(`/api/saves?tripId=${tripId}`)

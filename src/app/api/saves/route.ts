@@ -142,6 +142,7 @@ export async function GET(request: Request) {
       include: { trip: { select: { id: true, title: true } } },
     });
 
+    console.log("[GET /api/saves] tripId param:", tripId ?? "none");
     console.log("[GET /api/saves] returning", saves.length, "saves for familyProfile", user.familyProfile.id);
 
     return NextResponse.json(
