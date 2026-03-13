@@ -365,165 +365,115 @@ function AssignDayControl({ cardTitle, dayAssignments, openDayDropdown, setOpenD
   );
 }
 
-function SavedContent() {
-  const [selectedCard, setSelectedCard] = useState<string | null>(null);
-  const [dayAssignments, setDayAssignments] = useState<Record<string, string>>({});
-  const [openDayDropdown, setOpenDayDropdown] = useState<string | null>(null);
+type TripSavedItemForDisplay = {
+  id: string;
+  rawTitle: string | null;
+  mediaThumbnailUrl: string | null;
+  categoryTags: string[];
+  sourceType: string;
+  savedAt: string;
+  destinationCity: string | null;
+  destinationCountry: string | null;
+};
+
+function SavedContent({ tripId }: { tripId?: string }) {
+  const [items, setItems] = useState<TripSavedItemForDisplay[]>([]);
+  const [loadingItems, setLoadingItems] = useState(!!tripId);
+
+  useEffect(() => {
+    if (!tripId) { setLoadingItems(false); return; }
+    function fetchItems() {
+      fetch(`/api/saves?tripId=${tripId}`)
+        .then(r => r.json())
+        .then(data => { setItems(data.saves ?? []); setLoadingItems(false); })
+        .catch(() => setLoadingItems(false));
+    }
+    fetchItems();
+    window.addEventListener("flokk:refresh", fetchItems);
+    return () => window.removeEventListener("flokk:refresh", fetchItems);
+  }, [tripId]);
+
+  // Deduplicate by id (guards against double-writes in DB)
+  const dedupedItems = items.filter((item, idx, arr) => arr.findIndex(i => i.id === item.id) === idx);
+
+  // Group by first category tag, sorted alphabetically
+  const grouped: Record<string, TripSavedItemForDisplay[]> = {};
+  for (const item of dedupedItems) {
+    const cat = item.categoryTags[0] ?? "Other";
+    if (!grouped[cat]) grouped[cat] = [];
+    grouped[cat].push(item);
+  }
+  const sortedGroups = Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b));
+
+  const SOURCE_LABEL: Record<string, string> = {
+    INSTAGRAM: "Instagram", TIKTOK: "TikTok", GOOGLE_MAPS: "Google Maps",
+    MANUAL: "Web", IN_APP: "In-app", EMAIL_IMPORT: "Email", PHOTO_IMPORT: "Photo",
+  };
+
+  if (loadingItems) {
+    return <div style={{ textAlign: "center", padding: "32px", color: "#999", fontSize: "14px" }}>Loading…</div>;
+  }
+
+  if (dedupedItems.length === 0) {
+    return (
+      <div style={{ textAlign: "center", padding: "48px 24px" }}>
+        <div style={{ fontSize: "32px", marginBottom: "12px" }}>📌</div>
+        <p style={{ fontSize: "16px", fontWeight: 700, color: "#1a1a1a", marginBottom: "6px" }}>Nothing saved yet</p>
+        <p style={{ fontSize: "13px", color: "#717171" }}>Drop a link or save a recommendation to get started.</p>
+      </div>
+    );
+  }
 
   return (
-    <div onClick={() => { setSelectedCard(null); setOpenDayDropdown(null); }} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-      {/* Left column: Lodging + Transportation */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-
-        {/* LODGING */}
-        <div>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px" }}>
-            <span style={{ fontSize: "12px", fontWeight: 700, color: "#717171", textTransform: "uppercase", letterSpacing: "0.08em", display: "flex", alignItems: "center", gap: "5px" }}>
-              <BedDouble size={14} style={{ color: "#717171" }} />Lodging
-            </span>
-            <span style={{ fontSize: "12px", color: "#bbb" }}>1</span>
+    <div>
+      {sortedGroups.map(([cat, catItems]) => (
+        <div key={cat} style={{ marginBottom: "24px" }}>
+          <div style={{ fontSize: "11px", fontWeight: 700, color: "#717171", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "10px", paddingBottom: "8px", borderBottom: "1px solid #EEEEEE", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <span>{cat}</span>
+            <span style={{ fontSize: "11px", color: "#bbb", fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>{catItems.length}</span>
           </div>
-          <div
-            onClick={(e) => { e.stopPropagation(); setSelectedCard("Halekulani Okinawa"); }}
-            style={{ backgroundColor: "#FAFAFA", borderRadius: "12px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", borderLeft: "3px solid rgba(196,102,74,0.3)", padding: "12px", display: "flex", gap: "12px", alignItems: "flex-start", minHeight: "110px", cursor: "pointer", outline: selectedCard === "Halekulani Okinawa" ? "2px solid rgba(196,102,74,0.4)" : "none" }}
-          >
-            <div style={{ width: "96px", height: "96px", borderRadius: "8px", flexShrink: 0, backgroundImage: "url('https://images.unsplash.com/photo-1566073771259-6a8506099945?w=200&auto=format&fit=crop')", backgroundSize: "cover", backgroundPosition: "center" }} />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "4px" }}>
-                <p style={{ fontSize: "16px", fontWeight: 700, color: "#1a1a1a" }}>Halekulani Okinawa</p>
-                <span style={{ display: "flex", alignItems: "center", gap: "3px", flexShrink: 0, marginLeft: "8px", marginTop: "2px" }}>
-                  <MapPin size={10} style={{ color: "#717171" }} />
-                  <span style={{ fontSize: "11px", color: "#717171" }}>Base hotel</span>
-                </span>
-              </div>
-              <p style={{ fontSize: "13px", color: "#555", marginBottom: "3px" }}>Onna Village · 5 nights</p>
-              <p style={{ fontSize: "12px", color: "#666", marginBottom: "8px" }}>Check-in May 4 · Check-out May 8 · $225/night</p>
-              <span style={{ fontSize: "12px", fontWeight: 600, color: "#4a7c59", backgroundColor: "rgba(74,124,89,0.1)", border: "1px solid rgba(74,124,89,0.2)", borderRadius: "20px", padding: "3px 10px" }}>Booked ✓</span>
-              <div style={{ display: "flex", alignItems: "center", gap: "4px", marginTop: "8px" }}>
-                <Users size={12} style={{ color: "#717171", flexShrink: 0 }} />
-                <span style={{ fontSize: "12px", color: "#717171" }}>Stayed by 1,240 families · 4.9 ★</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* AIRFARE */}
-        <div>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px" }}>
-            <span style={{ fontSize: "12px", fontWeight: 700, color: "#717171", textTransform: "uppercase", letterSpacing: "0.08em", display: "flex", alignItems: "center", gap: "5px" }}>
-              <Plane size={14} style={{ color: "#717171" }} />Transportation
-            </span>
-            <span style={{ fontSize: "12px", color: "#bbb" }}>1</span>
-          </div>
-          <div
-            onClick={(e) => { e.stopPropagation(); setSelectedCard("JAL · Tokyo → Naha"); }}
-            style={{ backgroundColor: "#FAFAFA", borderRadius: "12px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", borderLeft: "3px solid rgba(196,102,74,0.3)", padding: "12px", display: "flex", gap: "12px", alignItems: "flex-start", minHeight: "110px", cursor: "pointer", outline: selectedCard === "JAL · Tokyo → Naha" ? "2px solid rgba(196,102,74,0.4)" : "none" }}
-          >
-            <div style={{ width: "96px", height: "96px", borderRadius: "8px", backgroundColor: "#e8e4de", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              <Plane size={28} style={{ color: "#717171" }} />
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontSize: "16px", fontWeight: 700, color: "#1a1a1a", marginBottom: "4px" }}>JAL · Tokyo → Naha</p>
-              <p style={{ fontSize: "13px", color: "#555", marginBottom: "3px" }}>May 4 · 2h 45m</p>
-              <p style={{ fontSize: "12px", color: "#666", marginBottom: "8px" }}>Economy · 2 adults · 2 children · ¥28,000 total</p>
-              <span style={{ fontSize: "12px", fontWeight: 600, color: "#4a7c59", backgroundColor: "rgba(74,124,89,0.1)", border: "1px solid rgba(74,124,89,0.2)", borderRadius: "20px", padding: "3px 10px" }}>Booked ✓</span>
-              <div style={{ display: "flex", alignItems: "center", gap: "4px", marginTop: "8px" }}>
-                <Users size={12} style={{ color: "#717171", flexShrink: 0 }} />
-                <span style={{ fontSize: "12px", color: "#717171" }}>Flown by 3,400+ families · Most popular route</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-      </div>{/* end left column */}
-
-      {/* Right column: Restaurants + Activities */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-
-        {/* RESTAURANTS */}
-        <div>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px" }}>
-            <span style={{ fontSize: "12px", fontWeight: 700, color: "#717171", textTransform: "uppercase", letterSpacing: "0.08em", display: "flex", alignItems: "center", gap: "5px" }}>
-              <Utensils size={14} style={{ color: "#717171" }} />Restaurants
-            </span>
-            <span style={{ fontSize: "12px", color: "#bbb" }}>1</span>
-          </div>
-          <div
-            onClick={(e) => { e.stopPropagation(); setSelectedCard("Naha Kokusai-dori Street Food"); }}
-            style={{ backgroundColor: "#FAFAFA", borderRadius: "12px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", borderLeft: "3px solid rgba(196,102,74,0.3)", padding: "12px", display: "flex", gap: "12px", alignItems: "flex-start", minHeight: "110px", cursor: "pointer", outline: selectedCard === "Naha Kokusai-dori Street Food" ? "2px solid rgba(196,102,74,0.4)" : "none" }}
-          >
-            <div style={{ width: "96px", height: "96px", borderRadius: "8px", flexShrink: 0, backgroundImage: "url('https://images.unsplash.com/photo-1569050467447-ce54b3bbc37d?w=200&auto=format&fit=crop')", backgroundSize: "cover", backgroundPosition: "center" }} />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "4px" }}>
-                <p style={{ fontSize: "16px", fontWeight: 700, color: "#1a1a1a" }}>Naha Kokusai-dori Street Food</p>
-                <span style={{ display: "flex", alignItems: "center", gap: "3px", flexShrink: 0, marginLeft: "8px", marginTop: "2px" }}>
-                  <MapPin size={10} style={{ color: "#717171" }} />
-                  <span style={{ fontSize: "11px", color: "#717171" }}>2.4km from hotel</span>
-                </span>
-              </div>
-              <p style={{ fontSize: "13px", color: "#555", marginBottom: "3px" }}>Naha · Evening</p>
-              <p style={{ fontSize: "12px", color: "#666", marginBottom: "8px" }}>Walk-in · No reservation needed · ~$15/person</p>
-              <AssignDayControl cardTitle="Naha Kokusai-dori Street Food" dayAssignments={dayAssignments} openDayDropdown={openDayDropdown} setOpenDayDropdown={setOpenDayDropdown} setDayAssignments={setDayAssignments} />
-              <div style={{ display: "flex", alignItems: "center", gap: "4px", marginTop: "8px" }}>
-                <Users size={12} style={{ color: "#717171", flexShrink: 0 }} />
-                <span style={{ fontSize: "12px", color: "#717171" }}>Visited by 892 families · Top pick for kids</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* ACTIVITIES */}
-        <div>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px" }}>
-            <span style={{ fontSize: "12px", fontWeight: 700, color: "#717171", textTransform: "uppercase", letterSpacing: "0.08em", display: "flex", alignItems: "center", gap: "5px" }}>
-              <Compass size={14} style={{ color: "#717171" }} />Activities
-            </span>
-            <span style={{ fontSize: "12px", color: "#bbb" }}>2</span>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-            <div
-              onClick={(e) => { e.stopPropagation(); setSelectedCard("Churaumi Aquarium"); }}
-              style={{ backgroundColor: "#FAFAFA", borderRadius: "12px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", borderLeft: "3px solid rgba(196,102,74,0.3)", padding: "12px", display: "flex", gap: "12px", alignItems: "flex-start", minHeight: "110px", cursor: "pointer", outline: selectedCard === "Churaumi Aquarium" ? "2px solid rgba(196,102,74,0.4)" : "none" }}
-            >
-              <div style={{ width: "96px", height: "96px", borderRadius: "8px", flexShrink: 0, backgroundImage: "url('https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=200&auto=format&fit=crop')", backgroundSize: "cover", backgroundPosition: "center" }} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontSize: "16px", fontWeight: 700, color: "#1a1a1a", marginBottom: "4px" }}>Churaumi Aquarium</p>
-                <p style={{ fontSize: "13px", color: "#555", marginBottom: "3px" }}>Motobu · Half day · Family</p>
-                <p style={{ fontSize: "12px", color: "#666", marginBottom: "8px" }}>Book ahead · Adults $45 · Kids $22 · ~3 hours</p>
-                <AssignDayControl cardTitle="Churaumi Aquarium" dayAssignments={dayAssignments} openDayDropdown={openDayDropdown} setOpenDayDropdown={setOpenDayDropdown} setDayAssignments={setDayAssignments} />
-                <div style={{ display: "flex", alignItems: "center", gap: "4px", marginTop: "8px" }}>
-                  <Users size={12} style={{ color: "#717171", flexShrink: 0 }} />
-                  <span style={{ fontSize: "12px", color: "#717171" }}>Visited by 2,100 families · #1 activity in Okinawa</span>
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            {catItems.map(item => {
+              const location = [item.destinationCity, item.destinationCountry].filter(Boolean).join(", ");
+              return (
+                <div key={item.id} style={{ backgroundColor: "#FAFAFA", borderRadius: "12px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", borderLeft: "3px solid rgba(196,102,74,0.3)", padding: "12px", display: "flex", gap: "12px", alignItems: "flex-start", minHeight: "88px" }}>
+                  {item.mediaThumbnailUrl ? (
+                    <div style={{ width: "72px", height: "72px", borderRadius: "8px", flexShrink: 0, backgroundImage: `url('${item.mediaThumbnailUrl}')`, backgroundSize: "cover", backgroundPosition: "center" }} />
+                  ) : (
+                    <div style={{ width: "72px", height: "72px", borderRadius: "8px", flexShrink: 0, backgroundColor: "#E8E4DE", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <Compass size={22} style={{ color: "#999" }} />
+                    </div>
+                  )}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: "15px", fontWeight: 700, color: "#1a1a1a", marginBottom: "2px", lineHeight: 1.3 }}>{item.rawTitle ?? "Untitled"}</p>
+                    {location && (
+                      <div style={{ display: "flex", alignItems: "center", gap: "3px", marginBottom: "4px" }}>
+                        <MapPin size={10} style={{ color: "#717171", flexShrink: 0 }} />
+                        <span style={{ fontSize: "12px", color: "#717171" }}>{location}</span>
+                      </div>
+                    )}
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "4px", alignItems: "center" }}>
+                      {item.categoryTags.slice(0, 3).map(tag => (
+                        <span key={tag} style={{ fontSize: "11px", backgroundColor: "rgba(0,0,0,0.05)", color: "#666", borderRadius: "20px", padding: "2px 8px" }}>
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                    <p style={{ fontSize: "10px", color: "#BBBBBB", marginTop: "4px" }}>
+                      via {SOURCE_LABEL[item.sourceType] ?? item.sourceType}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            </div>
-            <div
-              onClick={(e) => { e.stopPropagation(); setSelectedCard("Katsuren Castle Ruins"); }}
-              style={{ backgroundColor: "#FAFAFA", borderRadius: "12px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", borderLeft: "3px solid rgba(196,102,74,0.3)", padding: "12px", display: "flex", gap: "12px", alignItems: "flex-start", minHeight: "110px", cursor: "pointer", outline: selectedCard === "Katsuren Castle Ruins" ? "2px solid rgba(196,102,74,0.4)" : "none" }}
-            >
-              <div style={{ width: "96px", height: "96px", borderRadius: "8px", backgroundColor: "#c8b89a", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <Landmark size={24} style={{ color: "#fff" }} />
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontSize: "16px", fontWeight: 700, color: "#1a1a1a", marginBottom: "4px" }}>Katsuren Castle Ruins</p>
-                <p style={{ fontSize: "13px", color: "#555", marginBottom: "3px" }}>Uruma · 2 hours · History</p>
-                <p style={{ fontSize: "12px", color: "#666", marginBottom: "8px" }}>Free entry · Open daily · Best at golden hour</p>
-                <AssignDayControl cardTitle="Katsuren Castle Ruins" dayAssignments={dayAssignments} openDayDropdown={openDayDropdown} setOpenDayDropdown={setOpenDayDropdown} setDayAssignments={setDayAssignments} />
-                <div style={{ display: "flex", alignItems: "center", gap: "4px", marginTop: "8px" }}>
-                  <Users size={12} style={{ color: "#717171", flexShrink: 0 }} />
-                  <span style={{ fontSize: "12px", color: "#717171" }}>Visited by 640 families · Hidden gem rating</span>
-                </div>
-              </div>
-            </div>
+              );
+            })}
           </div>
         </div>
-
-      </div>{/* end right column */}
-
+      ))}
     </div>
   );
 }
+
+// ── Itinerary tab ─────────────────────────────────────────────────────────────
 
 // TODO: Real-time sync implementation
 // When a user saves a new item on mobile:
@@ -786,8 +736,8 @@ function ItineraryContent({ flyTarget, onFlyTargetConsumed }: { flyTarget: { lat
           </div>
         </div>{/* end left panel */}
 
-        {/* Right panel: sticky map — height synced to accordion via ResizeObserver */}
-        <div className="hidden md:block md:w-[42%]" style={{ position: "sticky", top: 0, height: leftHeight ? `${leftHeight}px` : "600px" }}>
+        {/* Right panel: map — stacks below on mobile, sticky sidebar on desktop */}
+        <div className="w-full md:w-[42%]" style={{ position: "sticky", top: 0, height: leftHeight ? `${leftHeight}px` : "300px", minHeight: "260px", maxHeight: "600px" }}>
           <TripMap activeDay={openDay >= 0 ? openDay : 0} flyTarget={flyTarget} onFlyTargetConsumed={onFlyTargetConsumed} />
         </div>{/* end right panel */}
 
@@ -1100,16 +1050,78 @@ const RECOMMENDATIONS = [
   },
 ];
 
-function RecommendedContent({ onViewOnMap }: { onViewOnMap: (lat: number, lng: number) => void }) {
+function RecommendedContent({
+  tripId,
+  tripStartDate,
+  tripEndDate,
+  onViewOnMap,
+  onSaved,
+}: {
+  tripId?: string;
+  tripStartDate?: string | null;
+  tripEndDate?: string | null;
+  onViewOnMap: (lat: number, lng: number) => void;
+  onSaved: (rec: SavedRec) => void;
+}) {
   const [savedSet, setSavedSet] = useState<Set<string>>(new Set());
+  const [savingTitle, setSavingTitle] = useState<string | null>(null);
+  const [pendingRec, setPendingRec] = useState<string | null>(null);
+  const [pendingDayIndex, setPendingDayIndex] = useState<number | null>(null);
+  const [pendingCategory, setPendingCategory] = useState<string>("");
 
-  const toggleSave = (title: string) => {
-    setSavedSet((prev) => {
-      const next = new Set(prev);
-      next.has(title) ? next.delete(title) : next.add(title);
-      return next;
+  function generateDayPillsForRec(start: string | null, end: string | null): { dayIndex: number; label: string }[] {
+    if (!start) return [];
+    const startD = new Date(start);
+    const endD = end ? new Date(end) : startD;
+    const n = Math.round((endD.getTime() - startD.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    return Array.from({ length: n }, (_, i) => {
+      const d = new Date(startD);
+      d.setDate(startD.getDate() + i);
+      const dateStr = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      return { dayIndex: i + 1, label: `Day ${i + 1} · ${dateStr}` };
     });
-  };
+  }
+  const recDayPills = generateDayPillsForRec(tripStartDate ?? null, tripEndDate ?? null);
+  const CATEGORY_OPTIONS_REC = ["Culture", "Food", "Kids", "Lodging", "Outdoor", "Shopping", "Transportation"];
+
+  async function handleSave(rec: typeof RECOMMENDATIONS[0], dayIndex: number | null, category: string) {
+    if (savedSet.has(rec.title) || savingTitle === rec.title) return;
+    setSavingTitle(rec.title);
+    setPendingRec(null);
+    try {
+      const cat = category || rec.tags.split(" · ")[0];
+      await fetch("/api/saves", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          url: `https://flokk.app/rec/${encodeURIComponent(rec.title)}`,
+          tripId: tripId ?? undefined,
+          title: rec.title,
+          description: rec.match,
+          thumbnailUrl: rec.img,
+          tags: [cat],
+          lat: rec.lat,
+          lng: rec.lng,
+          dayIndex: dayIndex ?? undefined,
+        }),
+      });
+      setSavedSet((prev) => new Set([...prev, rec.title]));
+      onSaved({ title: rec.title, location: rec.location, img: rec.img, tags: rec.tags });
+      window.dispatchEvent(new Event("flokk:refresh"));
+    } finally {
+      setSavingTitle(null);
+    }
+  }
+
+  // Group by category (first segment of tags), sort categories and items alphabetically
+  const grouped = RECOMMENDATIONS.reduce((acc, rec) => {
+    const cat = rec.tags.split(" · ")[0];
+    if (!acc[cat]) acc[cat] = [];
+    acc[cat].push(rec);
+    return acc;
+  }, {} as Record<string, typeof RECOMMENDATIONS>);
+  const sortedCategories = Object.keys(grouped).sort();
+  sortedCategories.forEach((cat) => grouped[cat].sort((a, b) => a.title.localeCompare(b.title)));
 
   return (
     <div>
@@ -1126,20 +1138,80 @@ function RecommendedContent({ onViewOnMap }: { onViewOnMap: (lat: number, lng: n
         <div style={{ fontSize: "13px", color: "#717171" }}>Based on your family&apos;s interests and what families like yours loved</div>
       </div>
 
-      {/* Cards — 2-col grid on desktop, 1-col on mobile */}
-      <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: "20px" }}>
-        {RECOMMENDATIONS.map((rec) => {
-          const isSaved = savedSet.has(rec.title);
-          return (
-            <RecCard key={rec.title} rec={rec} isSaved={isSaved} onToggle={() => toggleSave(rec.title)} onViewOnMap={(lat, lng) => onViewOnMap(lat, lng)} />
-          );
-        })}
-      </div>
+      {/* Cards grouped by category */}
+      {sortedCategories.map((cat) => (
+        <div key={cat} style={{ marginBottom: "28px" }}>
+          <div style={{ fontSize: "14px", fontWeight: 700, color: "#717171", textTransform: "uppercase", letterSpacing: "0.08em", paddingBottom: "10px", marginBottom: "12px", borderBottom: "1px solid #EEEEEE" }}>
+            {cat}
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+            {grouped[cat].map((rec) => {
+              const isSaved = savedSet.has(rec.title);
+              const isSaving = savingTitle === rec.title;
+              const isPending = pendingRec === rec.title;
+              return (
+                <div key={rec.title} style={{ display: "flex", flexDirection: "column", gap: "0" }}>
+                  <RecCard
+                    rec={rec}
+                    isSaved={isSaved}
+                    isSaving={isSaving}
+                    onToggle={() => {
+                      if (isSaved || isSaving) return;
+                      setPendingRec(rec.title);
+                      setPendingDayIndex(null);
+                      setPendingCategory(rec.tags.split(" · ")[0]);
+                    }}
+                    onViewOnMap={(lat, lng) => onViewOnMap(lat, lng)}
+                  />
+                  {isPending && (
+                    <div style={{ backgroundColor: "#FAFAFA", borderRadius: "0 0 12px 12px", border: "1px solid #EEEEEE", borderTop: "none", padding: "12px 14px", display: "flex", flexDirection: "column", gap: "10px" }}>
+                      {recDayPills.length > 0 && (
+                        <div>
+                          <p style={{ fontSize: "12px", fontWeight: 700, color: "#555", marginBottom: "7px" }}>Which day?</p>
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                            <button type="button" onClick={() => setPendingDayIndex(null)} style={{ padding: "5px 12px", borderRadius: "999px", fontSize: "11px", fontWeight: 600, border: "1.5px solid", borderColor: pendingDayIndex === null ? "#C4664A" : "#DDD", backgroundColor: pendingDayIndex === null ? "#C4664A" : "#fff", color: pendingDayIndex === null ? "#fff" : "#666", cursor: "pointer" }}>
+                              No specific day
+                            </button>
+                            {recDayPills.map(({ dayIndex, label }) => (
+                              <button type="button" key={dayIndex} onClick={() => setPendingDayIndex(dayIndex)} style={{ padding: "5px 12px", borderRadius: "999px", fontSize: "11px", fontWeight: 600, border: "1.5px solid", borderColor: pendingDayIndex === dayIndex ? "#C4664A" : "#DDD", backgroundColor: pendingDayIndex === dayIndex ? "#C4664A" : "#fff", color: pendingDayIndex === dayIndex ? "#fff" : "#666", cursor: "pointer" }}>
+                                {label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      <div>
+                        <p style={{ fontSize: "12px", fontWeight: 700, color: "#555", marginBottom: "7px" }}>Category</p>
+                        <select
+                          value={pendingCategory}
+                          onChange={e => setPendingCategory(e.target.value)}
+                          style={{ width: "100%", padding: "8px 12px", borderRadius: "8px", border: "1.5px solid #E0E0E0", fontSize: "13px", color: "#1a1a1a", backgroundColor: "#fff", outline: "none", cursor: "pointer" }}
+                        >
+                          <option value="">No category</option>
+                          {CATEGORY_OPTIONS_REC.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                        </select>
+                      </div>
+                      <div style={{ display: "flex", gap: "8px" }}>
+                        <button type="button" onClick={() => setPendingRec(null)} style={{ flex: 1, padding: "9px", borderRadius: "8px", border: "1.5px solid #DDD", backgroundColor: "#fff", fontSize: "12px", fontWeight: 600, color: "#717171", cursor: "pointer" }}>
+                          Cancel
+                        </button>
+                        <button type="button" onClick={() => handleSave(rec, pendingDayIndex, pendingCategory)} style={{ flex: 2, padding: "9px", borderRadius: "8px", border: "none", backgroundColor: "#C4664A", fontSize: "12px", fontWeight: 700, color: "#fff", cursor: "pointer" }}>
+                          {pendingDayIndex !== null ? `Save to Day ${pendingDayIndex} →` : "Save to trip →"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
 
-function RecCard({ rec, isSaved, onToggle, onViewOnMap }: { rec: typeof RECOMMENDATIONS[0]; isSaved: boolean; onToggle: () => void; onViewOnMap: (lat: number, lng: number) => void }) {
+function RecCard({ rec, isSaved, isSaving, onToggle, onViewOnMap }: { rec: typeof RECOMMENDATIONS[0]; isSaved: boolean; isSaving: boolean; onToggle: () => void; onViewOnMap: (lat: number, lng: number) => void }) {
   const [imgFailed, setImgFailed] = useState(false);
   return (
     <div style={{ backgroundColor: "#FAFAFA", borderRadius: "12px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", borderLeft: "3px solid rgba(196,102,74,0.3)", padding: "12px", display: "flex", gap: "12px", alignItems: "flex-start", minHeight: "110px" }}>
@@ -1168,10 +1240,10 @@ function RecCard({ rec, isSaved, onToggle, onViewOnMap }: { rec: typeof RECOMMEN
         </p>
         <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
           <span
-            onClick={onToggle}
-            style={{ fontSize: "12px", fontWeight: 600, color: isSaved ? "#4a7c59" : "#C4664A", backgroundColor: isSaved ? "rgba(74,124,89,0.1)" : "transparent", border: isSaved ? "1px solid rgba(74,124,89,0.2)" : "none", borderRadius: "20px", padding: isSaved ? "3px 10px" : "0", cursor: "pointer" }}
+            onClick={isSaved || isSaving ? undefined : onToggle}
+            style={{ fontSize: "12px", fontWeight: 600, color: isSaved ? "#4a7c59" : isSaving ? "#717171" : "#C4664A", backgroundColor: isSaved ? "rgba(74,124,89,0.1)" : isSaving ? "rgba(0,0,0,0.05)" : "transparent", border: isSaved ? "1px solid rgba(74,124,89,0.2)" : isSaving ? "1px solid #ddd" : "none", borderRadius: "20px", padding: (isSaved || isSaving) ? "3px 10px" : "0", cursor: (isSaved || isSaving) ? "default" : "pointer" }}
           >
-            {isSaved ? "Saved ✓" : "+ Save to trip"}
+            {isSaved ? "Saved ✓" : isSaving ? "Saving..." : "+ Save to trip"}
           </span>
           <button
             onClick={() => onViewOnMap(rec.lat, rec.lng)}
@@ -1192,7 +1264,14 @@ function RecCard({ rec, isSaved, onToggle, onViewOnMap }: { rec: typeof RECOMMEN
 
 // ── Main export ───────────────────────────────────────────────────────────────
 
-export function TripTabContent({ initialTab = "saved" }: { initialTab?: Tab }) {
+type SavedRec = {
+  title: string;
+  location: string;
+  img: string;
+  tags: string;
+};
+
+export function TripTabContent({ initialTab = "saved", tripId, tripStartDate, tripEndDate }: { initialTab?: Tab; tripId?: string; tripStartDate?: string | null; tripEndDate?: string | null }) {
   const [tab, setTab] = useState<Tab>(initialTab);
   const [flyTarget, setFlyTarget] = useState<{ lat: number; lng: number } | null>(null);
 
@@ -1233,10 +1312,18 @@ export function TripTabContent({ initialTab = "saved" }: { initialTab?: Tab }) {
         })}
       </div>
 
-      {tab === "saved" && <SavedContent />}
+      {tab === "saved" && <SavedContent tripId={tripId} />}
       {tab === "itinerary" && <ItineraryContent flyTarget={flyTarget} onFlyTargetConsumed={() => setFlyTarget(null)} />}
       {tab === "packing" && <PackingContent />}
-      {tab === "recommended" && <RecommendedContent onViewOnMap={(lat, lng) => { setTab("itinerary"); setFlyTarget({ lat, lng }); }} />}
+      {tab === "recommended" && (
+        <RecommendedContent
+          tripId={tripId}
+          tripStartDate={tripStartDate}
+          tripEndDate={tripEndDate}
+          onViewOnMap={(lat, lng) => { setTab("itinerary"); setFlyTarget({ lat, lng }); }}
+          onSaved={() => {}}
+        />
+      )}
     </div>
   );
 }
