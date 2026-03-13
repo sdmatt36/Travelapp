@@ -436,34 +436,34 @@ function SavedContent({ tripId: tripIdProp }: { tripId?: string }) {
             <span>{cat}</span>
             <span style={{ fontSize: "11px", color: "#bbb", fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>{catItems.length}</span>
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+          <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: "16px" }}>
             {catItems.map(item => {
               const location = [item.destinationCity, item.destinationCountry].filter(Boolean).join(", ");
               return (
-                <div key={item.id} style={{ backgroundColor: "#FAFAFA", borderRadius: "12px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", borderLeft: "3px solid rgba(196,102,74,0.3)", padding: "12px", display: "flex", gap: "12px", alignItems: "flex-start", minHeight: "88px" }}>
+                <div key={item.id} style={{ backgroundColor: "#fff", borderRadius: "12px", boxShadow: "0 1px 6px rgba(0,0,0,0.08)", border: "1px solid #EEEEEE", overflow: "hidden", display: "flex", flexDirection: "column" }}>
                   {item.mediaThumbnailUrl ? (
-                    <div style={{ width: "72px", height: "72px", borderRadius: "8px", flexShrink: 0, backgroundImage: `url('${item.mediaThumbnailUrl}')`, backgroundSize: "cover", backgroundPosition: "center" }} />
+                    <div style={{ width: "100%", height: "180px", backgroundImage: `url('${item.mediaThumbnailUrl}')`, backgroundSize: "cover", backgroundPosition: "center", flexShrink: 0 }} />
                   ) : (
-                    <div style={{ width: "72px", height: "72px", borderRadius: "8px", flexShrink: 0, backgroundColor: "#E8E4DE", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <Compass size={22} style={{ color: "#999" }} />
+                    <div style={{ width: "100%", height: "180px", backgroundColor: "#E8E4DE", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <Compass size={28} style={{ color: "#999" }} />
                     </div>
                   )}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontSize: "15px", fontWeight: 700, color: "#1a1a1a", marginBottom: "2px", lineHeight: 1.3 }}>{item.rawTitle ?? "Untitled"}</p>
+                  <div style={{ padding: "12px", flex: 1, display: "flex", flexDirection: "column", gap: "6px" }}>
+                    <p style={{ fontSize: "14px", fontWeight: 700, color: "#1a1a1a", lineHeight: 1.3 }}>{item.rawTitle ?? "Untitled"}</p>
                     {location && (
-                      <div style={{ display: "flex", alignItems: "center", gap: "3px", marginBottom: "4px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "3px" }}>
                         <MapPin size={10} style={{ color: "#717171", flexShrink: 0 }} />
                         <span style={{ fontSize: "12px", color: "#717171" }}>{location}</span>
                       </div>
                     )}
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: "4px", alignItems: "center" }}>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
                       {item.categoryTags.slice(0, 3).map(tag => (
                         <span key={tag} style={{ fontSize: "11px", backgroundColor: "rgba(0,0,0,0.05)", color: "#666", borderRadius: "20px", padding: "2px 8px" }}>
                           {tag}
                         </span>
                       ))}
                     </div>
-                    <p style={{ fontSize: "10px", color: "#BBBBBB", marginTop: "4px" }}>
+                    <p style={{ fontSize: "10px", color: "#BBBBBB" }}>
                       via {SOURCE_LABEL[item.sourceType] ?? item.sourceType}
                     </p>
                   </div>
@@ -1148,7 +1148,7 @@ function RecommendedContent({
           <div style={{ fontSize: "11px", fontWeight: 700, color: "#717171", textTransform: "uppercase", letterSpacing: "0.08em", paddingBottom: "10px", marginBottom: "12px", borderBottom: "1px solid #EEEEEE" }}>
             {cat}
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+          <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: "16px" }}>
             {grouped[cat].map((rec) => {
               const isSaved = savedSet.has(rec.title);
               const isSaving = savingTitle === rec.title;
@@ -1218,31 +1218,29 @@ function RecommendedContent({
 function RecCard({ rec, isSaved, isSaving, onToggle, onViewOnMap }: { rec: typeof RECOMMENDATIONS[0]; isSaved: boolean; isSaving: boolean; onToggle: () => void; onViewOnMap: (lat: number, lng: number) => void }) {
   const [imgFailed, setImgFailed] = useState(false);
   return (
-    <div style={{ backgroundColor: "#FAFAFA", borderRadius: "12px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", borderLeft: "3px solid rgba(196,102,74,0.3)", padding: "12px", display: "flex", gap: "12px", alignItems: "flex-start", minHeight: "110px" }}>
+    <div style={{ backgroundColor: "#fff", borderRadius: "12px", boxShadow: "0 1px 6px rgba(0,0,0,0.08)", border: "1px solid #EEEEEE", overflow: "hidden", display: "flex", flexDirection: "column" }}>
       {imgFailed ? (
-        <div style={{ width: "80px", height: "80px", borderRadius: "8px", flexShrink: 0, backgroundColor: "#F5F5F5", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <Compass size={24} style={{ color: "#999" }} />
+        <div style={{ width: "100%", height: "180px", backgroundColor: "#F5F5F5", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <Compass size={28} style={{ color: "#999" }} />
         </div>
       ) : (
         <>
-          <div style={{ width: "80px", height: "80px", borderRadius: "8px", flexShrink: 0, backgroundImage: `url('${rec.img}')`, backgroundSize: "cover", backgroundPosition: "center" }} />
+          <div style={{ width: "100%", height: "180px", backgroundImage: `url('${rec.img}')`, backgroundSize: "cover", backgroundPosition: "center", flexShrink: 0 }} />
           <img src={rec.img} alt="" onError={() => setImgFailed(true)} style={{ display: "none" }} />
         </>
       )}
-              <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "4px" }}>
-          <p style={{ fontSize: "16px", fontWeight: 700, color: "#1a1a1a" }}>{rec.title}</p>
-          <span style={{ display: "flex", alignItems: "center", gap: "3px", flexShrink: 0, marginLeft: "8px", marginTop: "2px" }}>
-            <MapPin size={10} style={{ color: "#717171" }} />
-            <span style={{ fontSize: "11px", color: "#717171" }}>{rec.location}</span>
-          </span>
+      <div style={{ padding: "12px", flex: 1, display: "flex", flexDirection: "column", gap: "5px" }}>
+        <p style={{ fontSize: "14px", fontWeight: 700, color: "#1a1a1a", lineHeight: 1.3 }}>{rec.title}</p>
+        <div style={{ display: "flex", alignItems: "center", gap: "3px" }}>
+          <MapPin size={10} style={{ color: "#717171" }} />
+          <span style={{ fontSize: "12px", color: "#717171" }}>{rec.location}</span>
         </div>
-        <p style={{ fontSize: "13px", color: "#555", marginBottom: "3px" }}>{rec.tags}</p>
-        <p style={{ fontSize: "12px", color: "#666", marginBottom: "8px", display: "flex", alignItems: "center", gap: "4px" }}>
+        <p style={{ fontSize: "12px", color: "#555" }}>{rec.tags}</p>
+        <p style={{ fontSize: "12px", color: "#666", display: "flex", alignItems: "center", gap: "4px" }}>
           <Sparkles size={11} style={{ color: "#C4664A", flexShrink: 0 }} />
           {rec.match}
         </p>
-        <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap", marginTop: "4px" }}>
           <span
             onClick={isSaved || isSaving ? undefined : onToggle}
             style={{ fontSize: "12px", fontWeight: 600, color: isSaved ? "#4a7c59" : isSaving ? "#717171" : "#C4664A", backgroundColor: isSaved ? "rgba(74,124,89,0.1)" : isSaving ? "rgba(0,0,0,0.05)" : "transparent", border: isSaved ? "1px solid rgba(74,124,89,0.2)" : isSaving ? "1px solid #ddd" : "none", borderRadius: "20px", padding: (isSaved || isSaving) ? "3px 10px" : "0", cursor: (isSaved || isSaving) ? "default" : "pointer" }}
@@ -1257,9 +1255,9 @@ function RecCard({ rec, isSaved, isSaving, onToggle, onViewOnMap }: { rec: typeo
             View on map
           </button>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "4px", marginTop: "8px" }}>
-          <Users size={12} style={{ color: "#717171", flexShrink: 0 }} />
-          <span style={{ fontSize: "12px", color: "#717171" }}>{rec.saved.toLocaleString()} families saved this</span>
+        <div style={{ display: "flex", alignItems: "center", gap: "4px", marginTop: "2px" }}>
+          <Users size={11} style={{ color: "#BBBBBB", flexShrink: 0 }} />
+          <span style={{ fontSize: "11px", color: "#BBBBBB" }}>{rec.saved.toLocaleString()} families saved this</span>
         </div>
       </div>
     </div>
@@ -1280,7 +1278,7 @@ export function TripTabContent({ initialTab = "saved", tripId, tripStartDate, tr
   const [flyTarget, setFlyTarget] = useState<{ lat: number; lng: number } | null>(null);
 
   return (
-    <div style={{ padding: "0 24px", overflowX: "hidden" }}>
+    <div style={{ padding: "0 24px", overflowX: "hidden", maxWidth: "900px", margin: "0 auto" }}>
       {/* Tab bar */}
       <div
         style={{
