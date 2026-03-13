@@ -5,7 +5,6 @@ import { db } from "@/lib/db";
 import { MapPin, Calendar, ChevronLeft } from "lucide-react";
 import { TripTabContent } from "@/components/features/trips/TripTabContent";
 import { CommunityTripView } from "@/components/features/trips/CommunityTripView";
-import { BottomNav } from "@/components/ui/BottomNav";
 
 const DEFAULT_HERO = "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1200&q=80";
 
@@ -35,6 +34,8 @@ const STATUS_COLOR: Record<string, string> = {
   ACTIVE: "#C4664A",
   COMPLETED: "#717171",
 };
+
+export const dynamic = "force-dynamic";
 
 export default async function TripDetailPage({
   params,
@@ -196,7 +197,11 @@ export default async function TripDetailPage({
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "8px", opacity: 0.85 }}>
             <MapPin size={12} style={{ color: "#fff" }} />
-            <span style={{ fontSize: "12px", color: "#fff" }}>{trip.savedItems.filter(i => (i.dayIndex ?? 0) > 0).length} places</span>
+            {(() => {
+              const count = trip.savedItems.filter(i => (i.dayIndex ?? 0) > 0).length;
+              const label = count === 0 ? "No saves yet" : count === 1 ? "1 place" : `${count} places`;
+              return <span style={{ fontSize: "12px", color: "#fff" }}>{label}</span>;
+            })()}
             <span style={{ fontSize: "12px", color: "#fff" }}>·</span>
             <Calendar size={12} style={{ color: "#fff" }} />
             <span style={{ fontSize: "12px", color: "#fff" }}>{days ?? "—"} days</span>
@@ -214,10 +219,14 @@ export default async function TripDetailPage({
           viewerMembers={viewerMembers}
         />
       ) : (
-        <TripTabContent initialTab={initialTab} />
+        <TripTabContent
+          initialTab={initialTab}
+          tripId={trip.id}
+          tripStartDate={trip.startDate ? trip.startDate.toISOString() : null}
+          tripEndDate={trip.endDate ? trip.endDate.toISOString() : null}
+        />
       )}
 
-      <BottomNav />
     </div>
   );
 }

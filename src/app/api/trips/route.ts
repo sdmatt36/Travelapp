@@ -2,15 +2,22 @@ import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  console.log("[GET /api/trips] clerkUserId:", userId ?? "null");
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: { "Cache-Control": "no-store" } });
   const user = await db.user.findUnique({
     where: { clerkId: userId },
     include: { familyProfile: { include: { trips: { where: { status: { in: ["PLANNING", "ACTIVE"] } }, orderBy: { startDate: "asc" } } } } },
   });
   const trips = user?.familyProfile?.trips ?? [];
-  return NextResponse.json({ trips: trips.map(t => ({ id: t.id, title: t.title })) });
+  console.log("[GET /api/trips] returning", trips.length, "trips for familyProfile", user?.familyProfile?.id ?? "none");
+  return NextResponse.json(
+    { trips: trips.map(t => ({ id: t.id, title: t.title })) },
+    { headers: { "Cache-Control": "no-store" } }
+  );
 }
 
 export async function POST(req: Request) {

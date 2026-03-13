@@ -65,7 +65,17 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
-export function SaveDetailModal({ itemId, onClose }: { itemId: string; onClose: () => void }) {
+const ALL_CATEGORY_TAGS = ["Culture", "Food", "Kids", "Lodging", "Outdoor", "Shopping", "Transportation"];
+
+export function SaveDetailModal({
+  itemId,
+  onClose,
+  onTagsUpdated,
+}: {
+  itemId: string;
+  onClose: () => void;
+  onTagsUpdated?: (itemId: string, tags: string[]) => void;
+}) {
   const [item, setItem] = useState<SaveItem | null>(null);
   const [interestKeys, setInterestKeys] = useState<string[]>([]);
   const [trips, setTrips] = useState<Trip[]>([]);
@@ -75,9 +85,11 @@ export function SaveDetailModal({ itemId, onClose }: { itemId: string; onClose: 
   const [mounted, setMounted] = useState(false);
   const [tripDropdownOpen, setTripDropdownOpen] = useState(false);
   const [assignedTrip, setAssignedTrip] = useState<{ id: string; title: string } | null>(null);
-  const [showDirections, setShowDirections] = useState(false);
+  const [localTags, setLocalTags] = useState<string[]>([]);
+  const [editingTags, setEditingTags] = useState(false);
   const noteTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const initialNotes = useRef("");
+  const initialTags = useRef<string[]>([]);
 
   useEffect(() => {
     requestAnimationFrame(() => setMounted(true));
@@ -94,6 +106,9 @@ export function SaveDetailModal({ itemId, onClose }: { itemId: string; onClose: 
         setNotes(data.item?.notes ?? "");
         setAssignedTrip(data.item?.trip ?? null);
         initialNotes.current = data.item?.notes ?? "";
+        const tags = data.item?.categoryTags ?? [];
+        setLocalTags(tags);
+        initialTags.current = tags;
       });
     fetch("/api/trips")
       .then(r => r.json())
@@ -129,26 +144,35 @@ export function SaveDetailModal({ itemId, onClose }: { itemId: string; onClose: 
     } catch { /* silent */ }
   }
 
-  const tags = item?.categoryTags ?? [];
+  function handleClose() {
+    // Fire-and-forget tag save if changed
+    if (item && JSON.stringify(localTags.slice().sort()) !== JSON.stringify(initialTags.current.slice().sort())) {
+      fetch(`/api/saves/${itemId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ categoryTags: localTags }),
+      }).catch(() => {/* silent */});
+      onTagsUpdated?.(itemId, localTags);
+    }
+    onClose();
+  }
+
+  function toggleTag(tag: string) {
+    setLocalTags(prev =>
+      prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
+    );
+  }
+
+  const tags = localTags;
   const gradient = getGradient(tags);
   const location = [item?.destinationCity, item?.destinationCountry].filter(Boolean).join(", ");
-  const appleMapsUrl = item
-    ? item.lat && item.lng
-      ? `https://maps.apple.com/?q=${encodeURIComponent(item.rawTitle ?? "")}&ll=${item.lat},${item.lng}`
-      : `https://maps.apple.com/?q=${encodeURIComponent([item.rawTitle, location].filter(Boolean).join(" "))}`
-    : null;
-  const googleMapsUrl = item
-    ? item.lat && item.lng
-      ? `https://www.google.com/maps/search/?api=1&query=${item.lat},${item.lng}`
-      : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([item.rawTitle, location].filter(Boolean).join(" "))}`
-    : null;
 
   return (
     <>
       <style>{`.directions-link:hover { text-decoration: underline; }`}</style>
       {/* Backdrop */}
       <div
-        onClick={onClose}
+        onClick={handleClose}
         style={{
           position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.5)",
           zIndex: 100,
@@ -183,7 +207,7 @@ export function SaveDetailModal({ itemId, onClose }: { itemId: string; onClose: 
 
           {/* Close button */}
           <button
-            onClick={onClose}
+            onClick={handleClose}
             style={{
               position: "absolute", top: "14px", right: "14px", zIndex: 2,
               width: "32px", height: "32px", borderRadius: "50%",
@@ -218,13 +242,54 @@ export function SaveDetailModal({ itemId, onClose }: { itemId: string; onClose: 
           <div style={{ padding: "20px 20px 100px" }}>
 
             {/* Tags + source */}
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginBottom: "6px" }}>
-              {tags.map(tag => (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginBottom: "6px", alignItems: "center" }}>
+              {tags.length > 0 ? tags.map(tag => (
                 <span key={tag} style={{ fontSize: "11px", fontWeight: 600, background: "rgba(0,0,0,0.06)", color: "#555", borderRadius: "999px", padding: "3px 10px" }}>
                   {tag}
                 </span>
-              ))}
+              )) : (
+                <span style={{ fontSize: "12px", color: "#aaa" }}>No tags yet</span>
+              )}
+              <button
+                onClick={() => setEditingTags(e => !e)}
+                style={{ fontSize: "11px", fontWeight: 600, color: "#C4664A", border: "1.5px solid #C4664A", borderRadius: "999px", padding: "3px 10px", background: "none", cursor: "pointer", flexShrink: 0 }}
+              >
+                {editingTags ? "Done" : "Edit tags"}
+              </button>
             </div>
+
+            {/* Inline tag editor */}
+            {editingTags && (
+              <div style={{ marginBottom: "12px", padding: "12px", backgroundColor: "#FAFAFA", borderRadius: "10px", border: "1px solid rgba(0,0,0,0.08)" }}>
+                <p style={{ fontSize: "11px", color: "#999", marginBottom: "8px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>Tap to toggle</p>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                  {ALL_CATEGORY_TAGS.map(tag => {
+                    const active = tags.includes(tag);
+                    return (
+                      <button
+                        key={tag}
+                        onClick={() => toggleTag(tag)}
+                        style={{
+                          fontSize: "12px",
+                          fontWeight: 600,
+                          padding: "5px 12px",
+                          borderRadius: "999px",
+                          border: "1.5px solid",
+                          borderColor: active ? "#C4664A" : "#D0D0D0",
+                          backgroundColor: active ? "#C4664A" : "#fff",
+                          color: active ? "#fff" : "#666",
+                          cursor: "pointer",
+                          transition: "all 0.12s ease",
+                        }}
+                      >
+                        {tag}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             <p style={{ fontSize: "12px", color: "#aaa", marginBottom: "16px" }}>
               {item.sourceType === "MANUAL" ? "Saved manually" : `Saved from ${SOURCE_LABEL[item.sourceType] ?? item.sourceType}`} · {formatDate(item.savedAt)}
             </p>
@@ -252,7 +317,7 @@ export function SaveDetailModal({ itemId, onClose }: { itemId: string; onClose: 
               {assignedTrip ? (
                 <>
                   <span style={{ fontSize: "13px", color: "#555" }}>Added to trip</span>
-                  <Link href={`/trips/${assignedTrip.id}`} onClick={onClose} style={{ fontSize: "13px", fontWeight: 700, color: "#C4664A", textDecoration: "none" }}>
+                  <Link href={`/trips/${assignedTrip.id}`} onClick={handleClose} style={{ fontSize: "13px", fontWeight: 700, color: "#C4664A", textDecoration: "none" }}>
                     {assignedTrip.title} →
                   </Link>
                 </>
@@ -351,52 +416,6 @@ export function SaveDetailModal({ itemId, onClose }: { itemId: string; onClose: 
               </div>
             )}
 
-            {/* Get directions — toggle to show map app choices */}
-            {appleMapsUrl && (
-              !showDirections ? (
-                <button
-                  onClick={() => setShowDirections(true)}
-                  style={{
-                    display: "block", width: "100%", textAlign: "center",
-                    marginTop: "10px", fontSize: "14px", fontWeight: 500, color: "#717171",
-                    background: "none", border: "none", cursor: "pointer", padding: "2px 0",
-                  }}
-                >
-                  Get directions
-                </button>
-              ) : (
-                <div style={{ display: "flex", gap: "8px", marginTop: "10px", justifyContent: "center" }}>
-                  <a
-                    href={appleMapsUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      display: "flex", alignItems: "center", gap: "5px",
-                      padding: "7px 16px", borderRadius: "999px",
-                      border: "1.5px solid rgba(0,0,0,0.15)", backgroundColor: "#fff",
-                      fontSize: "13px", fontWeight: 600, color: "#333", textDecoration: "none",
-                    }}
-                  >
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#555"/></svg>
-                    Apple Maps
-                  </a>
-                  <a
-                    href={googleMapsUrl!}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      display: "flex", alignItems: "center", gap: "5px",
-                      padding: "7px 16px", borderRadius: "999px",
-                      border: "1.5px solid rgba(0,0,0,0.15)", backgroundColor: "#fff",
-                      fontSize: "13px", fontWeight: 600, color: "#333", textDecoration: "none",
-                    }}
-                  >
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#4285F4"/></svg>
-                    Google Maps
-                  </a>
-                </div>
-              )
-            )}
           </div>
         )}
       </div>

@@ -455,8 +455,8 @@ export function CommunityTripView({
               </div>
             </div>{/* end left panel */}
 
-            {/* Right panel: sticky map — height synced to accordion via ResizeObserver */}
-            <div className="hidden md:block md:w-[42%]" style={{ position: "sticky", top: 0, height: leftHeight ? `${leftHeight}px` : "600px" }}>
+            {/* Right panel: map — stacks below on mobile, sticky sidebar on desktop */}
+            <div className="w-full md:w-[42%]" style={{ position: "sticky", top: 0, height: leftHeight ? `${leftHeight}px` : "300px", minHeight: "260px", maxHeight: "600px" }}>
               <CommunityTripMap
                 allMarkers={allMarkers}
                 center={mapCenter}

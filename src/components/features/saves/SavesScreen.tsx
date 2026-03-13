@@ -1,8 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { BottomNav } from "@/components/ui/BottomNav";
 import Link from "next/link";
 import { SaveDetailModal } from "@/components/features/saves/SaveDetailModal";
 import {
@@ -29,91 +28,37 @@ type Save = {
   img: string;
 };
 
-const ALL_SAVES: Save[] = [
-  {
-    id: "1",
-    title: "Halekulani Okinawa",
-    location: "Onna Village, Okinawa",
-    source: "Instagram",
-    tags: ["Lodging", "Luxury", "Beach"],
-    assigned: "Okinawa May '25",
-    distance: "Base hotel",
-    img: "https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400&auto=format&fit=crop&q=80",
-  },
-  {
-    id: "2",
-    title: "Kokusai-dori Street Food",
-    location: "Naha, Okinawa",
-    source: "TikTok",
-    tags: ["Food", "Street Food", "Evening"],
-    assigned: "Okinawa May '25",
-    distance: "2.4km from hotel",
-    img: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400&auto=format&fit=crop&q=80",
-  },
-  {
-    id: "3",
-    title: "Churaumi Aquarium",
-    location: "Motobu, Okinawa",
-    source: "Google Maps",
-    tags: ["Kids", "Activity", "Half day"],
-    assigned: "Okinawa May '25",
-    distance: "28km from hotel",
-    img: "https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=400&auto=format&fit=crop&q=80",
-  },
-  {
-    id: "4",
-    title: "Trattoria Danilo",
-    location: "Trastevere, Rome",
-    source: "Instagram",
-    tags: ["Food", "Italian", "Date night"],
-    assigned: null,
-    distance: null,
-    img: "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&auto=format&fit=crop&q=80",
-  },
-  {
-    id: "5",
-    title: "Borghese Gallery",
-    location: "Rome, Italy",
-    source: "Saved manually",
-    tags: ["Culture", "Art", "Ages 8+"],
-    assigned: null,
-    distance: null,
-    img: "https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=400&auto=format&fit=crop&q=80",
-  },
-  {
-    id: "6",
-    title: "Shinjuku Gyoen",
-    location: "Tokyo, Japan",
-    source: "TikTok",
-    tags: ["Outdoor", "Gardens", "Peaceful"],
-    assigned: null,
-    distance: null,
-    img: "https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=400&auto=format&fit=crop&q=80",
-  },
-  {
-    id: "7",
-    title: "Elephant Nature Park",
-    location: "Chiang Mai, Thailand",
-    source: "Instagram",
-    tags: ["Animals", "Outdoor", "Ages 5+"],
-    assigned: null,
-    distance: null,
-    img: "https://images.unsplash.com/photo-1564760055775-d63b17a55c44?w=400&auto=format&fit=crop&q=80",
-  },
-  {
-    id: "8",
-    title: "Le Marais Food Walk",
-    location: "Paris, France",
-    source: "TikTok",
-    tags: ["Food", "Walking", "Culture"],
-    assigned: null,
-    distance: null,
-    img: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=400&auto=format&fit=crop&q=80",
-  },
-];
-
 const FILTER_PILLS = ["All", "Culture", "Food", "Kids", "Lodging", "Outdoor", "Shopping", "Transportation", "Unorganized"];
-const AVAILABLE_TRIPS = ["Okinawa May '25", "+ Create new trip"];
+
+type ApiItem = {
+  id: string;
+  rawTitle: string | null;
+  mediaThumbnailUrl: string | null;
+  destinationCity: string | null;
+  destinationCountry: string | null;
+  categoryTags: string[];
+  sourceType: string;
+  savedAt: string;
+  trip: { id: string; title: string } | null;
+};
+
+const SOURCE_LABEL_MAP: Record<string, string> = {
+  INSTAGRAM: "Instagram", TIKTOK: "TikTok", GOOGLE_MAPS: "Google Maps",
+  MANUAL: "Manually added", IN_APP: "In-app", EMAIL_IMPORT: "Email", PHOTO_IMPORT: "Photo",
+};
+
+function mapApiItem(item: ApiItem): Save {
+  return {
+    id: item.id,
+    title: item.rawTitle ?? "Untitled",
+    location: [item.destinationCity, item.destinationCountry].filter(Boolean).join(", "),
+    source: SOURCE_LABEL_MAP[item.sourceType] ?? item.sourceType,
+    tags: item.categoryTags,
+    assigned: item.trip?.title ?? null,
+    distance: null,
+    img: item.mediaThumbnailUrl ?? "",
+  };
+}
 
 // ─── SaveCard ─────────────────────────────────────────────────────────────────
 
@@ -124,9 +69,10 @@ type SaveCardProps = {
   assignTrip: (id: string, trip: string) => void;
   onTripClick: (tripName: string) => void;
   onCardClick: (id: string) => void;
+  availableTrips: { id: string; title: string }[];
 };
 
-function SaveCard({ save, openDropdown, setOpenDropdown, assignTrip, onTripClick, onCardClick }: SaveCardProps) {
+function SaveCard({ save, openDropdown, setOpenDropdown, assignTrip, onTripClick, onCardClick, availableTrips }: SaveCardProps) {
   const visibleTags = save.tags.slice(0, 3);
   const extraTags = save.tags.length - visibleTags.length;
   const isDropdownOpen = openDropdown === save.id;
@@ -291,7 +237,7 @@ function SaveCard({ save, openDropdown, setOpenDropdown, assignTrip, onTripClick
                 overflow: "hidden",
               }}
             >
-              {AVAILABLE_TRIPS.map((trip) => (
+              {[...availableTrips.map(t => t.title), "+ Create new trip"].map((trip, idx) => (
                 <button
                   key={trip}
                   onClick={(e) => {
@@ -309,7 +255,7 @@ function SaveCard({ save, openDropdown, setOpenDropdown, assignTrip, onTripClick
                     background: "none",
                     border: "none",
                     cursor: "pointer",
-                    borderBottom: trip === AVAILABLE_TRIPS[0] ? "1px solid rgba(0,0,0,0.06)" : "none",
+                    borderBottom: idx < availableTrips.length ? "1px solid rgba(0,0,0,0.06)" : "none",
                   }}
                   onMouseEnter={(e) => {
                     (e.currentTarget as HTMLButtonElement).style.backgroundColor = "#FFFFFF";
@@ -371,18 +317,19 @@ function SectionHeader({ icon, title, badge, count, action }: {
 
 // ─── CardGrid ─────────────────────────────────────────────────────────────────
 
-function CardGrid({ cards, openDropdown, setOpenDropdown, assignTrip, onTripClick, onCardClick }: {
+function CardGrid({ cards, openDropdown, setOpenDropdown, assignTrip, onTripClick, onCardClick, availableTrips }: {
   cards: Save[];
   openDropdown: string | null;
   setOpenDropdown: (id: string | null) => void;
   assignTrip: (id: string, trip: string) => void;
   onTripClick: (tripName: string) => void;
   onCardClick: (id: string) => void;
+  availableTrips: { id: string; title: string }[];
 }) {
   return (
     <div className="grid grid-cols-3 lg:grid-cols-3 md:grid-cols-2 sm:grid-cols-1" style={{ gap: "16px" }}>
       {cards.map((save) => (
-        <SaveCard key={save.id} save={save} openDropdown={openDropdown} setOpenDropdown={setOpenDropdown} assignTrip={assignTrip} onTripClick={onTripClick} onCardClick={onCardClick} />
+        <SaveCard key={save.id} save={save} openDropdown={openDropdown} setOpenDropdown={setOpenDropdown} assignTrip={assignTrip} onTripClick={onTripClick} onCardClick={onCardClick} availableTrips={availableTrips} />
       ))}
     </div>
   );
@@ -394,18 +341,43 @@ export function SavesScreen() {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState("All");
-  const [saves, setSaves] = useState<Save[]>(ALL_SAVES);
+  const [saves, setSaves] = useState<Save[]>([]);
+  const [availableTrips, setAvailableTrips] = useState<{ id: string; title: string }[]>([]);
+  const [loading, setLoading] = useState(true);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [showFabModal, setShowFabModal] = useState(false);
   const [fabUrl, setFabUrl] = useState("");
   const [modalItemId, setModalItemId] = useState<string | null>(null);
 
+  useEffect(() => {
+    Promise.all([
+      fetch("/api/saves").then(r => r.json()),
+      fetch("/api/trips").then(r => r.json()),
+    ]).then(([savesData, tripsData]) => {
+      setSaves((savesData.saves ?? []).map(mapApiItem));
+      setAvailableTrips(tripsData.trips ?? []);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, []);
+
   const unorganizedCount = saves.filter((s) => s.assigned === null).length;
 
-  const assignTrip = (id: string, trip: string) => {
-    if (trip === "+ Create new trip") { setOpenDropdown(null); return; }
-    setSaves((prev) => prev.map((s) => (s.id === id ? { ...s, assigned: trip } : s)));
+  const assignTrip = (id: string, tripTitle: string) => {
+    if (tripTitle === "+ Create new trip") { setOpenDropdown(null); return; }
+    const trip = availableTrips.find(t => t.title === tripTitle);
+    setSaves((prev) => prev.map((s) => (s.id === id ? { ...s, assigned: tripTitle } : s)));
     setOpenDropdown(null);
+    if (trip) {
+      fetch(`/api/saves/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tripId: trip.id }),
+      }).catch(() => {/* silent */});
+    }
+  };
+
+  const handleTagsUpdated = (itemId: string, tags: string[]) => {
+    setSaves((prev) => prev.map((s) => (s.id === itemId ? { ...s, tags } : s)));
   };
 
   // Card matching: search + category filter (ignores assigned/unassigned axis)
@@ -423,9 +395,9 @@ export function SavesScreen() {
   // Trip section: hidden when "Unorganized" filter active
   const tripCards = activeFilter === "Unorganized"
     ? []
-    : saves.filter((s) => s.assigned !== null && matchesFilter(s));
+    : saves.filter((s) => s.assigned !== null && matchesFilter(s)).sort((a, b) => a.title.localeCompare(b.title));
 
-  // Group assigned cards by trip name
+  // Group assigned cards by trip name (each group is already sorted)
   const tripGroups = tripCards.reduce<Record<string, Save[]>>((acc, s) => {
     const key = s.assigned!;
     if (!acc[key]) acc[key] = [];
@@ -433,8 +405,10 @@ export function SavesScreen() {
     return acc;
   }, {});
 
-  // Unorganized section: hidden when "All" is active? No — always shown if matches exist
-  const unorganizedCards = saves.filter((s) => s.assigned === null && matchesFilter(s));
+  // Unorganized section sorted alphabetically
+  const unorganizedCards = saves
+    .filter((s) => s.assigned === null && matchesFilter(s))
+    .sort((a, b) => a.title.localeCompare(b.title));
   const showUnorganized = activeFilter !== "All"
     ? unorganizedCards.length > 0  // category or unorganized filter
     : unorganizedCards.length > 0; // "All" — always show if there are any
@@ -516,6 +490,12 @@ export function SavesScreen() {
         </div>
 
         {/* SECTIONS */}
+        {loading && (
+          <div style={{ textAlign: "center", padding: "48px 24px", color: "#999", fontSize: "14px" }}>
+            Loading your saves…
+          </div>
+        )}
+
         {hasNoResults && (
           <div style={{ textAlign: "center", padding: "48px 24px", color: "#717171", fontSize: "14px" }}>
             No saves match your search or filter.
@@ -532,7 +512,7 @@ export function SavesScreen() {
               count={cards.length}
               action={{ label: "View trip →", onClick: () => router.push('/trips/1') }}
             />
-            <CardGrid cards={cards} openDropdown={openDropdown} setOpenDropdown={setOpenDropdown} assignTrip={assignTrip} onTripClick={(name) => router.push('/trips/1')} onCardClick={(id) => setModalItemId(id)} />
+            <CardGrid cards={cards} openDropdown={openDropdown} setOpenDropdown={setOpenDropdown} assignTrip={assignTrip} onTripClick={(name) => router.push('/trips/1')} onCardClick={(id) => setModalItemId(id)} availableTrips={availableTrips} />
           </div>
         ))}
 
@@ -545,7 +525,7 @@ export function SavesScreen() {
               count={unorganizedCards.length}
               action={{ label: "Assign all →", onClick: () => setActiveFilter("Unorganized") }}
             />
-            <CardGrid cards={unorganizedCards} openDropdown={openDropdown} setOpenDropdown={setOpenDropdown} assignTrip={assignTrip} onTripClick={(name) => router.push('/trips/1')} onCardClick={(id) => setModalItemId(id)} />
+            <CardGrid cards={unorganizedCards} openDropdown={openDropdown} setOpenDropdown={setOpenDropdown} assignTrip={assignTrip} onTripClick={(name) => router.push('/trips/1')} onCardClick={(id) => setModalItemId(id)} availableTrips={availableTrips} />
           </div>
         )}
 
@@ -553,7 +533,11 @@ export function SavesScreen() {
 
       {/* Save detail modal */}
       {modalItemId && (
-        <SaveDetailModal itemId={modalItemId} onClose={() => setModalItemId(null)} />
+        <SaveDetailModal
+          itemId={modalItemId}
+          onClose={() => setModalItemId(null)}
+          onTagsUpdated={handleTagsUpdated}
+        />
       )}
 
       {/* FAB MODAL */}
@@ -650,7 +634,7 @@ export function SavesScreen() {
         title="Save something new"
         style={{
           position: "fixed",
-          bottom: 24,
+          bottom: 88,
           right: 24,
           width: 56,
           height: 56,
@@ -671,7 +655,6 @@ export function SavesScreen() {
         <Plus size={24} style={{ color: "#fff" }} />
       </button>
 
-      <BottomNav />
     </div>
   );
 }

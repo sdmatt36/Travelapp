@@ -2,19 +2,20 @@ import Link from "next/link";
 import { Show, UserButton, SignInButton, SignUpButton } from "@clerk/nextjs";
 import { Plane, Compass, Bookmark, CalendarDays, CreditCard, MapPin, Users, Heart, Clock, Layers, Mail, Map, Calendar, Award, ChevronDown, Sparkles, Instagram } from "lucide-react";
 import { Playfair_Display } from "next/font/google";
+import { SiteFooter } from "@/components/ui/SiteFooter";
 
 const playfair = Playfair_Display({ subsets: ["latin"], weight: ["700"] });
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen" style={{ backgroundColor: "#FFFFFF" }}>
+    <div className="min-h-screen" style={{ backgroundColor: "#FFFFFF", overflowX: "hidden", maxWidth: "100vw" }}>
 
       {/* Nav */}
       <nav className="fixed top-0 left-0 right-0 z-50 backdrop-blur-sm border-b" style={{ backgroundColor: "rgba(255,255,255,0.92)", borderColor: "#EEEEEE" }}>
         <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
           <span className="flex items-center gap-2 text-xl font-bold" style={{ color: "#2d2d2d" }}>
             <Plane size={20} style={{ color: "#C4664A" }} />
-            Trovv
+            Flokk
           </span>
           <div className="flex items-center gap-4">
             <Show when="signed-out">
@@ -76,7 +77,7 @@ export default function LandingPage() {
                   <span style={{ color: "#C4664A" }}>finally in one place.</span>
                 </h1>
                 <p className="text-xl leading-relaxed" style={{ color: "#717171" }}>
-                  The restaurants you saved on Instagram. The hotel from that email thread. The budget in a spreadsheet nobody&apos;s updated. The itinerary lost in WhatsApp. Trovv brings it all together — and connects you to real trips from families who&apos;ve already been there.
+                  The restaurants you saved on Instagram. The hotel from that email thread. The budget in a spreadsheet nobody&apos;s updated. The itinerary lost in WhatsApp. Flokk brings it all together — and connects you to real trips from families who&apos;ve already been there.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center md:justify-start pt-2">
                   <Link
@@ -134,7 +135,7 @@ export default function LandingPage() {
       {/* From the community strip — separate section, no overlap with hero */}
       <section style={{ backgroundColor: "#FAFAFA", paddingTop: "5rem", paddingBottom: "5rem", paddingLeft: "1.5rem", paddingRight: "1.5rem", position: "relative", zIndex: 0 }}>
         <p className="text-center text-sm font-semibold tracking-widest uppercase mb-6" style={{ color: "#717171" }}>From the community</p>
-        <div className="max-w-4xl mx-auto grid grid-cols-3 gap-4">
+        <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-4">
           {[
             { img: "https://picsum.photos/seed/santorini/400/300", label: "Saved from Instagram", sub: "Santorini · Bucket list" },
             { img: "https://picsum.photos/seed/tokyo/400/300", label: "Tokyo with Kids", sub: "Itinerary · 8 days" },
@@ -153,7 +154,7 @@ export default function LandingPage() {
       </section>
 
       {/* See it in action */}
-      <section id="how-it-works" style={{ backgroundColor: "#FAFAFA", borderTop: "1px solid #EEEEEE", padding: "60px 48px" }}>
+      <section id="how-it-works" className="px-5 py-10 md:px-12 md:py-[60px]" style={{ backgroundColor: "#FAFAFA", borderTop: "1px solid #EEEEEE" }}>
 
         {/* Section header */}
         <div style={{ textAlign: "center", marginBottom: "56px" }}>
@@ -164,14 +165,14 @@ export default function LandingPage() {
         </div>
 
         {/* Row cards */}
-        <div style={{ maxWidth: "1100px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "24px" }}>
+        <div style={{ maxWidth: "1100px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "24px", overflow: "hidden" }}>
 
           {/* Row 1 — Copy left, UI right */}
-          <div className="flex flex-col md:flex-row" style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", boxShadow: "0 2px 16px rgba(0,0,0,0.06)", padding: "64px 56px", gap: "64px", alignItems: "center" }}>
+          <div className="flex flex-col md:flex-row p-8 md:px-14 md:py-16 gap-10 md:gap-16" style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", boxShadow: "0 2px 16px rgba(0,0,0,0.06)", alignItems: "center", overflow: "hidden" }}>
             <div style={{ flex: 1 }}>
               <p style={{ fontSize: "13px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em", color: "#C4664A", marginBottom: "12px" }}>01 — Save</p>
               <h3 className={playfair.className} style={{ fontSize: "32px", fontWeight: 700, color: "#1a1a1a", lineHeight: 1.2, marginBottom: "16px" }}>Nothing gets lost. Ever again.</h3>
-              <p style={{ fontSize: "16px", color: "#717171", lineHeight: 1.75 }}>See something on Instagram? Share it to Trovv. Google Maps star? Imported. TikTok reel? Saved with location, context, and category — automatically. If you can share it, we can save it.</p>
+              <p style={{ fontSize: "16px", color: "#717171", lineHeight: 1.75 }}>See something on Instagram? Share it to Flokk. Google Maps star? Imported. TikTok reel? Saved with location, context, and category — automatically. If you can share it, we can save it.</p>
             </div>
             <div style={{ flex: 1, display: "flex", justifyContent: "center" }}>
               <div style={{ backgroundColor: "#fff", borderRadius: "16px", boxShadow: "0 4px 16px rgba(0,0,0,0.08)", border: "1px solid #EEEEEE", overflow: "hidden", width: "100%", maxWidth: "360px" }}>
@@ -199,16 +200,16 @@ export default function LandingPage() {
           </div>
 
           {/* Row 2 — UI left, Copy right */}
-          <div className="flex flex-col md:flex-row-reverse" style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", boxShadow: "0 2px 16px rgba(0,0,0,0.06)", padding: "64px 56px", gap: "64px", alignItems: "center" }}>
+          <div className="flex flex-col md:flex-row-reverse p-8 md:px-14 md:py-16 gap-10 md:gap-16" style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", boxShadow: "0 2px 16px rgba(0,0,0,0.06)", alignItems: "center", overflow: "hidden" }}>
             <div style={{ flex: 1 }}>
               <p style={{ fontSize: "13px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em", color: "#C4664A", marginBottom: "12px" }}>02 — Surface</p>
               <h3 className={playfair.className} style={{ fontSize: "32px", fontWeight: 700, color: "#1a1a1a", lineHeight: 1.2, marginBottom: "16px" }}>The right save, at exactly the right moment.</h3>
-              <p style={{ fontSize: "16px", color: "#717171", lineHeight: 1.75 }}>You saved that market six months ago. Now you&apos;re planning Madrid. Trovv surfaces it — 600 metres from your hotel, open before your museum visit, with a churros counter your kids will love.</p>
+              <p style={{ fontSize: "16px", color: "#717171", lineHeight: 1.75 }}>You saved that market six months ago. Now you&apos;re planning Madrid. Flokk surfaces it — 600 metres from your hotel, open before your museum visit, with a churros counter your kids will love.</p>
             </div>
-            <div style={{ flex: 1, display: "flex", justifyContent: "center", alignItems: "center" }}>
-              <div style={{ padding: "8px" }}>
-                <div style={{ transform: "rotate(1.5deg)", filter: "drop-shadow(0 16px 32px rgba(0,0,0,0.12))" }}>
-                  <div className="rounded-2xl overflow-hidden border" style={{ backgroundColor: "#fff", borderColor: "#EEEEEE", minWidth: "280px", maxWidth: "340px", width: "300px" }}>
+            <div style={{ flex: 1, display: "flex", justifyContent: "center", alignItems: "center", overflow: "hidden" }}>
+              <div className="md:p-2">
+                <div className="md:[transform:rotate(1.5deg)]" style={{ filter: "drop-shadow(0 16px 32px rgba(0,0,0,0.12))" }}>
+                  <div className="rounded-2xl overflow-hidden border w-full" style={{ backgroundColor: "#fff", borderColor: "#EEEEEE", maxWidth: "340px" }}>
                     <div className="flex items-center gap-2 px-4 pt-4 pb-2">
                       <MapPin size={13} style={{ color: "#C4664A", flexShrink: 0 }} />
                       <span className="text-xs font-medium" style={{ color: "#999" }}>600m from your hotel</span>
@@ -233,7 +234,7 @@ export default function LandingPage() {
           </div>
 
           {/* Row 3 — Copy left, UI right */}
-          <div className="flex flex-col md:flex-row" style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", boxShadow: "0 2px 16px rgba(0,0,0,0.06)", padding: "64px 56px", gap: "64px", alignItems: "center" }}>
+          <div className="flex flex-col md:flex-row p-8 md:px-14 md:py-16 gap-10 md:gap-16" style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", boxShadow: "0 2px 16px rgba(0,0,0,0.06)", alignItems: "center", overflow: "hidden" }}>
             <div style={{ flex: 1 }}>
               <p style={{ fontSize: "13px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em", color: "#C4664A", marginBottom: "12px" }}>03 — Plan</p>
               <h3 className={playfair.className} style={{ fontSize: "32px", fontWeight: 700, color: "#1a1a1a", lineHeight: 1.2, marginBottom: "16px" }}>A real itinerary, built around your family.</h3>
@@ -295,7 +296,7 @@ export default function LandingPage() {
           </div>
 
           {/* Row 4 — UI left, Copy right */}
-          <div className="flex flex-col md:flex-row-reverse" style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", boxShadow: "0 2px 16px rgba(0,0,0,0.06)", padding: "64px 56px", gap: "64px", alignItems: "center" }}>
+          <div className="flex flex-col md:flex-row-reverse p-8 md:px-14 md:py-16 gap-10 md:gap-16" style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", boxShadow: "0 2px 16px rgba(0,0,0,0.06)", alignItems: "center", overflow: "hidden" }}>
             <div style={{ flex: 1 }}>
               <p style={{ fontSize: "13px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em", color: "#C4664A", marginBottom: "12px" }}>04 — Personalize</p>
               <h3 className={playfair.className} style={{ fontSize: "32px", fontWeight: 700, color: "#1a1a1a", lineHeight: 1.2, marginBottom: "16px" }}>Recommendations that actually know your family.</h3>
@@ -533,16 +534,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="py-8 px-6 border-t" style={{ backgroundColor: "#FAFAFA", borderColor: "#EEEEEE" }}>
-        <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-sm" style={{ color: "#999" }}>
-          <span className="flex items-center gap-2">
-            <Plane size={14} style={{ color: "#C4664A" }} />
-            Trovv — Family Travel, Reimagined
-          </span>
-          <span>© 2026 · Confidential</span>
-        </div>
-      </footer>
+      <SiteFooter />
 
     </div>
   );

@@ -1,6 +1,6 @@
 {
-  "name": "Travel App",
-  "short_name": "Travel",
+  "name": "Flokk",
+  "short_name": "Flokk",
   "description": "Save anywhere. Plan together. Travel better.",
   "start_url": "/home",
   "display": "standalone",

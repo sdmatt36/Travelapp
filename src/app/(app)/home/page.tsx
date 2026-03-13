@@ -1,7 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { UserButton } from "@clerk/nextjs";
 import { db } from "@/lib/db";
 import { INTERESTS } from "@/types";
 import { Playfair_Display } from "next/font/google";
@@ -17,9 +16,9 @@ import {
   Calendar,
 
 } from "lucide-react";
-import { BottomNav } from "@/components/ui/BottomNav";
 import { AddTripButton } from "@/components/features/home/AddTripModal";
 import { RecentSavesCards } from "@/components/features/home/RecentSavesCards";
+import { DropLinkTile } from "@/components/features/home/DropLinkTile";
 
 const playfair = Playfair_Display({ subsets: ["latin"], weight: ["700", "900"] });
 
@@ -114,7 +113,6 @@ export default async function HomePage() {
           trips: {
             where: { status: { in: ["PLANNING", "ACTIVE"] } },
             orderBy: { startDate: "asc" },
-            take: 1,
           },
           savedItems: {
             orderBy: { savedAt: "desc" },
@@ -139,37 +137,27 @@ export default async function HomePage() {
   const myInterests = INTERESTS.filter((i) => interestKeys.includes(i.key));
 
   return (
-    <div style={{ minHeight: "100vh", backgroundColor: "#FFFFFF", paddingBottom: "96px" }}>
+    <div style={{ minHeight: "100vh", backgroundColor: "#FFFFFF", paddingBottom: "80px" }}>
       <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "32px 24px 0" }}>
 
-        {/* ── Header ── */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "24px" }}>
-          <div>
-            <p style={{ fontSize: "12px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "#C4664A" }}>
-              {greeting}
-            </p>
-            <h1 className={playfair.className} style={{ color: "#1a1a1a", fontSize: "28px", fontWeight: 900, lineHeight: 1.2 }}>
-              {displayName}
-            </h1>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <Link
-              href="/onboarding"
-              style={{ fontSize: "12px", fontWeight: 600, padding: "6px 12px", borderRadius: "999px", border: "1px solid #EEEEEE", backgroundColor: "#fff", color: "#717171", textDecoration: "none" }}
-            >
-              Edit profile
-            </Link>
-            <UserButton appearance={{ elements: { avatarBox: { width: 40, height: 40 } } }} />
-          </div>
+        {/* ── Page greeting ── */}
+        <div style={{ marginBottom: "24px" }}>
+          <p style={{ fontSize: "12px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "#C4664A" }}>
+            {greeting}
+          </p>
+          <h1 className={playfair.className} style={{ color: "#1a1a1a", fontSize: "28px", fontWeight: 900, lineHeight: 1.2 }}>
+            {displayName}
+          </h1>
         </div>
 
         {/* ── Two-column layout ── */}
-        <div className="flex flex-col md:flex-row" style={{ gap: "24px" }}>
+        <div className="flex flex-col md:flex-row" style={{ gap: "20px" }}>
 
-          {/* ── LEFT COLUMN ── */}
-          <div className="flex flex-col" style={{ flex: "0 0 60%", minWidth: 0, gap: "20px" }}>
+          {/* ── LEFT COLUMN — display:contents on mobile so children reorder freely ── */}
+          <div className="contents md:flex md:flex-col" style={{ flex: "0 0 60%", minWidth: 0, gap: "20px" }}>
 
-            {/* Hero trip card */}
+            {/* Hero trip card — mobile order 1 */}
+            <div className="order-1 md:order-none">
             <div
               style={{
                 position: "relative",
@@ -212,21 +200,12 @@ export default async function HomePage() {
                 )}
               </div>
             </div>
+            </div>{/* end hero order wrapper */}
 
-            {/* Quick action tiles */}
+            {/* Quick action tiles — mobile order 5 */}
+            <div className="order-5 md:order-none">
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-              <Link
-                href="/saves"
-                style={{ position: "relative", borderRadius: "16px", overflow: "hidden", display: "block", height: "160px", backgroundImage: "url('https://images.unsplash.com/photo-1533900298318-6b8da08a523e?w=400&q=80')", backgroundSize: "cover", backgroundPosition: "center", textDecoration: "none" }}
-              >
-                <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.35)" }} />
-                <div style={{ position: "absolute", inset: 0, background: CARD_GRADIENT }} />
-                <div style={{ position: "relative", padding: "16px", display: "flex", flexDirection: "column", justifyContent: "flex-end", height: "100%", boxSizing: "border-box" }}>
-                  <Bookmark size={20} style={{ color: "#fff", marginBottom: "8px" }} />
-                  <p style={{ fontWeight: 700, color: "#fff", fontSize: "17px" }}>Drop a link</p>
-                  <p style={{ color: "#fff", fontSize: "12px", opacity: 0.85, marginTop: "2px" }}>Instagram, TikTok, anywhere</p>
-                </div>
-              </Link>
+              <DropLinkTile trips={profile.trips.map(t => ({ id: t.id, title: t.title, startDate: t.startDate ? t.startDate.toISOString() : null, endDate: t.endDate ? t.endDate.toISOString() : null }))} />
               <Link
                 href={activeTrip ? `/trips/${activeTrip.id}?tab=recommended` : "/discover"}
                 style={{ position: "relative", borderRadius: "16px", overflow: "hidden", display: "block", height: "160px", backgroundImage: "url('https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=400&q=80')", backgroundSize: "cover", backgroundPosition: "center", textDecoration: "none" }}
@@ -240,12 +219,14 @@ export default async function HomePage() {
                 </div>
               </Link>
             </div>
+            </div>{/* end tiles order wrapper */}
 
-            {/* Where do you find travel ideas? */}
+            {/* Where do you find travel ideas? — mobile order 6 */}
+            <div className="order-6 md:order-none">
             <div style={{ backgroundColor: "#F5F5F5", border: "1px solid rgba(196,102,74,0.18)", borderRadius: "16px", padding: "16px" }}>
               <p style={{ fontWeight: 700, fontSize: "14px", color: "#1a1a1a", marginBottom: "4px" }}>Where do you find travel ideas?</p>
               <p style={{ fontSize: "12px", color: "#717171", lineHeight: 1.5, marginBottom: "12px" }}>
-                Share anything from these apps directly to Trovv — we&apos;ll pull out the location, details, and context automatically.
+                Share anything from these apps directly to Flokk — we&apos;ll pull out the location, details, and context automatically.
               </p>
               <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
                 {[
@@ -264,8 +245,10 @@ export default async function HomePage() {
                 ))}
               </div>
             </div>
+            </div>{/* end where-to-find order wrapper */}
 
-            {/* Recent saves */}
+            {/* Recent saves — mobile order 7 */}
+            <div className="order-7 md:order-none">
             <div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
                 <h2 style={{ fontWeight: 700, color: "#1a1a1a", fontSize: "15px" }}>Recent saves</h2>
@@ -282,13 +265,15 @@ export default async function HomePage() {
                 categoryTags: item.categoryTags,
               }))} />
             </div>
+            </div>{/* end saves order wrapper */}
 
           </div>
 
-          {/* ── RIGHT COLUMN ── */}
-          <div className="flex flex-col md:border-l md:pl-8" style={{ flex: "0 0 40%", minWidth: 0, gap: "20px", borderColor: "rgba(0,0,0,0.06)" }}>
+          {/* ── RIGHT COLUMN — display:contents on mobile ── */}
+          <div className="contents md:flex md:flex-col md:border-l md:pl-8" style={{ flex: "0 0 40%", minWidth: 0, gap: "20px", borderColor: "rgba(0,0,0,0.06)" }}>
 
-            {/* Your interests */}
+            {/* Your interests — mobile order 2 */}
+            <div className="order-2 md:order-none">
             <div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
                 <h2 style={{ fontWeight: 700, color: "#1a1a1a", fontSize: "15px" }}>Your interests</h2>
@@ -312,8 +297,10 @@ export default async function HomePage() {
                 )}
               </div>
             </div>
+            </div>{/* end interests order wrapper */}
 
-            {/* Your trips */}
+            {/* Your trips — mobile order 3 */}
+            <div className="order-3 md:order-none">
             <div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
                 <h2 style={{ fontWeight: 700, color: "#1a1a1a", fontSize: "15px" }}>Your trips</h2>
@@ -367,8 +354,10 @@ export default async function HomePage() {
                 </div>
               )}
             </div>
+            </div>{/* end trips order wrapper */}
 
-            {/* Your crew */}
+            {/* Your crew — mobile order 4 */}
+            <div className="order-4 md:order-none">
             <div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
                 <h2 style={{ fontWeight: 700, color: "#1a1a1a", fontSize: "15px" }}>
@@ -419,13 +408,15 @@ export default async function HomePage() {
                 </Link>
               </div>
             </div>
+            </div>{/* end crew order wrapper */}
 
-            {/* Families like yours */}
+            {/* Families like yours — mobile order 8 */}
+            <div className="order-8 md:order-none">
             <div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
                 <h2 style={{ fontWeight: 700, color: "#1a1a1a", fontSize: "15px" }}>Families like yours are going to...</h2>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+              <div className="grid grid-cols-2" style={{ gap: "10px" }}>
                 {DISCOVERY_DESTINATIONS.map((dest) => (
                   <Link
                     key={dest.city}
@@ -453,13 +444,12 @@ export default async function HomePage() {
                 ))}
               </div>
             </div>
+            </div>{/* end families order wrapper */}
 
           </div>
         </div>
 
       </div>
-
-      <BottomNav />
     </div>
   );
 }

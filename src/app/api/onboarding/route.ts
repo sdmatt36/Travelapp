@@ -34,7 +34,7 @@ export async function POST(request: Request) {
     let user = await db.user.findUnique({ where: { clerkId: userId } });
     if (!user) {
       const clerkUser = await currentUser();
-      const email = clerkUser?.emailAddresses?.[0]?.emailAddress ?? `${userId}@placeholder.trovv`;
+      const email = clerkUser?.emailAddresses?.[0]?.emailAddress ?? `${userId}@placeholder.flokk`;
       user = await db.user.create({ data: { clerkId: userId, email } });
     }
 

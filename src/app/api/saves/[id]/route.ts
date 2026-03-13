@@ -32,7 +32,11 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   }
 }
 
-const PatchSchema = z.object({ notes: z.string() });
+const PatchSchema = z.object({
+  notes: z.string().optional(),
+  categoryTags: z.array(z.string()).optional(),
+  tripId: z.string().nullable().optional(),
+});
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -41,7 +45,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
     const { id } = await params;
     const body = await req.json();
-    const { notes } = PatchSchema.parse(body);
+    const { notes, categoryTags, tripId } = PatchSchema.parse(body);
 
     const user = await db.user.findUnique({
       where: { clerkId: userId },
@@ -54,8 +58,16 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
-    const updated = await db.savedItem.update({ where: { id }, data: { notes } });
-    return NextResponse.json({ success: true, notes: updated.notes });
+    const data: Record<string, unknown> = {};
+    if (notes !== undefined) data.notes = notes;
+    if (categoryTags !== undefined) data.categoryTags = categoryTags;
+    if (tripId !== undefined) {
+      data.tripId = tripId;
+      data.status = tripId ? "TRIP_ASSIGNED" : "UNORGANIZED";
+    }
+
+    const updated = await db.savedItem.update({ where: { id }, data });
+    return NextResponse.json({ success: true, notes: updated.notes, categoryTags: updated.categoryTags });
   } catch (error) {
     if (error instanceof ZodError) return NextResponse.json({ error: error.issues }, { status: 400 });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

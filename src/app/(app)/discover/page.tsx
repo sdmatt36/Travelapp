@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { MapPin, Compass } from "lucide-react";
-import { BottomNav } from "@/components/ui/BottomNav";
 
 const RECOMMENDATIONS = [
   {
@@ -55,7 +54,7 @@ const RECOMMENDATIONS = [
 
 export default function DiscoverPage() {
   return (
-    <div style={{ minHeight: "100vh", backgroundColor: "#FFFFFF", paddingBottom: "96px" }}>
+    <div style={{ minHeight: "100vh", backgroundColor: "#FFFFFF", paddingBottom: "80px" }}>
       <div style={{ maxWidth: "720px", margin: "0 auto", padding: "32px 24px 0" }}>
 
         {/* Header */}
@@ -75,7 +74,7 @@ export default function DiscoverPage() {
         </div>
 
         {/* Grid */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "16px" }}>
+        <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: "16px" }}>
           {RECOMMENDATIONS.map((rec) => (
             <div
               key={rec.id}
@@ -140,7 +139,6 @@ export default function DiscoverPage() {
         </div>
 
       </div>
-      <BottomNav />
     </div>
   );
 }

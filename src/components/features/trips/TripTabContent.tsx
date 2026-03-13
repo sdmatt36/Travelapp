@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useParams } from "next/navigation";
 import { type LucideIcon } from "lucide-react";
 import {
   BedDouble,
@@ -376,12 +377,14 @@ type TripSavedItemForDisplay = {
   destinationCountry: string | null;
 };
 
-function SavedContent({ tripId }: { tripId?: string }) {
+function SavedContent({ tripId: tripIdProp }: { tripId?: string }) {
+  const params = useParams();
+  const tripId = tripIdProp ?? (typeof params?.id === "string" ? params.id : undefined);
   const [items, setItems] = useState<TripSavedItemForDisplay[]>([]);
-  const [loadingItems, setLoadingItems] = useState(!!tripId);
+  const [loadingItems, setLoadingItems] = useState(true);
 
   useEffect(() => {
-    console.log("[SavedContent] tripId received:", tripId);
+    console.log("[SavedContent] tripId resolved:", tripId);
     if (!tripId) { setLoadingItems(false); return; }
     function fetchItems() {
       fetch(`/api/saves?tripId=${tripId}`)

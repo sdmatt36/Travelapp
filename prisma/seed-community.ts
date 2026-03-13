@@ -12,7 +12,7 @@ const db = new PrismaClient({ adapter } as any);
 
 const SEED_USER_ID = "seed_community_user_v1";
 const SEED_CLERK_ID = "seed_community_clerk_v1";
-const SEED_EMAIL = "community@trovv.seed";
+const SEED_EMAIL = "community@flokk.seed";
 const SEED_PROFILE_ID = "seed_community_profile_v1";
 
 const KYOTO_ID = "cmtrip-kyoto-may25";

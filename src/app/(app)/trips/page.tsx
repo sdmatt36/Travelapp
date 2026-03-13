@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { Plus, MapPin, Calendar, Map } from "lucide-react";
-import { BottomNav } from "@/components/ui/BottomNav";
 
 function formatDateRange(start: Date | null, end: Date | null) {
   if (!start) return null;
@@ -33,6 +32,8 @@ const DESTINATION_GRADIENTS: string[] = [
   "linear-gradient(135deg, #9b7e6b 0%, #7a5e4e 100%)",
 ];
 
+export const dynamic = "force-dynamic";
+
 export default async function TripsPage() {
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
@@ -58,7 +59,7 @@ export default async function TripsPage() {
   const trips = user.familyProfile.trips;
 
   return (
-    <div style={{ minHeight: "100vh", backgroundColor: "#FFFFFF", paddingBottom: "96px" }}>
+    <div style={{ minHeight: "100vh", backgroundColor: "#FFFFFF", paddingBottom: "80px" }}>
       <div style={{ maxWidth: "480px", margin: "0 auto", padding: "32px 24px 0" }}>
 
         {/* Header */}
@@ -208,7 +209,6 @@ export default async function TripsPage() {
 
       </div>
 
-      <BottomNav />
     </div>
   );
 }
