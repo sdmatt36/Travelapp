@@ -126,3 +126,15 @@
     max-width: 100%;
   }
 }
+
+.tab-card-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+@media (min-width: 768px) {
+  .tab-card-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

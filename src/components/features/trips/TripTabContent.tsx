@@ -436,7 +436,7 @@ function SavedContent({ tripId: tripIdProp }: { tripId?: string }) {
             <span>{cat}</span>
             <span style={{ fontSize: "11px", color: "#bbb", fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>{catItems.length}</span>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: "16px" }}>
+          <div className="tab-card-grid">
             {catItems.map(item => {
               const location = [item.destinationCity, item.destinationCountry].filter(Boolean).join(", ");
               return (
@@ -1148,7 +1148,7 @@ function RecommendedContent({
           <div style={{ fontSize: "11px", fontWeight: 700, color: "#717171", textTransform: "uppercase", letterSpacing: "0.08em", paddingBottom: "10px", marginBottom: "12px", borderBottom: "1px solid #EEEEEE" }}>
             {cat}
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: "16px" }}>
+          <div className="tab-card-grid">
             {grouped[cat].map((rec) => {
               const isSaved = savedSet.has(rec.title);
               const isSaving = savingTitle === rec.title;
