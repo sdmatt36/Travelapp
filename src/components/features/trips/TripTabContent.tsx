@@ -2,6 +2,18 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useParams } from "next/navigation";
+
+function useIsDesktop() {
+  const [isDesktop, setIsDesktop] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)");
+    setIsDesktop(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+  return isDesktop;
+}
 import { type LucideIcon } from "lucide-react";
 import {
   BedDouble,
@@ -377,102 +389,159 @@ type TripSavedItemForDisplay = {
   destinationCountry: string | null;
 };
 
-function SavedContent({ tripId: tripIdProp }: { tripId?: string }) {
-  const params = useParams();
-  const tripId = tripIdProp ?? (typeof params?.id === "string" ? params.id : undefined);
-  const [items, setItems] = useState<TripSavedItemForDisplay[]>([]);
-  const [loadingItems, setLoadingItems] = useState(true);
+// ── Static Okinawa saved items ─────────────────────────────────────────────
 
-  useEffect(() => {
-    console.log("[SavedContent] tripId resolved:", tripId);
-    if (!tripId) { setLoadingItems(false); return; }
-    function fetchItems() {
-      fetch(`/api/saves?tripId=${tripId}`)
-        .then(r => r.json())
-        .then(data => { setItems(data.saves ?? []); setLoadingItems(false); })
-        .catch(() => setLoadingItems(false));
-    }
-    fetchItems();
-    window.addEventListener("flokk:refresh", fetchItems);
-    return () => window.removeEventListener("flokk:refresh", fetchItems);
-  }, [tripId]);
+const SAVED_LEFT: { category: string; items: { title: string; detail: string; status: string; statusBooked: boolean; families: string; img: string; icon: React.ReactNode }[] }[] = [
+  {
+    category: "LODGING",
+    items: [
+      {
+        title: "Halekulani Okinawa",
+        detail: "Onna Village · Check-in May 4 → May 8",
+        status: "Booked ✓",
+        statusBooked: true,
+        families: "2,340 families saved this",
+        img: "https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?w=200&auto=format&fit=crop&q=80",
+        icon: <BedDouble size={18} style={{ color: "#C4664A" }} />,
+      },
+    ],
+  },
+  {
+    category: "AIRFARE",
+    items: [
+      {
+        title: "JAL Flight 917 · Tokyo → Naha",
+        detail: "May 4 · Departs 08:35 · Arrives 11:35",
+        status: "Booked ✓",
+        statusBooked: true,
+        families: "1,820 families saved this",
+        img: "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=200&auto=format&fit=crop&q=80",
+        icon: <Plane size={18} style={{ color: "#C4664A" }} />,
+      },
+    ],
+  },
+];
 
-  // Deduplicate by id (guards against double-writes in DB)
-  const dedupedItems = items.filter((item, idx, arr) => arr.findIndex(i => i.id === item.id) === idx);
+const SAVED_RIGHT: { category: string; items: { title: string; detail: string; status: string; statusBooked: boolean; families: string; img: string; icon: React.ReactNode }[] }[] = [
+  {
+    category: "RESTAURANTS",
+    items: [
+      {
+        title: "Makishi Public Market",
+        detail: "Naha · Kokusai-dori",
+        status: "Want to try",
+        statusBooked: false,
+        families: "890 families saved this",
+        img: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=200&auto=format&fit=crop&q=80",
+        icon: <Utensils size={18} style={{ color: "#C4664A" }} />,
+      },
+    ],
+  },
+  {
+    category: "ACTIVITIES",
+    items: [
+      {
+        title: "Ocean Expo Park Churaumi Aquarium",
+        detail: "Motobu · All day · Ages 0+",
+        status: "Booked ✓",
+        statusBooked: true,
+        families: "3,100 families saved this",
+        img: "https://images.unsplash.com/photo-1583212292454-1fe6229603b7?w=200&auto=format&fit=crop&q=80",
+        icon: <Waves size={18} style={{ color: "#C4664A" }} />,
+      },
+      {
+        title: "Katsuren Castle Ruins",
+        detail: "Uruma · Half day · UNESCO site",
+        status: "Want to visit",
+        statusBooked: false,
+        families: "780 families saved this",
+        img: "https://images.unsplash.com/photo-1545569341-9eb8b30979d9?w=200&auto=format&fit=crop&q=80",
+        icon: <Landmark size={18} style={{ color: "#C4664A" }} />,
+      },
+    ],
+  },
+];
 
-  // Group by first category tag, sorted alphabetically
-  const grouped: Record<string, TripSavedItemForDisplay[]> = {};
-  for (const item of dedupedItems) {
-    const cat = item.categoryTags[0] ?? "Other";
-    if (!grouped[cat]) grouped[cat] = [];
-    grouped[cat].push(item);
-  }
-  const sortedGroups = Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b));
-
-  const SOURCE_LABEL: Record<string, string> = {
-    INSTAGRAM: "Instagram", TIKTOK: "TikTok", GOOGLE_MAPS: "Google Maps",
-    MANUAL: "Web", IN_APP: "In-app", EMAIL_IMPORT: "Email", PHOTO_IMPORT: "Photo",
-  };
-
-  if (loadingItems) {
-    return <div style={{ textAlign: "center", padding: "32px", color: "#999", fontSize: "14px" }}>Loading…</div>;
-  }
-
-  if (dedupedItems.length === 0) {
-    return (
-      <div style={{ textAlign: "center", padding: "48px 24px" }}>
-        <div style={{ fontSize: "32px", marginBottom: "12px" }}>📌</div>
-        <p style={{ fontSize: "16px", fontWeight: 700, color: "#1a1a1a", marginBottom: "6px" }}>Nothing saved yet</p>
-        <p style={{ fontSize: "13px", color: "#717171" }}>Drop a link or save a recommendation to get started.</p>
+function SavedHorizCard({ item, isDesktop }: {
+  item: { title: string; detail: string; status: string; statusBooked: boolean; families: string; img: string; icon: React.ReactNode };
+  isDesktop: boolean;
+}) {
+  const [imgFailed, setImgFailed] = useState(false);
+  const thumbSize = isDesktop ? 96 : 72;
+  return (
+    <div style={{ backgroundColor: "#fff", borderRadius: "12px", boxShadow: "0 1px 6px rgba(0,0,0,0.08)", border: "1px solid #EEEEEE", overflow: "hidden", display: "flex", flexDirection: "row", alignItems: "stretch", marginBottom: "10px" }}>
+      {imgFailed ? (
+        <div style={{ width: thumbSize, minWidth: thumbSize, height: thumbSize, backgroundColor: "#F5F0EB", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          {item.icon}
+        </div>
+      ) : (
+        <>
+          <div style={{ width: thumbSize, minWidth: thumbSize, height: thumbSize, backgroundImage: `url('${item.img}')`, backgroundSize: "cover", backgroundPosition: "center", flexShrink: 0 }} />
+          <img src={item.img} alt="" onError={() => setImgFailed(true)} style={{ display: "none" }} />
+        </>
+      )}
+      <div style={{ padding: "10px 12px", flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", gap: "3px", minWidth: 0 }}>
+        <p style={{ fontSize: "13px", fontWeight: 700, color: "#1a1a1a", lineHeight: 1.3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.title}</p>
+        <p style={{ fontSize: "12px", color: "#717171", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.detail}</p>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "2px" }}>
+          <span style={{
+            fontSize: "11px", fontWeight: 600, borderRadius: "20px", padding: "2px 8px",
+            backgroundColor: item.statusBooked ? "rgba(74,124,89,0.1)" : "rgba(0,0,0,0.05)",
+            color: item.statusBooked ? "#4a7c59" : "#717171",
+            border: item.statusBooked ? "1px solid rgba(74,124,89,0.2)" : "1px solid #E0E0E0",
+          }}>
+            {item.status}
+          </span>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: "4px", marginTop: "1px" }}>
+          <Users size={10} style={{ color: "#BBBBBB", flexShrink: 0 }} />
+          <span style={{ fontSize: "11px", color: "#BBBBBB" }}>{item.families}</span>
+        </div>
       </div>
-    );
-  }
+    </div>
+  );
+}
+
+function SavedContent({ tripId: tripIdProp }: { tripId?: string }) {
+  const isDesktop = useIsDesktop();
 
   return (
     <div>
-      {sortedGroups.map(([cat, catItems]) => (
-        <div key={cat} style={{ marginBottom: "24px" }}>
-          <div style={{ fontSize: "11px", fontWeight: 700, color: "#717171", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "10px", paddingBottom: "8px", borderBottom: "1px solid #EEEEEE", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <span>{cat}</span>
-            <span style={{ fontSize: "11px", color: "#bbb", fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>{catItems.length}</span>
-          </div>
-          <div className="tab-card-grid">
-            {catItems.map(item => {
-              const location = [item.destinationCity, item.destinationCountry].filter(Boolean).join(", ");
-              return (
-                <div key={item.id} style={{ backgroundColor: "#fff", borderRadius: "12px", boxShadow: "0 1px 6px rgba(0,0,0,0.08)", border: "1px solid #EEEEEE", overflow: "hidden", display: "flex", flexDirection: "column" }}>
-                  {item.mediaThumbnailUrl ? (
-                    <div style={{ width: "100%", height: "180px", backgroundImage: `url('${item.mediaThumbnailUrl}')`, backgroundSize: "cover", backgroundPosition: "center", flexShrink: 0 }} />
-                  ) : (
-                    <div style={{ width: "100%", height: "180px", backgroundColor: "#E8E4DE", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                      <Compass size={28} style={{ color: "#999" }} />
-                    </div>
-                  )}
-                  <div style={{ padding: "12px", flex: 1, display: "flex", flexDirection: "column", gap: "6px" }}>
-                    <p style={{ fontSize: "14px", fontWeight: 700, color: "#1a1a1a", lineHeight: 1.3 }}>{item.rawTitle ?? "Untitled"}</p>
-                    {location && (
-                      <div style={{ display: "flex", alignItems: "center", gap: "3px" }}>
-                        <MapPin size={10} style={{ color: "#717171", flexShrink: 0 }} />
-                        <span style={{ fontSize: "12px", color: "#717171" }}>{location}</span>
-                      </div>
-                    )}
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
-                      {item.categoryTags.slice(0, 3).map(tag => (
-                        <span key={tag} style={{ fontSize: "11px", backgroundColor: "rgba(0,0,0,0.05)", color: "#666", borderRadius: "20px", padding: "2px 8px" }}>
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                    <p style={{ fontSize: "10px", color: "#BBBBBB" }}>
-                      via {SOURCE_LABEL[item.sourceType] ?? item.sourceType}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+      {/* Two-column layout: left=Lodging+Airfare, right=Restaurants+Activities */}
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: isDesktop ? "repeat(2, 1fr)" : "1fr",
+        gap: "20px",
+      }}>
+        {/* LEFT COLUMN */}
+        <div>
+          {SAVED_LEFT.map(section => (
+            <div key={section.category} style={{ marginBottom: "20px" }}>
+              <div style={{ fontSize: "11px", fontWeight: 700, color: "#717171", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "10px", paddingBottom: "8px", borderBottom: "1px solid #EEEEEE", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span>{section.category}</span>
+                <span style={{ fontSize: "11px", color: "#bbb", fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>{section.items.length}</span>
+              </div>
+              {section.items.map(item => (
+                <SavedHorizCard key={item.title} item={item} isDesktop={isDesktop} />
+              ))}
+            </div>
+          ))}
         </div>
-      ))}
+        {/* RIGHT COLUMN */}
+        <div>
+          {SAVED_RIGHT.map(section => (
+            <div key={section.category} style={{ marginBottom: "20px" }}>
+              <div style={{ fontSize: "11px", fontWeight: 700, color: "#717171", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "10px", paddingBottom: "8px", borderBottom: "1px solid #EEEEEE", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span>{section.category}</span>
+                <span style={{ fontSize: "11px", color: "#bbb", fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>{section.items.length}</span>
+              </div>
+              {section.items.map(item => (
+                <SavedHorizCard key={item.title} item={item} isDesktop={isDesktop} />
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
@@ -1067,6 +1136,7 @@ function RecommendedContent({
   onViewOnMap: (lat: number, lng: number) => void;
   onSaved: (rec: SavedRec) => void;
 }) {
+  const isDesktop = useIsDesktop();
   const [savedSet, setSavedSet] = useState<Set<string>>(new Set());
   const [savingTitle, setSavingTitle] = useState<string | null>(null);
   const [pendingRec, setPendingRec] = useState<string | null>(null);
@@ -1148,7 +1218,7 @@ function RecommendedContent({
           <div style={{ fontSize: "11px", fontWeight: 700, color: "#717171", textTransform: "uppercase", letterSpacing: "0.08em", paddingBottom: "10px", marginBottom: "12px", borderBottom: "1px solid #EEEEEE" }}>
             {cat}
           </div>
-          <div className="tab-card-grid">
+          <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(2, 1fr)" : "1fr", gap: "16px" }}>
             {grouped[cat].map((rec) => {
               const isSaved = savedSet.has(rec.title);
               const isSaving = savingTitle === rec.title;
