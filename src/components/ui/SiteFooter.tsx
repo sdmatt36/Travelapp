@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plane, Twitter, Instagram, Youtube } from "lucide-react";
+import { Twitter, Instagram, Youtube } from "lucide-react";
 
 const COLUMNS = [
   {
@@ -50,8 +50,7 @@ export function SiteFooter() {
 
           {/* Brand */}
           <div>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
-              <Plane size={18} style={{ color: "#C4664A" }} />
+            <div style={{ marginBottom: "12px" }}>
               <span style={{ fontSize: "18px", fontWeight: 800, color: "#fff" }}>Flokk</span>
             </div>
             <p style={{ fontSize: "13px", lineHeight: 1.6, color: "rgba(255,255,255,0.55)", maxWidth: "200px" }}>

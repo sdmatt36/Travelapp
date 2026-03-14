@@ -214,7 +214,7 @@ export default function LandingPage() {
                       <span className="text-xs font-medium" style={{ color: "#999" }}>1.2km from your hotel</span>
                     </div>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/4/4e/Main_tank_of_the_Kuroshio_Sea_in_Okinawa_Churaumi_Aquarium.JPG" alt="Churaumi Aquarium" className="w-full object-cover" style={{ height: "150px" }} />
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/0/0a/Main_tank_of_the_Kuroshio_Sea_in_Okinawa_Churaumi_Aquarium.JPG" alt="Churaumi Aquarium" className="w-full object-cover" style={{ height: "150px" }} />
                     <div className="p-4 space-y-3">
                       <div>
                         <p className="font-bold text-base" style={{ color: "#1a1a1a" }}>Churaumi Aquarium</p>
