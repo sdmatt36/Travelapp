@@ -368,9 +368,9 @@ export default function LandingPage() {
                 desc: "Browse trips built by families with kids the same ages, interests, and travel style.",
               },
             ].map(({ name, desc }) => (
-              <div key={name} style={{ backgroundColor: "#243F63", borderRadius: "12px", padding: "28px 24px", borderTop: "3px solid #C4664A" }}>
-                <p style={{ color: "#fff", fontWeight: 600, fontSize: "16px", marginTop: 0 }}>{name}</p>
-                <p className="text-white/65" style={{ fontSize: "14px", marginTop: "8px", lineHeight: 1.5 }}>{desc}</p>
+              <div key={name} style={{ backgroundColor: "#FFFFFF", borderRadius: "12px", padding: "28px 24px", borderTop: "3px solid #C4664A", border: "1px solid #E8E8E8", borderTopColor: "#C4664A", borderTopWidth: "3px" }}>
+                <p style={{ color: "#1B3A5C", fontWeight: 600, fontSize: "16px", marginTop: 0 }}>{name}</p>
+                <p style={{ color: "#717171", fontSize: "14px", marginTop: "8px", lineHeight: 1.5 }}>{desc}</p>
               </div>
             ))}
           </div>
@@ -444,7 +444,7 @@ export default function LandingPage() {
 
       {/* Stats bar */}
       <div className="px-4 sm:px-6 lg:px-8">
-      <section className="py-16 max-w-6xl mx-auto rounded-2xl" style={{ backgroundColor: "#C4664A" }}>
+      <section className="py-16 max-w-6xl mx-auto rounded-2xl" style={{ backgroundColor: "#B85D42" }}>
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-8">
             <h2 className="text-2xl md:text-3xl font-bold text-white">The numbers don&apos;t lie.</h2>
@@ -465,7 +465,7 @@ export default function LandingPage() {
                   transform: item.scale ? "scale(1.05)" : "scale(1)",
                 }}
               >
-                <p className="font-black leading-tight" style={{ fontSize: "32px", color: "#1a1a1a" }}>{item.stat}</p>
+                <p className="font-black leading-tight" style={{ fontSize: "32px", color: "#1B3A5C" }}>{item.stat}</p>
                 <p className="text-center leading-relaxed" style={{ color: "#717171", fontSize: "13px" }}>{item.label}</p>
               </div>
             ))}
