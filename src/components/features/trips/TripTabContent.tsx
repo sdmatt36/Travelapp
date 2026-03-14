@@ -196,9 +196,10 @@ function FilledSlot({
   );
 }
 
-function EmptySlot() {
+function EmptySlot({ onClick }: { onClick?: () => void }) {
   return (
     <div
+      onClick={onClick}
       style={{
         height: "56px",
         border: "1.5px dashed rgba(196,102,74,0.3)",
@@ -288,7 +289,7 @@ function DayCard({
   );
 }
 
-function AIBanner() {
+function AIBanner({ onSuggest }: { onSuggest: () => void }) {
   return (
     <div
       style={{
@@ -310,6 +311,7 @@ function AIBanner() {
         </div>
       </div>
       <button
+        onClick={onSuggest}
         style={{
           backgroundColor: "#C4664A",
           color: "#fff",
@@ -851,15 +853,17 @@ type RecAddition = { dayIndex: number; title: string; location: string; img: str
 
 const ITINERARY_KEY = (tripId?: string) => `flokk_itinerary_additions_${tripId ?? "default"}`;
 
-function ItineraryContent({ flyTarget, onFlyTargetConsumed, tripId }: {
+function ItineraryContent({ flyTarget, onFlyTargetConsumed, tripId, onSwitchToRecommended }: {
   flyTarget: { lat: number; lng: number } | null;
   onFlyTargetConsumed: () => void;
   tripId?: string;
+  onSwitchToRecommended?: () => void;
 }) {
   const isDesktop = useIsDesktop();
   const [openDay, setOpenDay] = useState(0); // -1 = all collapsed
   const [notes, setNotes] = useState(["", "", "", "", ""]);
   const [recAdditions, setRecAdditions] = useState<RecAddition[]>([]);
+  const [suggToast, setSuggToast] = useState(false);
 
   // Load additions from localStorage on mount (persists across tab switches)
   useEffect(() => {
@@ -896,6 +900,24 @@ function ItineraryContent({ flyTarget, onFlyTargetConsumed, tripId }: {
 
   return (
     <div style={{ overflowX: "hidden" }}>
+
+      {/* AI suggest toast */}
+      {suggToast && (
+        <div style={{ marginBottom: "12px", backgroundColor: "#FDF6F3", border: "1.5px solid rgba(196,102,74,0.25)", borderRadius: "12px", padding: "12px 14px", display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "10px" }}>
+          <div>
+            <p style={{ fontSize: "13px", fontWeight: 700, color: "#1a1a1a", marginBottom: "2px" }}>AI suggestions coming soon</p>
+            <p style={{ fontSize: "12px", color: "#717171" }}>For now, browse the Recommended tab to add activities to your itinerary.</p>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
+            {onSwitchToRecommended && (
+              <button onClick={onSwitchToRecommended} style={{ fontSize: "12px", fontWeight: 700, color: "#C4664A", background: "none", border: "none", cursor: "pointer", padding: 0, whiteSpace: "nowrap" }}>
+                Recommended →
+              </button>
+            )}
+            <button onClick={() => setSuggToast(false)} style={{ fontSize: "16px", lineHeight: 1, color: "#aaa", background: "none", border: "none", cursor: "pointer", padding: "0 2px" }}>×</button>
+          </div>
+        </div>
+      )}
 
       {/* Budget bar — trip-level, full width */}
       <div style={{ padding: "16px 0", borderBottom: "1px solid rgba(0,0,0,0.06)", background: "#fff", marginBottom: "16px", borderRadius: "12px", paddingLeft: "16px", paddingRight: "16px" }}>
@@ -1041,28 +1063,28 @@ function ItineraryContent({ flyTarget, onFlyTargetConsumed, tripId }: {
                             iconBg="#c8b89a"
                             tags={["Ages 6+", "Outdoor", "Free"]}
                           />
-                          <EmptySlot />
-                          <EmptySlot />
+                          <EmptySlot onClick={onSwitchToRecommended} />
+                          <EmptySlot onClick={onSwitchToRecommended} />
                         </>
                       )}
 
                       {/* Day 3 */}
                       {i === 2 && (
                         <>
-                          <AIBanner />
-                          <EmptySlot />
-                          <EmptySlot />
-                          <EmptySlot />
+                          <AIBanner onSuggest={() => setSuggToast(true)} />
+                          <EmptySlot onClick={onSwitchToRecommended} />
+                          <EmptySlot onClick={onSwitchToRecommended} />
+                          <EmptySlot onClick={onSwitchToRecommended} />
                         </>
                       )}
 
                       {/* Day 4 */}
                       {i === 3 && (
                         <>
-                          <AIBanner />
-                          <EmptySlot />
-                          <EmptySlot />
-                          <EmptySlot />
+                          <AIBanner onSuggest={() => setSuggToast(true)} />
+                          <EmptySlot onClick={onSwitchToRecommended} />
+                          <EmptySlot onClick={onSwitchToRecommended} />
+                          <EmptySlot onClick={onSwitchToRecommended} />
                         </>
                       )}
 
@@ -1076,7 +1098,7 @@ function ItineraryContent({ flyTarget, onFlyTargetConsumed, tripId }: {
                             icon={<BedDouble size={20} style={{ color: "#717171" }} />}
                             tags={["11am checkout", "To airport"]}
                           />
-                          <EmptySlot />
+                          <EmptySlot onClick={onSwitchToRecommended} />
                         </>
                       )}
 
@@ -1883,6 +1905,10 @@ export function TripTabContent({ initialTab = "saved", tripId, tripStartDate, tr
           display: "flex",
           borderBottom: "1px solid rgba(0,0,0,0.08)",
           marginBottom: "20px",
+          overflowX: "auto",
+          WebkitOverflowScrolling: "touch" as const,
+          scrollbarWidth: "none" as const,
+          msOverflowStyle: "none" as const,
         }}
       >
         {(["Saved", "Itinerary", "Recommended", "Packing"] as const).map((label) => {
@@ -1893,17 +1919,20 @@ export function TripTabContent({ initialTab = "saved", tripId, tripStartDate, tr
               key={label}
               onClick={() => setTab(key)}
               style={{
-                flex: 1,
-                paddingTop: "4px",
+                flexShrink: 0,
+                paddingTop: "10px",
                 paddingBottom: "12px",
-                fontSize: "15px",
-                fontWeight: 600,
-                color: active ? "#1a1a1a" : "#717171",
+                paddingLeft: "16px",
+                paddingRight: "16px",
+                fontSize: "14px",
+                fontWeight: active ? 700 : 500,
+                color: active ? "#C4664A" : "#717171",
                 backgroundColor: "transparent",
                 border: "none",
                 borderBottom: active ? "2.5px solid #C4664A" : "2.5px solid transparent",
                 marginBottom: "-1px",
                 cursor: "pointer",
+                whiteSpace: "nowrap",
               }}
             >
               {label}
@@ -1913,7 +1942,7 @@ export function TripTabContent({ initialTab = "saved", tripId, tripStartDate, tr
       </div>
 
       {tab === "saved" && <SavedContent tripId={tripId} />}
-      {tab === "itinerary" && <ItineraryContent flyTarget={flyTarget} onFlyTargetConsumed={() => setFlyTarget(null)} tripId={tripId} />}
+      {tab === "itinerary" && <ItineraryContent flyTarget={flyTarget} onFlyTargetConsumed={() => setFlyTarget(null)} tripId={tripId} onSwitchToRecommended={() => setTab("recommended")} />}
       {tab === "packing" && <PackingContent />}
       {tab === "recommended" && (
         <RecommendedContent

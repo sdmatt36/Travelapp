@@ -27,7 +27,7 @@ export function BottomNav() {
     }}>
       <div style={{ maxWidth: "480px", margin: "0 auto", display: "flex", justifyContent: "space-around" }}>
         {NAV_ITEMS.map(({ label, icon: Icon, href }) => {
-          const active = pathname === href || (href === "/trips" && pathname.startsWith("/trips"));
+          const active = pathname === href || (href !== "/home" && pathname.startsWith(href));
           return (
             <Link
               key={href}

@@ -1,75 +1,34 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { z, ZodError } from "zod";
 
-export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const { userId } = await auth();
-    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+export const dynamic = "force-dynamic";
 
-    const { id } = await params;
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  const { userId } = await auth();
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const user = await db.user.findUnique({
-      where: { clerkId: userId },
-      include: { familyProfile: { include: { interests: true } } },
-    });
-    if (!user?.familyProfile) return NextResponse.json({ error: "No profile" }, { status: 400 });
+  const user = await db.user.findUnique({
+    where: { clerkId: userId },
+    include: { familyProfile: true },
+  });
+  if (!user?.familyProfile) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    const item = await db.savedItem.findUnique({
-      where: { id },
-      include: { trip: { select: { id: true, title: true } } },
-    });
-
-    if (!item || item.familyProfileId !== user.familyProfile.id) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
-    }
-
-    const interestKeys = user.familyProfile.interests.map(i => i.interestKey);
-    return NextResponse.json({ item, interestKeys });
-  } catch {
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  const item = await db.savedItem.findUnique({ where: { id } });
+  if (!item || item.familyProfileId !== user.familyProfile.id) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
-}
 
-const PatchSchema = z.object({
-  notes: z.string().optional(),
-  categoryTags: z.array(z.string()).optional(),
-  tripId: z.string().nullable().optional(),
-});
-
-export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const { userId } = await auth();
-    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-    const { id } = await params;
-    const body = await req.json();
-    const { notes, categoryTags, tripId } = PatchSchema.parse(body);
-
-    const user = await db.user.findUnique({
-      where: { clerkId: userId },
-      include: { familyProfile: true },
-    });
-    if (!user?.familyProfile) return NextResponse.json({ error: "No profile" }, { status: 400 });
-
-    const item = await db.savedItem.findUnique({ where: { id } });
-    if (!item || item.familyProfileId !== user.familyProfile.id) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
-    }
-
-    const data: Record<string, unknown> = {};
-    if (notes !== undefined) data.notes = notes;
-    if (categoryTags !== undefined) data.categoryTags = categoryTags;
-    if (tripId !== undefined) {
-      data.tripId = tripId;
-      data.status = tripId ? "TRIP_ASSIGNED" : "UNORGANIZED";
-    }
-
-    const updated = await db.savedItem.update({ where: { id }, data });
-    return NextResponse.json({ success: true, notes: updated.notes, categoryTags: updated.categoryTags });
-  } catch (error) {
-    if (error instanceof ZodError) return NextResponse.json({ error: error.issues }, { status: 400 });
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  const body = await request.json();
+  const { notes } = body;
+  if (typeof notes !== "string") {
+    return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
   }
+
+  const updated = await db.savedItem.update({ where: { id }, data: { notes } });
+  return NextResponse.json({ savedItem: updated });
 }

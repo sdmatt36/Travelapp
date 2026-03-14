@@ -33,7 +33,7 @@ const DAY_DATA: DayDef[] = [
 const OKINAWA_CENTER: [number, number] = [127.6809, 26.2124];
 
 function buildAppleMapsUrl(markers: MarkerDef[]): string {
-  if (markers.length === 0) return "https://maps.apple.com";
+  if (markers.length === 0) return `https://maps.apple.com/?q=${OKINAWA_CENTER[1]},${OKINAWA_CENTER[0]}`;
   if (markers.length === 1) {
     return `https://maps.apple.com/?q=${markers[0].lat},${markers[0].lng}`;
   }
@@ -43,7 +43,7 @@ function buildAppleMapsUrl(markers: MarkerDef[]): string {
 }
 
 function buildGoogleMapsUrl(markers: MarkerDef[]): string {
-  if (markers.length === 0) return "https://www.google.com/maps";
+  if (markers.length === 0) return `https://www.google.com/maps/search/?api=1&query=${OKINAWA_CENTER[1]},${OKINAWA_CENTER[0]}`;
   if (markers.length === 1) {
     return `https://www.google.com/maps/search/?api=1&query=${markers[0].lat},${markers[0].lng}`;
   }
