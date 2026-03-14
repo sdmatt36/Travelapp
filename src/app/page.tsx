@@ -333,8 +333,8 @@ export default function LandingPage() {
 
       </section>
 
-      {/* What's coming — full-bleed navy */}
-      <section style={{ backgroundColor: "#1B3A5C" }} className="py-20 md:py-24">
+      {/* What's coming — contained navy block */}
+      <section style={{ backgroundColor: "#1B3A5C" }} className="mx-4 sm:mx-6 lg:mx-8 rounded-2xl py-20 md:py-24">
         <div style={{ maxWidth: "1100px", margin: "0 auto", padding: "0 24px" }}>
           <div style={{ textAlign: "center", marginBottom: "40px" }}>
             <h2 className={`${playfair.className} text-4xl md:text-5xl`} style={{ fontWeight: 400, color: "#fff", marginBottom: "12px" }}>More coming soon</h2>
