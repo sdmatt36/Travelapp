@@ -95,7 +95,7 @@ export default function LandingPage() {
                     See how it works
                   </a>
                 </div>
-                <p className="text-sm" style={{ color: "#999" }}>No credit card required.</p>
+                <p className="text-sm" style={{ color: "#999" }}>No credit card required. · Join 200+ families already planning smarter.</p>
               </div>
 
               {/* Right: floating product card — desktop only */}
@@ -176,7 +176,7 @@ export default function LandingPage() {
             </div>
             <div style={{ flex: 1, display: "flex", justifyContent: "center" }}>
               <div style={{ backgroundColor: "#fff", borderRadius: "16px", boxShadow: "0 4px 16px rgba(0,0,0,0.08)", border: "1px solid #EEEEEE", overflow: "hidden", width: "100%", maxWidth: "360px" }}>
-                <div style={{ position: "relative", height: "180px", backgroundImage: "url('https://images.unsplash.com/photo-1533900298318-6b8da08a523e?w=640&q=80')", backgroundSize: "cover", backgroundPosition: "center" }}>
+                <div style={{ position: "relative", height: "180px", backgroundImage: "url('https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=800')", backgroundSize: "cover", backgroundPosition: "center" }}>
                   <div style={{ position: "absolute", bottom: "10px", left: "10px", backgroundColor: "#E1306C", color: "#fff", fontSize: "11px", padding: "3px 10px", borderRadius: "20px", display: "flex", alignItems: "center", gap: "4px" }}>
                     <Instagram size={12} />
                     Instagram
@@ -215,7 +215,7 @@ export default function LandingPage() {
                       <span className="text-xs font-medium" style={{ color: "#999" }}>600m from your hotel</span>
                     </div>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src="https://images.unsplash.com/photo-1533900298318-6b8da08a523e?w=640&q=80" alt="Mercado de San Miguel" className="w-full object-cover" style={{ height: "150px" }} />
+                    <img src="https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800" alt="Travel planning" className="w-full object-cover" style={{ height: "150px" }} />
                     <div className="p-4 space-y-3">
                       <div>
                         <p className="font-bold text-base" style={{ color: "#1a1a1a" }}>Mercado de San Miguel</p>
@@ -336,17 +336,17 @@ export default function LandingPage() {
         <div style={{ backgroundColor: "#F5F5F5", padding: "48px 24px", marginTop: "60px", borderRadius: "20px" }}>
           <div style={{ maxWidth: "1100px", margin: "0 auto" }}>
             <div style={{ textAlign: "center", marginBottom: "32px" }}>
-              <h2 style={{ fontSize: "22px", fontWeight: 700, color: "#1A1A1A", marginBottom: "6px" }}>What&apos;s coming</h2>
-              <p style={{ fontSize: "14px", color: "#717171" }}>We&apos;re just getting started.</p>
+              <h2 style={{ fontSize: "22px", fontWeight: 700, color: "#1A1A1A", marginBottom: "6px" }}>More coming soon</h2>
+              <p style={{ fontSize: "14px", color: "#717171" }}>Flokk is just getting started. Here&apos;s what&apos;s on the horizon.</p>
             </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", justifyContent: "center", marginBottom: "24px" }}>
               {[
-                { icon: <CreditCard size={16} style={{ color: "#C4664A", flexShrink: 0 }} />, label: "Book flights & hotels" },
-                { icon: <Mail size={16} style={{ color: "#C4664A", flexShrink: 0 }} />, label: "Forward any confirmation" },
-                { icon: <Map size={16} style={{ color: "#C4664A", flexShrink: 0 }} />, label: "Google & Apple Maps sync" },
-                { icon: <Calendar size={16} style={{ color: "#C4664A", flexShrink: 0 }} />, label: "Auto-populate your calendar" },
-                { icon: <Award size={16} style={{ color: "#C4664A", flexShrink: 0 }} />, label: "Miles & points in one place" },
-                { icon: <Users size={16} style={{ color: "#C4664A", flexShrink: 0 }} />, label: "Trip plans from real families" },
+                { icon: <CreditCard size={16} style={{ color: "#C4664A", flexShrink: 0 }} />, label: "Book everything in one place" },
+                { icon: <Mail size={16} style={{ color: "#C4664A", flexShrink: 0 }} />, label: "Forward any confirmation email — we'll file it" },
+                { icon: <Map size={16} style={{ color: "#C4664A", flexShrink: 0 }} />, label: "Your itinerary, ready to navigate" },
+                { icon: <Calendar size={16} style={{ color: "#C4664A", flexShrink: 0 }} />, label: "Trip dates land in your calendar automatically" },
+                { icon: <Award size={16} style={{ color: "#C4664A", flexShrink: 0 }} />, label: "See exactly what your points are worth" },
+                { icon: <Users size={16} style={{ color: "#C4664A", flexShrink: 0 }} />, label: "Real itineraries from families like yours" },
               ].map(({ icon, label }) => (
                 <div key={label} style={{ display: "flex", alignItems: "center", gap: "8px", backgroundColor: "#fff", border: "1px solid #EEEEEE", borderRadius: "20px", padding: "10px 20px" }}>
                   {icon}
@@ -431,7 +431,7 @@ export default function LandingPage() {
           </div>
           <div className="grid md:grid-cols-3 gap-4 items-stretch">
             {[
-              { stat: "20 hrs", label: "The average family spends this researching every trip. You won't.", icon: <Clock size={22} style={{ color: "#C4664A" }} />, scale: false },
+              { stat: "20+ hrs", label: "The average family spends this researching every trip. You won't.", icon: <Clock size={22} style={{ color: "#C4664A" }} />, scale: false },
               { stat: "Built for families", label: "Not a generic travel app with a family filter bolted on.", icon: <Users size={22} style={{ color: "#C4664A" }} />, scale: true },
               { stat: "All in one place", label: "Saves, itineraries, recommendations, and booking. No tab switching.", icon: <Layers size={22} style={{ color: "#C4664A" }} />, scale: false },
             ].map((item) => (
