@@ -23,38 +23,233 @@ const TIER_CONFIG = {
     bg: "#F5F5F5", color: "#717171",
     border: "#E8E8E8",
     nextLabel: "Navigator", threshold: 500,
-    desc: "You're just getting started. Keep saving and contributing to level up.",
+    desc: "You're just getting started. Every save and trip earns points.",
   },
   NAVIGATOR: {
     label: "Navigator",
     bg: "rgba(27,58,92,0.08)", color: "#1B3A5C",
     border: "rgba(27,58,92,0.2)",
     nextLabel: "Pioneer", threshold: 2000,
-    desc: "You're a consistent contributor. Premium features unlocked.",
+    desc: "Consistent contributor. Premium features and verified badge unlocked.",
   },
   PIONEER: {
     label: "Pioneer",
     bg: "rgba(196,102,74,0.08)", color: "#C4664A",
     border: "rgba(196,102,74,0.2)",
     nextLabel: null, threshold: null,
-    desc: "Top contributor. Priority placement, early access, and complimentary Pro.",
+    desc: "Top contributor. Complimentary Pro and early feature access.",
   },
 };
 
-const TIER_UNLOCKS = [
-  {
-    name: "Explorer",
-    perks: ["Basic recommendations", "Community access", "Save up to 50 places"],
-  },
-  {
-    name: "Navigator",
-    perks: ["Verified badge", "Priority search placement", "Premium features unlocked"],
-  },
-  {
-    name: "Pioneer",
-    perks: ["Complimentary Pro membership", "Early feature access", "Maximum subscription credit"],
-  },
+const EARN_ACTIONS = [
+  { label: "Complete a trip", pts: "+100 pts", highlight: false },
+  { label: "Add a hotel or property review", pts: "+50 pts", highlight: false },
+  { label: "Submit a restaurant or activity tip", pts: "+25 pts", highlight: false },
+  { label: "Upload a tagged photo", pts: "+15 pts", highlight: false },
+  { label: "Your tip saved by another family", pts: "+10 pts bonus", highlight: false },
+  { label: "Refer a friend who joins", pts: "+75 pts", highlight: false },
+  { label: "Import camera roll", pts: "+500 pts", highlight: true },
+  { label: "Complete a destination guide", pts: "+100 pts", highlight: false },
 ];
+
+const PATH_NODES = [
+  { key: "EXPLORER", initial: "E", label: "Explorer", perk: "Community access" },
+  { key: "NAVIGATOR", initial: "N", label: "Navigator", perk: "Verified badge + priority placement" },
+  { key: "PIONEER", initial: "P", label: "Pioneer", perk: "Complimentary Pro membership" },
+];
+
+const TIER_ORDER: Record<string, number> = { EXPLORER: 0, NAVIGATOR: 1, PIONEER: 2 };
+
+// ── Tier Card ───────────────────────────────────────────────────────────────
+
+function TierCard() {
+  // Hardcoded for now — wire to real data in a follow-up
+  const currentTier: "EXPLORER" | "NAVIGATOR" | "PIONEER" = "EXPLORER";
+  const currentPoints = 0;
+
+  const cfg = TIER_CONFIG[currentTier as keyof typeof TIER_CONFIG];
+  const tierIndex = TIER_ORDER[currentTier];
+
+  let progressPct = 0;
+  let pointsLabel = `${currentPoints} points`;
+  let thresholdLabel = "";
+  const isPioneer = (currentTier as string) === "PIONEER";
+
+  if (currentTier === "EXPLORER") {
+    progressPct = Math.min(currentPoints / 500, 1) * 100;
+    thresholdLabel = "500 to Navigator";
+  } else if (currentTier === "NAVIGATOR") {
+    progressPct = Math.min((currentPoints - 500) / 1500, 1) * 100;
+    thresholdLabel = "2,000 to Pioneer";
+  } else {
+    progressPct = 100;
+  }
+
+  return (
+    <div style={cardStyle}>
+
+      {/* Section A — Current tier */}
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "16px" }}>
+        <div>
+          <p style={{ fontSize: "30px", fontWeight: 700, color: "#1B3A5C", margin: 0, lineHeight: 1 }}>
+            {cfg.label}
+          </p>
+          <p style={{ fontSize: "14px", color: "#717171", margin: "6px 0 0", lineHeight: 1.5 }}>
+            {cfg.desc}
+          </p>
+        </div>
+        <span style={{
+          flexShrink: 0,
+          padding: "4px 16px", borderRadius: "999px", fontSize: "14px", fontWeight: 600,
+          backgroundColor: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}`,
+          whiteSpace: "nowrap",
+        }}>
+          {cfg.label}
+        </span>
+      </div>
+
+      {/* Progress bar */}
+      <div style={{ marginTop: "20px" }}>
+        {!isPioneer ? (
+          <>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
+              <span style={{ fontSize: "12px", color: "#717171" }}>{pointsLabel}</span>
+              <span style={{ fontSize: "12px", color: "#717171" }}>{thresholdLabel}</span>
+            </div>
+            <div style={{ width: "100%", height: "8px", backgroundColor: "#F5F5F5", borderRadius: "999px", overflow: "hidden" }}>
+              <div style={{
+                width: `${progressPct}%`, height: "100%",
+                backgroundColor: "#1B3A5C", borderRadius: "999px",
+                transition: "width 0.5s ease",
+              }} />
+            </div>
+          </>
+        ) : (
+          <>
+            <div style={{ marginBottom: "6px" }}>
+              <span style={{ fontSize: "12px", color: "#717171" }}>Maximum tier reached</span>
+            </div>
+            <div style={{ width: "100%", height: "8px", backgroundColor: "#F5F5F5", borderRadius: "999px", overflow: "hidden" }}>
+              <div style={{ width: "100%", height: "100%", backgroundColor: "#C4664A", borderRadius: "999px" }} />
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Section B — Earn points */}
+      <div style={{ borderTop: "1px solid #E8E8E8", marginTop: "24px", paddingTop: "24px" }}>
+        <p style={{ fontSize: "14px", fontWeight: 600, color: "#1B3A5C", margin: "0 0 16px" }}>
+          How to earn points
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {EARN_ACTIONS.map((action) => (
+            <div
+              key={action.label}
+              style={{
+                backgroundColor: action.highlight ? "rgba(196,102,74,0.08)" : "#F9F9F9",
+                borderRadius: "8px",
+                padding: "12px 14px",
+                display: "flex",
+                alignItems: action.highlight ? "flex-start" : "center",
+                justifyContent: "space-between",
+                gap: "12px",
+              }}
+            >
+              <div>
+                <p style={{ fontSize: "14px", fontWeight: 500, color: "#1B3A5C", margin: 0 }}>
+                  {action.label}
+                </p>
+                {action.highlight && (
+                  <p style={{ fontSize: "12px", color: "#C4664A", margin: "2px 0 0" }}>
+                    Pioneer tier fast track
+                  </p>
+                )}
+              </div>
+              <span style={{
+                flexShrink: 0,
+                fontSize: "12px", fontWeight: 600,
+                padding: "3px 10px", borderRadius: "999px",
+                backgroundColor: action.highlight ? "rgba(196,102,74,0.15)" : "rgba(27,58,92,0.08)",
+                color: action.highlight ? "#C4664A" : "#1B3A5C",
+                whiteSpace: "nowrap",
+              }}>
+                {action.pts}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Section C — Your path */}
+      <div style={{ borderTop: "1px solid #E8E8E8", marginTop: "24px", paddingTop: "24px" }}>
+        <p style={{ fontSize: "14px", fontWeight: 600, color: "#1B3A5C", margin: "0 0 20px" }}>
+          Your path
+        </p>
+        <div style={{ display: "flex", alignItems: "center" }}>
+          {PATH_NODES.map((node, i) => {
+            const nodeIndex = TIER_ORDER[node.key];
+            const isActive = nodeIndex === tierIndex;
+            const isPast = nodeIndex < tierIndex;
+            const isLocked = nodeIndex > tierIndex;
+            const isPioneerNode = node.key === "PIONEER";
+
+            const circleBg = isLocked
+              ? "#F5F5F5"
+              : isPioneerNode && isActive
+              ? "#C4664A"
+              : "#1B3A5C";
+
+            const circleStyle: React.CSSProperties = {
+              width: "40px", height: "40px", borderRadius: "50%",
+              display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+              backgroundColor: isLocked ? "#F5F5F5" : circleBg,
+              border: isLocked ? "2px solid #E8E8E8" : "none",
+            };
+
+            return (
+              <div key={node.key} style={{ display: "contents" }}>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: 0 }}>
+                  <div style={circleStyle}>
+                    <span style={{
+                      fontSize: "14px", fontWeight: 700,
+                      color: isLocked ? "#CCCCCC" : "#fff",
+                    }}>
+                      {node.initial}
+                    </span>
+                  </div>
+                  <p style={{
+                    fontSize: "12px", fontWeight: 600, margin: "8px 0 0", textAlign: "center",
+                    color: isLocked ? "#CCCCCC" : "#1B3A5C",
+                    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                    maxWidth: "80px",
+                  }}>
+                    {node.label}
+                  </p>
+                  <p style={{
+                    fontSize: "11px", margin: "3px 0 0", textAlign: "center",
+                    color: isLocked ? "#CCCCCC" : "#717171",
+                    lineHeight: 1.4,
+                    maxWidth: "100px",
+                  }}>
+                    {node.perk}
+                  </p>
+                </div>
+                {i < PATH_NODES.length - 1 && (
+                  <div style={{
+                    flex: 1, height: "1px", margin: "0 12px",
+                    marginBottom: "40px",
+                    backgroundColor: TIER_ORDER[PATH_NODES[i + 1].key] <= tierIndex ? "#1B3A5C" : "#E8E8E8",
+                  }} />
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+    </div>
+  );
+}
 
 const cardStyle: React.CSSProperties = {
   backgroundColor: "#fff", borderRadius: "12px",
@@ -136,25 +331,8 @@ export function StatsSection() {
     setTimeout(() => setCopied(false), 2000);
   }
 
-  const tier = data?.tier ?? "EXPLORER";
-  const points = data?.points ?? 0;
-  const tierCfg = TIER_CONFIG[tier];
   const placesSaved = data?.placesSaved ?? 0;
   const tripsTaken = data?.tripsTaken ?? 0;
-
-  // Progress bar
-  let progressPct = 0;
-  let progressLabel = "";
-  if (tier === "EXPLORER") {
-    progressPct = Math.min(points / 500, 1) * 100;
-    progressLabel = `${points} / 500 points to Navigator`;
-  } else if (tier === "NAVIGATOR") {
-    progressPct = Math.min((points - 500) / 1500, 1) * 100;
-    progressLabel = `${points} / 2000 points to Pioneer`;
-  } else {
-    progressPct = 100;
-    progressLabel = "Maximum tier reached";
-  }
 
   // Badges
   const badges: BadgeDef[] = [
@@ -217,12 +395,12 @@ export function StatsSection() {
     {
       name: "Navigator",
       icon: <Navigation size={22} style={{ color: "#CCCCCC" }} />,
-      earned: tier === "NAVIGATOR" || tier === "PIONEER",
+      earned: data?.tier === "NAVIGATOR" || data?.tier === "PIONEER",
     },
     {
       name: "Pioneer",
       icon: <Award size={22} style={{ color: "#CCCCCC" }} />,
-      earned: tier === "PIONEER",
+      earned: data?.tier === "PIONEER",
     },
   ];
 
@@ -256,39 +434,7 @@ export function StatsSection() {
       </div>
 
       {/* C — Tier progress */}
-      <div style={cardStyle}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
-          <p style={{ fontSize: "15px", fontWeight: 600, color: "#1B3A5C", margin: 0 }}>Contribution tier</p>
-          <span style={{
-            padding: "4px 14px", borderRadius: "999px", fontSize: "13px", fontWeight: 600,
-            backgroundColor: tierCfg.bg, color: tierCfg.color, border: `1px solid ${tierCfg.border}`,
-          }}>
-            {tierCfg.label}
-          </span>
-        </div>
-
-        {/* Progress bar */}
-        <div style={{ marginBottom: "8px" }}>
-          <div style={{ width: "100%", height: "8px", backgroundColor: "#F5F5F5", borderRadius: "999px", overflow: "hidden" }}>
-            <div style={{ width: `${progressPct}%`, height: "100%", backgroundColor: "#1B3A5C", borderRadius: "999px", transition: "width 0.4s ease" }} />
-          </div>
-          <p style={{ fontSize: "11px", color: "#717171", marginTop: "4px", marginBottom: 0 }}>{progressLabel}</p>
-        </div>
-
-        {/* Tier columns */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4" style={{ marginTop: "16px" }}>
-          {TIER_UNLOCKS.map((t) => (
-            <div key={t.name}>
-              <p style={{ fontSize: "14px", fontWeight: 600, color: "#1B3A5C", margin: "0 0 8px" }}>{t.name}</p>
-              {t.perks.map((perk) => (
-                <p key={perk} style={{ fontSize: "12px", color: "#717171", margin: "0 0 4px", lineHeight: 1.6 }}>
-                  {perk}
-                </p>
-              ))}
-            </div>
-          ))}
-        </div>
-      </div>
+      <TierCard />
 
       {/* D — Badges */}
       <div style={cardStyle}>
