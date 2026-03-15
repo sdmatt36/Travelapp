@@ -34,7 +34,9 @@ export async function PATCH(request: Request) {
     data: {
       ...(body.familyName !== undefined && { familyName: body.familyName || null }),
       ...(body.homeCity !== undefined && { homeCity: body.homeCity || null }),
+      ...(body.state !== undefined && { state: body.state || null }),
       ...(body.homeCountry !== undefined && { homeCountry: body.homeCountry || null }),
+      ...(body.favoriteAirports !== undefined && { favoriteAirports: body.favoriteAirports || null }),
       ...(body.travelFrequency && { travelFrequency: body.travelFrequency }),
       ...(body.budgetRange && { budgetRange: body.budgetRange }),
       ...(body.accessibilityNotes !== undefined && { accessibilityNotes: body.accessibilityNotes || null }),

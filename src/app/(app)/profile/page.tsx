@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useUser, useClerk } from "@clerk/nextjs";
-import { Home, Users, CreditCard, Award, FileText, BarChart2 } from "lucide-react";
 import { FamilySection } from "@/components/features/profile/FamilySection";
 import { TravelersSection } from "@/components/features/profile/TravelersSection";
 import { PaymentSection } from "@/components/features/profile/PaymentSection";
@@ -11,12 +10,12 @@ import { TravelDocsSection } from "@/components/features/profile/TravelDocsSecti
 import { StatsSection } from "@/components/features/profile/StatsSection";
 
 const NAV_ITEMS = [
-  { id: "family", label: "Family", icon: Home, subtitle: "Your household details and travel preferences." },
-  { id: "travelers", label: "Travelers", icon: Users, subtitle: "Everyone traveling with your family." },
-  { id: "payment", label: "Payment", icon: CreditCard, subtitle: "Cards you use for travel." },
-  { id: "loyalty", label: "Loyalty", icon: Award, subtitle: "Your airline, hotel, and car rental memberships." },
-  { id: "docs", label: "Travel Docs", icon: FileText, subtitle: "Passports, trusted traveler programs, and document reminders." },
-  { id: "stats", label: "Stats", icon: BarChart2, subtitle: "Your family's travel history at a glance." },
+  { id: "family", label: "Family", subtitle: "Your household details and travel preferences." },
+  { id: "travelers", label: "Travelers", subtitle: "Everyone traveling with your family." },
+  { id: "payment", label: "Payment", subtitle: "Cards you use for travel." },
+  { id: "loyalty", label: "Loyalty", subtitle: "Your airline, hotel, and car rental memberships." },
+  { id: "docs", label: "Travel Docs", subtitle: "Passports, trusted traveler programs, and document reminders." },
+  { id: "stats", label: "Stats", subtitle: "Your family's travel history at a glance." },
 ];
 
 export default function ProfilePage() {
@@ -57,7 +56,7 @@ export default function ProfilePage() {
         key={item.id}
         onClick={() => setActiveSection(item.id)}
         style={{
-          display: "flex", alignItems: "center", gap: "10px",
+          display: "flex", alignItems: "center",
           width: "100%", textAlign: "left", padding: "10px 12px",
           borderRadius: "8px", border: "none", cursor: "pointer",
           borderLeft: isActive ? "2px solid #C4664A" : "2px solid transparent",
@@ -68,7 +67,6 @@ export default function ProfilePage() {
           transition: "background-color 0.15s",
         }}
       >
-        <item.icon size={16} />
         {item.label}
       </button>
     );

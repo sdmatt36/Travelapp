@@ -126,7 +126,7 @@ function CardModal({ onClose, onAdd }: { onClose: () => void; onAdd: (card: Card
           {/* Network */}
           <div>
             <p style={labelSt}>Card network</p>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", flexDirection: "row" }}>
               {NETWORKS.map((n) => (
                 <button
                   key={n}
@@ -149,7 +149,7 @@ function CardModal({ onClose, onAdd }: { onClose: () => void; onAdd: (card: Card
           <div>
             <label style={labelSt}>Last 4 digits</label>
             <input
-              style={{ ...inputSt, maxWidth: "140px" }}
+              style={inputSt}
               value={last4}
               onChange={(e) => setLast4(e.target.value.replace(/\D/g, "").slice(0, 4))}
               placeholder="1234"

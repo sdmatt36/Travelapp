@@ -46,7 +46,9 @@ model FamilyProfile {
   user             User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   familyName       String?
   homeCity         String?
+  state            String?
   homeCountry      String?
+  favoriteAirports String?
   travelFrequency  TravelFrequency?
   budgetRange      BudgetRange?
   accessibilityNotes String?

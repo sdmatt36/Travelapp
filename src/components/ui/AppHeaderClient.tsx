@@ -15,7 +15,7 @@ function useIsDesktop() {
   }, []);
   return isDesktop;
 }
-import { Plane, Menu, X, LogOut, User } from "lucide-react";
+import { Menu, X, LogOut, User } from "lucide-react";
 import { useClerk } from "@clerk/nextjs";
 
 const NAV_ITEMS = [
@@ -88,8 +88,7 @@ export function AppHeaderClient({
         }}>
 
           {/* Left: wordmark */}
-          <Link href="/home" style={{ display: "flex", alignItems: "center", gap: "8px", textDecoration: "none" }}>
-            <Plane size={18} style={{ color: "#C4664A" }} />
+          <Link href="/home" style={{ textDecoration: "none" }}>
             <span style={{ fontSize: "18px", fontWeight: 800, color: "#1a1a1a", letterSpacing: "-0.02em" }}>
               Flokk
             </span>

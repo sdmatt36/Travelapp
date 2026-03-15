@@ -8,10 +8,24 @@ const FREQUENCY_OPTIONS = [
   { value: "SIX_PLUS", label: "6+ per year" },
 ];
 
+const US_STATES = [
+  "Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado",
+  "Connecticut", "Delaware", "Florida", "Georgia", "Hawaii", "Idaho",
+  "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky", "Louisiana",
+  "Maine", "Maryland", "Massachusetts", "Michigan", "Minnesota", "Mississippi",
+  "Missouri", "Montana", "Nebraska", "Nevada", "New Hampshire", "New Jersey",
+  "New Mexico", "New York", "North Carolina", "North Dakota", "Ohio", "Oklahoma",
+  "Oregon", "Pennsylvania", "Rhode Island", "South Carolina", "South Dakota",
+  "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington",
+  "West Virginia", "Wisconsin", "Wyoming", "District of Columbia",
+];
+
 interface FamilyProfileData {
   familyName: string;
   homeCity: string;
+  state: string;
   homeCountry: string;
+  favoriteAirports: string;
   travelFrequency: string;
   accessibilityNotes: string;
 }
@@ -108,26 +122,6 @@ const INTEREST_CATEGORIES = [
     ],
   },
 ];
-
-const fieldStyle: React.CSSProperties = {
-  width: "100%",
-  padding: "9px 12px",
-  border: "1px solid #E8E8E8",
-  borderRadius: "8px",
-  fontSize: "14px",
-  color: "#1a1a1a",
-  backgroundColor: "#fff",
-  outline: "none",
-  boxSizing: "border-box",
-};
-
-const labelStyle: React.CSSProperties = {
-  display: "block",
-  fontSize: "13px",
-  fontWeight: 500,
-  color: "#1B3A5C",
-  marginBottom: "6px",
-};
 
 const cardStyle: React.CSSProperties = {
   backgroundColor: "#fff",
@@ -269,7 +263,9 @@ export function FamilySection() {
   const [form, setForm] = useState<FamilyProfileData>({
     familyName: "",
     homeCity: "",
+    state: "",
     homeCountry: "",
+    favoriteAirports: "",
     travelFrequency: "",
     accessibilityNotes: "",
   });
@@ -282,7 +278,9 @@ export function FamilySection() {
           setForm({
             familyName: familyProfile.familyName || "",
             homeCity: familyProfile.homeCity || "",
+            state: familyProfile.state || "",
             homeCountry: familyProfile.homeCountry || "",
+            favoriteAirports: familyProfile.favoriteAirports || "",
             travelFrequency: familyProfile.travelFrequency || "",
             accessibilityNotes: familyProfile.accessibilityNotes || "",
           });
@@ -314,6 +312,9 @@ export function FamilySection() {
 
   if (loading) return <p style={{ color: "#717171", fontSize: "14px" }}>Loading...</p>;
 
+  const inputCls = "w-full border border-[#E8E8E8] rounded-lg px-3 py-2 text-sm text-[#1B3A5C] focus:outline-none focus:border-[#1B3A5C] bg-white";
+  const labelCls = "block text-xs font-semibold text-[#717171] uppercase tracking-wide mb-1";
+
   return (
     <div>
       {toast && (
@@ -327,55 +328,66 @@ export function FamilySection() {
         </div>
       )}
 
-      <div style={cardStyle}>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <div>
-            <label style={labelStyle}>Family name</label>
-            <input style={fieldStyle} placeholder="The Greenes" {...field("familyName")} />
-          </div>
-          <div>
-            <label style={labelStyle}>Home city</label>
-            <input style={fieldStyle} placeholder="Kamakura" {...field("homeCity")} />
-          </div>
-          <div>
-            <label style={labelStyle}>Home country</label>
-            <input style={fieldStyle} placeholder="Japan" {...field("homeCountry")} />
-          </div>
-          <div>
-            <label style={labelStyle}>Travel frequency</label>
-            <select style={fieldStyle} {...field("travelFrequency")}>
-              <option value="">Select...</option>
-              {FREQUENCY_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
-            </select>
-          </div>
-          <div className="md:col-span-2">
-            <label style={labelStyle}>Accessibility needs</label>
-            <textarea
-              style={{ ...fieldStyle, resize: "vertical" }}
-              rows={3}
-              placeholder="Any mobility, sensory, or other accessibility needs we should know about"
-              {...field("accessibilityNotes")}
-            />
-          </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-4">
+        <div>
+          <label className={labelCls}>Family name</label>
+          <input className={inputCls} placeholder="The Greenes" {...field("familyName")} />
         </div>
-
-        <div style={{ marginTop: "20px" }}>
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            style={{
-              backgroundColor: "#1B3A5C", color: "#fff", border: "none",
-              borderRadius: "8px", padding: "9px 20px", fontSize: "14px",
-              fontWeight: 500, cursor: saving ? "not-allowed" : "pointer",
-              opacity: saving ? 0.7 : 1,
-            }}
-          >
-            {saving ? "Saving..." : "Save changes"}
-          </button>
+        <div>
+          <label className={labelCls}>Home city</label>
+          <input className={inputCls} placeholder="Kamakura" {...field("homeCity")} />
+        </div>
+        <div>
+          <label className={labelCls}>State</label>
+          <select className={inputCls} {...field("state")}>
+            <option value="" disabled>Select state...</option>
+            {US_STATES.map((s) => <option key={s} value={s}>{s}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className={labelCls}>Home country</label>
+          <input className={inputCls} placeholder="Japan" {...field("homeCountry")} />
+        </div>
+        <div>
+          <label className={labelCls}>Travel frequency</label>
+          <select className={inputCls} {...field("travelFrequency")}>
+            <option value="">Select...</option>
+            {FREQUENCY_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className={labelCls}>Favorite airport(s)</label>
+          <input
+            className={inputCls}
+            placeholder="e.g. SEA, PDX, JFK — separate with commas"
+            {...field("favoriteAirports")}
+          />
+        </div>
+        <div className="col-span-1 md:col-span-2 lg:col-span-3">
+          <label className={labelCls}>Accessibility needs</label>
+          <textarea
+            className={inputCls + " resize-y"}
+            rows={2}
+            placeholder="Any mobility, sensory, or other accessibility needs we should know about"
+            {...field("accessibilityNotes")}
+          />
         </div>
       </div>
+
+      <button
+        onClick={handleSave}
+        disabled={saving}
+        style={{
+          backgroundColor: "#1B3A5C", color: "#fff", border: "none",
+          borderRadius: "8px", padding: "9px 24px", fontSize: "14px",
+          fontWeight: 500, cursor: saving ? "not-allowed" : "pointer",
+          opacity: saving ? 0.7 : 1, marginTop: "16px",
+        }}
+      >
+        {saving ? "Saving..." : "Save changes"}
+      </button>
 
       <InterestsCard />
     </div>

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import {
-  Plane, Bookmark, Globe, Calendar,
+  Bookmark, Globe,
   Map, Utensils, Star, Camera, Heart, Users,
   Layers, Compass, Navigation, Award,
   Copy,
@@ -63,7 +63,7 @@ const cardStyle: React.CSSProperties = {
 
 // ── Stat Cards ─────────────────────────────────────────────────────────────
 
-function StatCard({ icon, value, label }: { icon: React.ReactNode; value: string; label: string }) {
+function StatCard({ value, label }: { value: string; label: string }) {
   return (
     <div style={{
       ...cardStyle,
@@ -71,7 +71,6 @@ function StatCard({ icon, value, label }: { icon: React.ReactNode; value: string
       borderLeft: "4px solid #C4664A",
       display: "flex", flexDirection: "column", alignItems: "flex-start",
     }}>
-      <div style={{ marginBottom: "12px" }}>{icon}</div>
       <p style={{ fontSize: "48px", fontWeight: 700, color: "#1B3A5C", margin: 0, lineHeight: 1 }}>{value}</p>
       <p style={{ fontSize: "13px", color: "#717171", margin: "8px 0 0" }}>{label}</p>
     </div>
@@ -234,26 +233,10 @@ export function StatsSection() {
 
       {/* A — Stat cards */}
       <div className="grid grid-cols-2 gap-6">
-        <StatCard
-          icon={<Plane size={20} style={{ color: "#C4664A" }} />}
-          value={String(data?.tripsTaken ?? 0)}
-          label="Trips taken"
-        />
-        <StatCard
-          icon={<Bookmark size={20} style={{ color: "#C4664A" }} />}
-          value={String(placesSaved)}
-          label="Places saved"
-        />
-        <StatCard
-          icon={<Globe size={20} style={{ color: "#C4664A" }} />}
-          value={String(data?.countriesVisited ?? 0)}
-          label="Countries visited"
-        />
-        <StatCard
-          icon={<Calendar size={20} style={{ color: "#C4664A" }} />}
-          value={data?.avgTripLength != null ? String(data.avgTripLength) : "—"}
-          label="Avg. trip length (days)"
-        />
+        <StatCard value={String(data?.tripsTaken ?? 0)} label="Trips taken" />
+        <StatCard value={String(placesSaved)} label="Places saved" />
+        <StatCard value={String(data?.countriesVisited ?? 0)} label="Countries visited" />
+        <StatCard value={data?.avgTripLength != null ? String(data.avgTripLength) : "—"} label="Avg. trip length (days)" />
       </div>
 
       {/* B — World map placeholder */}
