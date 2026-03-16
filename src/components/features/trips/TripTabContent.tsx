@@ -426,6 +426,7 @@ type TripSavedItemForDisplay = {
 // ── Static Okinawa saved items ─────────────────────────────────────────────
 
 type SavedDisplayItem = {
+  id: string;
   title: string;
   detail: string;
   status: string;
@@ -731,6 +732,7 @@ function apiToDisplayItem(item: ApiSavedItem): SavedDisplayItem {
   const tagsStr = item.categoryTags.join(" ");
   const isLodging = LODGING_TAGS.test(tagsStr);
   return {
+    id: item.id,
     title: item.rawTitle ?? urlHost,
     detail,
     status: "Saved",
@@ -801,7 +803,7 @@ function SavedContent({ tripId: tripIdProp }: { tripId?: string }) {
       try {
         const key = ITINERARY_KEY(tripIdProp);
         const existing: RecAddition[] = JSON.parse(localStorage.getItem(key) ?? "[]");
-        existing.push({ dayIndex: 0, title: item.title, location: item.detail, img: item.img });
+        existing.push({ dayIndex: 0, title: item.title, location: item.detail, img: item.img, savedItemId: item.id });
         localStorage.setItem(key, JSON.stringify(existing));
       } catch (e) { console.error("[ItineraryWrite] localStorage write failed:", e); }
       setAssignedDays(prev => ({ ...prev, [item.title]: 0 }));
@@ -903,7 +905,7 @@ function SavedContent({ tripId: tripIdProp }: { tripId?: string }) {
             try {
               const key = ITINERARY_KEY(tripIdProp);
               const existing: RecAddition[] = JSON.parse(localStorage.getItem(key) ?? "[]");
-              existing.push({ dayIndex, title: dayPickerItem.title, location: dayPickerItem.detail, img: dayPickerItem.img });
+              existing.push({ dayIndex, title: dayPickerItem.title, location: dayPickerItem.detail, img: dayPickerItem.img, savedItemId: dayPickerItem.id });
               localStorage.setItem(key, JSON.stringify(existing));
             } catch (e) { console.error("[ItineraryWrite] localStorage write failed:", e); }
             setAssignedDays(prev => ({ ...prev, [dayPickerItem.title]: dayIndex }));
@@ -919,7 +921,7 @@ function SavedContent({ tripId: tripIdProp }: { tripId?: string }) {
             try {
               const key = ITINERARY_KEY(tripIdProp);
               const existing: RecAddition[] = JSON.parse(localStorage.getItem(key) ?? "[]");
-              existing.push({ dayIndex: 0, title: lodgingDateItem.title, location: lodgingDateItem.detail, img: lodgingDateItem.img });
+              existing.push({ dayIndex: 0, title: lodgingDateItem.title, location: lodgingDateItem.detail, img: lodgingDateItem.img, savedItemId: lodgingDateItem.id });
               localStorage.setItem(key, JSON.stringify(existing));
             } catch (e) { console.error("[ItineraryWrite] localStorage write failed:", e); }
             setAssignedDays(prev => ({ ...prev, [lodgingDateItem.title]: 0 }));
@@ -1012,7 +1014,7 @@ function TaskModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-type RecAddition = { dayIndex: number; title: string; location: string; img: string };
+type RecAddition = { dayIndex: number; title: string; location: string; img: string; savedItemId?: string };
 
 const ITINERARY_KEY = (tripId?: string) => `flokk_itinerary_additions_${tripId ?? "default"}`;
 
@@ -1124,8 +1126,24 @@ function ItineraryContent({ flyTarget, onFlyTargetConsumed, tripId, onSwitchToRe
     try {
       const raw = localStorage.getItem(ITINERARY_KEY(tripId));
       const parsed: RecAddition[] = raw ? JSON.parse(raw) : [];
-      console.log("[ItineraryRead] loaded", parsed.length, "additions from localStorage for trip", tripId, parsed);
-      if (parsed.length > 0) setRecAdditions(parsed);
+      if (parsed.length > 0) {
+        setRecAdditions(parsed);
+        // Refresh thumbnails for any items saved before DB was updated (img was empty at save time)
+        if (tripId && parsed.some(a => !a.img && a.savedItemId)) {
+          fetch(`/api/saves?tripId=${tripId}`)
+            .then(r => r.json())
+            .then(({ saves }: { saves: ApiSavedItem[] }) => {
+              const thumbMap: Record<string, string> = {};
+              for (const s of saves ?? []) if (s.mediaThumbnailUrl) thumbMap[s.id] = s.mediaThumbnailUrl;
+              setRecAdditions(prev => prev.map(a =>
+                !a.img && a.savedItemId && thumbMap[a.savedItemId]
+                  ? { ...a, img: thumbMap[a.savedItemId] }
+                  : a
+              ));
+            })
+            .catch(() => {});
+        }
+      }
     } catch (e) { console.error("[ItineraryRead] localStorage read failed:", e); }
   }, [tripId]);
   const [showTaskModal, setShowTaskModal] = useState(false);
@@ -2059,7 +2077,7 @@ const RECOMMENDATIONS: RecItem[] = [
     location: "Nanjo",
     tags: "Activity · $25 · Half day",
     match: "Adventure · Ages 4+ · Kids love this",
-    img: "https://images.unsplash.com/photo-1504870712357-65ea720d6078?w=400&auto=format&fit=crop&q=80",
+    img: "/images/okinawa-world-cave.jpg",
     saved: 1650,
     lat: 26.1613,
     lng: 127.7714,

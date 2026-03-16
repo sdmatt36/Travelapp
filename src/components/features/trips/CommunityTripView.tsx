@@ -491,20 +491,18 @@ export function CommunityTripView({
               <p style={{ fontSize: "13px", color: "#717171" }}>We&apos;re curating top picks for {destinationCity ?? "this destination"}.</p>
             </div>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {recs.map((rec) => (
-                <div key={rec.title} style={{ backgroundColor: "#FAFAFA", borderRadius: "12px", border: "1px solid #EEEEEE", borderLeft: "3px solid rgba(196,102,74,0.3)", padding: "12px", display: "flex", gap: "12px", alignItems: "flex-start" }}>
-                  <div style={{ width: "80px", height: "80px", borderRadius: "10px", flexShrink: 0, backgroundImage: `url('${rec.img}')`, backgroundSize: "cover", backgroundPosition: "center" }} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "3px" }}>
-                      <p style={{ fontSize: "15px", fontWeight: 700, color: "#1a1a1a" }}>{rec.title}</p>
-                    </div>
-                    <p style={{ fontSize: "12px", color: "#717171", marginBottom: "2px", display: "flex", alignItems: "center", gap: "3px" }}>
+                <div key={rec.title} style={{ backgroundColor: "#FAFAFA", borderRadius: "12px", border: "1px solid #EEEEEE", overflow: "hidden" }}>
+                  <div className="w-full h-48" style={{ backgroundImage: `url('${rec.img}')`, backgroundSize: "cover", backgroundPosition: "center" }} />
+                  <div style={{ padding: "14px" }}>
+                    <p style={{ fontSize: "15px", fontWeight: 700, color: "#1a1a1a", marginBottom: "4px" }}>{rec.title}</p>
+                    <p style={{ fontSize: "12px", color: "#717171", marginBottom: "3px", display: "flex", alignItems: "center", gap: "3px" }}>
                       <MapPin size={10} />
                       {rec.location}
                     </p>
                     <p style={{ fontSize: "12px", color: "#555", marginBottom: "4px" }}>{rec.tags}</p>
-                    <p style={{ fontSize: "12px", color: "#666", marginBottom: "8px", display: "flex", alignItems: "center", gap: "4px" }}>
+                    <p style={{ fontSize: "12px", color: "#666", marginBottom: "10px", display: "flex", alignItems: "center", gap: "4px" }}>
                       <Sparkles size={11} style={{ color: "#C4664A", flexShrink: 0 }} />
                       {rec.match}
                     </p>
