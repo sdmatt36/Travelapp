@@ -884,7 +884,7 @@ function SavedContent({ tripId: tripIdProp }: { tripId?: string }) {
         const col1 = all.filter((_, i) => i % 2 === 0);
         const col2 = all.filter((_, i) => i % 2 !== 0);
         return (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="tab-card-grid">
             <div>{col1.map(renderSection)}</div>
             <div>{col2.map(renderSection)}</div>
           </div>
