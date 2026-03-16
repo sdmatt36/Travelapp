@@ -140,8 +140,8 @@ export default function LandingPage() {
         <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-4">
           {[
             { img: "https://images.unsplash.com/photo-1560703649-e3055f28bcf8?w=600&q=80", label: "Saved from Instagram", sub: "Santorini · Bucket list", objPos: "center 60%" },
-            { img: "https://plus.unsplash.com/premium_photo-1661963188432-5de8a11f21a7?w=600&q=80", label: "Tokyo with Kids", sub: "Itinerary · 8 days", objPos: "center center" },
-            { img: "https://plus.unsplash.com/premium_photo-1661914240950-b0124f20a5c1?w=600&q=80", label: "Villa Rental · Tuscany", sub: "Summer 2026 · Shortlist", objPos: "center center" },
+            { img: "https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=600&q=80", label: "Tokyo with Kids", sub: "Itinerary · 8 days", objPos: "center center" },
+            { img: "https://images.unsplash.com/photo-1523531294919-4bcd7c65e216?w=600&q=80", label: "Villa Rental · Tuscany", sub: "Summer 2026 · Shortlist", objPos: "center center" },
           ].map((card) => (
             <div key={card.label} className="rounded-2xl overflow-hidden shadow-sm border" style={{ backgroundColor: "#fff", borderColor: "#EEEEEE" }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
