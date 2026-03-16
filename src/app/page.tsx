@@ -307,7 +307,6 @@ export default function LandingPage() {
             <div style={{ flex: 1, display: "flex", justifyContent: "center", alignItems: "center" }}>
               <div style={{ backgroundColor: "#fff", borderRadius: "16px", boxShadow: "0 4px 16px rgba(0,0,0,0.08)", border: "1px solid #EEEEEE", overflow: "hidden", width: "100%", maxWidth: "340px" }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="https://images.unsplash.com/photo-1662624477903-7962aa7ff4ae?w=800&q=80" alt="Angkor Wat, Cambodia" style={{ width: "100%", height: "140px", objectFit: "cover", objectPosition: "center center", display: "block" }} />
                 <div style={{ padding: "16px 20px 20px" }}>
                 <span style={{ fontSize: "11px", backgroundColor: "rgba(196,102,74,0.1)", color: "#C4664A", borderRadius: "20px", padding: "3px 10px", fontWeight: 700 }}>Culture</span>
