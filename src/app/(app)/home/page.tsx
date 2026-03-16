@@ -57,31 +57,6 @@ const STATUS_COLOR: Record<string, { text: string }> = {
   COMPLETED: { text: "#717171" },
 };
 
-// Hardcoded recent saves (demo data — real saves from DB lack image/tag metadata)
-const RECENT_SAVES = [
-  {
-    id: "r1",
-    title: "Churaumi Aquarium",
-    location: "Motobu, Okinawa",
-    tags: ["Kids", "Activity"],
-    img: null as string | null,
-  },
-  {
-    id: "r2",
-    title: "Katsuren Castle Ruins",
-    location: "Uruma, Okinawa",
-    tags: ["Culture", "Free"],
-    img: null as string | null,
-  },
-  {
-    id: "r3",
-    title: "Kokusai-dori Street Food",
-    location: "Naha, Okinawa",
-    tags: ["Food", "Evening"],
-    img: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400&auto=format&fit=crop&q=80" as string | null,
-  },
-];
-
 // Community inspiration trips — seeded with real itinerary data
 const DISCOVERY_DESTINATIONS = [
   { city: "Kyoto", country: "Japan", img: "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=400&auto=format&fit=crop&q=80", tripId: "cmtrip-kyoto-may25" },
@@ -174,10 +149,19 @@ export default async function HomePage() {
               }}
             >
               <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0) 100%)", zIndex: 1 }} />
+              {/* Status pill — top left */}
+              <div style={{ position: "absolute", top: "16px", left: "16px", zIndex: 3 }}>
+                {activeTrip ? (
+                  <span style={{ fontSize: "12px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", backgroundColor: "rgba(0,0,0,0.4)", backdropFilter: "blur(8px)", color: "#fff", borderRadius: "999px", padding: "5px 12px" }}>
+                    {activeTrip.status === "ACTIVE" ? "Now traveling" : "Up next"}
+                  </span>
+                ) : (
+                  <span style={{ fontSize: "12px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", backgroundColor: "rgba(0,0,0,0.4)", backdropFilter: "blur(8px)", color: "#fff", borderRadius: "999px", padding: "5px 12px" }}>
+                    No trips planned
+                  </span>
+                )}
+              </div>
               <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", justifyContent: "flex-end", padding: "24px 24px 18px 24px", zIndex: 2 }}>
-                <p style={{ fontSize: "12px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "#C4664A", textShadow: "0px 2px 10px rgba(0,0,0,0.95)" }}>
-                  {activeTrip ? (activeTrip.status === "ACTIVE" ? "Now traveling" : "Up next") : "No trips planned"}
-                </p>
                 <p className={playfair.className} style={{ color: "#fff", fontSize: "36px", fontWeight: 900, lineHeight: 1.2, marginTop: "4px", textShadow: "0px 2px 12px rgba(0,0,0,0.95)" }}>
                   {activeTrip ? activeTrip.title : "Where to next?"}
                 </p>

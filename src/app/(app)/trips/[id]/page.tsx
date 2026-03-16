@@ -224,6 +224,8 @@ export default async function TripDetailPage({
           tripId={trip.id}
           tripStartDate={trip.startDate ? trip.startDate.toISOString() : null}
           tripEndDate={trip.endDate ? trip.endDate.toISOString() : null}
+          destinationCity={trip.destinationCity ?? null}
+          destinationCountry={trip.destinationCountry ?? null}
         />
       )}
 

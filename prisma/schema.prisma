@@ -183,6 +183,7 @@ model Trip {
   accommodationLat Float?
   accommodationLng Float?
   heroImageUrl     String?
+  tripType         String?
   viewCount        Int           @default(0)
   cloneCount       Int           @default(0)
   createdAt        DateTime      @default(now())
@@ -250,6 +251,8 @@ model SavedItem {
   notes               String?
   affiliateUrl        String?
   websiteUrl          String?
+  extractedCheckin    String?
+  extractedCheckout   String?
 }
 
 enum SourceType {

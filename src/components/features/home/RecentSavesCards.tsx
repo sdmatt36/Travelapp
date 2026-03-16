@@ -30,6 +30,29 @@ function getGradient(tags: string[]) {
   return "linear-gradient(135deg,#2d3436,#636e72)";
 }
 
+const CITY_IMAGES: Record<string, string> = {
+  "kyoto": "photo-1478436127897-769e1b3f0f36",
+  "tokyo": "photo-1540959733332-eab4deabeeaf",
+  "okinawa": "photo-1590559899731-a382839e5549",
+  "osaka": "photo-1555400038-63f5ba517a47",
+  "japan": "photo-1478436127897-769e1b3f0f36",
+  "costa rica": "photo-1518259102261-b40117eabbc9",
+  "paris": "photo-1502602898657-3e91760cbb34",
+  "london": "photo-1513635269975-59663e0ac1ad",
+  "new york": "photo-1485871981521-5b1fd3805eee",
+  "bali": "photo-1537996194471-e657df975ab4",
+  "madrid": "photo-1539037116277-4db20889f2d4",
+  "lisbon": "photo-1555881400-74d7acaacd8b",
+};
+
+function getImageSrc(item: RecentSaveItem): string {
+  if (item.mediaThumbnailUrl) return item.mediaThumbnailUrl;
+  const city = (item.destinationCity || "").toLowerCase();
+  const country = (item.destinationCountry || "").toLowerCase();
+  const photoId = CITY_IMAGES[city] || CITY_IMAGES[country] || "photo-1476514525535-07fb3b4ae5f1";
+  return `https://images.unsplash.com/${photoId}?w=400&q=80`;
+}
+
 export function RecentSavesCards({ items }: { items: RecentSaveItem[] }) {
   const [modalItemId, setModalItemId] = useState<string | null>(null);
 
@@ -49,8 +72,8 @@ export function RecentSavesCards({ items }: { items: RecentSaveItem[] }) {
               <div style={{ backgroundColor: "#FAFAFA", borderRadius: "12px", boxShadow: "0 1px 4px rgba(0,0,0,0.08)", overflow: "hidden" }}>
                 <div style={{
                   height: "130px",
-                  background: item.mediaThumbnailUrl ? undefined : gradient,
-                  backgroundImage: item.mediaThumbnailUrl ? `url(${item.mediaThumbnailUrl})` : undefined,
+                  background: gradient,
+                  backgroundImage: `url(${getImageSrc(item)})`,
                   backgroundSize: "cover",
                   backgroundPosition: "center",
                 }} />

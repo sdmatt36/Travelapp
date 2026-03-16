@@ -3,6 +3,23 @@
 import { useState } from "react";
 import type { OnboardingData } from "@/app/(app)/onboarding/page";
 
+const COUNTRIES = [
+  "Afghanistan","Albania","Algeria","Andorra","Angola","Argentina","Armenia","Australia","Austria","Azerbaijan",
+  "Bahamas","Bahrain","Bangladesh","Belarus","Belgium","Belize","Bolivia","Bosnia & Herzegovina","Brazil","Bulgaria",
+  "Cambodia","Canada","Chile","China","Colombia","Costa Rica","Croatia","Cuba","Cyprus","Czech Republic",
+  "Denmark","Dominican Republic","Ecuador","Egypt","El Salvador","Estonia","Ethiopia",
+  "Finland","France","Georgia","Germany","Ghana","Greece","Guatemala","Honduras","Hungary",
+  "Iceland","India","Indonesia","Iran","Iraq","Ireland","Israel","Italy",
+  "Jamaica","Japan","Jordan","Kazakhstan","Kenya","Kuwait",
+  "Latvia","Lebanon","Lithuania","Luxembourg","Malaysia","Mexico","Morocco","Myanmar",
+  "Nepal","Netherlands","New Zealand","Nigeria","Norway",
+  "Pakistan","Panama","Peru","Philippines","Poland","Portugal","Qatar","Romania","Russia",
+  "Saudi Arabia","Senegal","Serbia","Singapore","Slovakia","Slovenia","South Africa","South Korea","Spain","Sri Lanka","Sweden","Switzerland",
+  "Taiwan","Tanzania","Thailand","Tunisia","Turkey",
+  "UAE","Ukraine","United Kingdom","United States","Uruguay","Uzbekistan",
+  "Venezuela","Vietnam","Yemen","Zimbabwe",
+];
+
 const FREQUENCY_OPTIONS = [
   { value: "ONE_TWO", label: "1–2 times a year" },
   { value: "THREE_FIVE", label: "3–5 times a year" },
@@ -66,12 +83,14 @@ export function StepFamilyBasics({ data, onNext }: Props) {
           </div>
           <div className="space-y-2">
             <label className="text-sm font-semibold" style={{ color: "#2d2d2d" }}>Country</label>
-            <input
-              placeholder="e.g. USA"
+            <select
               value={homeCountry}
               onChange={(e) => setHomeCountry(e.target.value)}
-              style={inputStyle}
-            />
+              style={{ ...inputStyle, cursor: "pointer" }}
+            >
+              <option value="">Select country...</option>
+              {COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
           </div>
         </div>
 

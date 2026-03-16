@@ -99,10 +99,12 @@ export function DropLinkModal({
   trips,
   onClose,
   onSaved,
+  initialTripId,
 }: {
   trips: Trip[];
   onClose: () => void;
   onSaved: (tripTitle: string | null) => void;
+  initialTripId?: string;
 }) {
   const [step, setStep] = useState<Step>("input");
   const [url, setUrl] = useState("");
@@ -110,13 +112,15 @@ export function DropLinkModal({
   const [extracted, setExtracted] = useState<ExtractedCard | null>(null);
   const [editingTitle, setEditingTitle] = useState(false);
   const [editedTitle, setEditedTitle] = useState("");
-  // Default to first trip if available, otherwise "Save for later"
-  const [selectedId, setSelectedId] = useState<string>(trips[0]?.id ?? SAVE_LATER);
+  // Pre-select initialTripId if provided, otherwise first trip, otherwise save-later
+  const [selectedId, setSelectedId] = useState<string>(initialTripId ?? trips[0]?.id ?? SAVE_LATER);
   const [pulseId, setPulseId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [visible, setVisible] = useState(false);
   const [selectedDayIndex, setSelectedDayIndex] = useState<number | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [checkinDate, setCheckinDate] = useState<string>("");
+  const [checkoutDate, setCheckoutDate] = useState<string>("");
   const titleInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -147,6 +151,14 @@ export function DropLinkModal({
       setExtracted(card);
       setEditedTitle(card.title);
       setSelectedCategory(card.tags[0] ?? "");
+      // Pre-populate check-in/check-out from URL params
+      try {
+        const parsed = new URL(normalised);
+        const ci = parsed.searchParams.get("check_in") || parsed.searchParams.get("checkin") || parsed.searchParams.get("arrival") || "";
+        const co = parsed.searchParams.get("check_out") || parsed.searchParams.get("checkout") || parsed.searchParams.get("departure") || "";
+        if (ci) setCheckinDate(ci);
+        if (co) setCheckoutDate(co);
+      } catch { /* ignore invalid URLs */ }
       setStep("preview");
     }, 1500);
   }
@@ -172,6 +184,8 @@ export function DropLinkModal({
           lat: extracted.lat,
           lng: extracted.lng,
           dayIndex: selectedDayIndex ?? undefined,
+          extractedCheckin: isLodging && checkinDate ? checkinDate : undefined,
+          extractedCheckout: isLodging && checkoutDate ? checkoutDate : undefined,
         }),
       });
 
@@ -194,6 +208,15 @@ export function DropLinkModal({
       setSaving(false);
     }
   }
+
+  const urlLower = url.toLowerCase();
+  const isLodging =
+    /airbnb\.com|booking\.com|hotels\.com|vrbo\.com/.test(urlLower) ||
+    extracted?.source === "Airbnb" ||
+    extracted?.tags?.includes("Lodging") ||
+    selectedCategory === "Lodging" ||
+    selectedCategory?.toLowerCase().includes("lodg") ||
+    selectedCategory?.toLowerCase().includes("hotel");
 
   const selectedTrip = trips.find((t) => t.id === selectedId);
   const ctaLabel = saving
@@ -488,8 +511,37 @@ export function DropLinkModal({
                 </div>
               </div>
 
-              {/* Day selection — only shown when a trip is selected and has dates */}
-              {selectedId !== SAVE_LATER && (() => {
+              {/* Lodging: check-in / check-out date pickers */}
+              {isLodging && (
+                <div>
+                  <p style={{ fontSize: "14px", fontWeight: 700, color: "#1a1a1a", marginBottom: "10px" }}>
+                    Check-in & check-out
+                  </p>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                    <div>
+                      <label style={{ fontSize: "11px", fontWeight: 600, color: "#717171", display: "block", marginBottom: "4px" }}>Check-in</label>
+                      <input
+                        type="date"
+                        value={checkinDate}
+                        onChange={(e) => setCheckinDate(e.target.value)}
+                        style={{ width: "100%", padding: "9px 12px", borderRadius: "10px", border: "1.5px solid #E0E0E0", fontSize: "14px", color: "#1a1a1a", backgroundColor: "#FAFAFA", outline: "none", boxSizing: "border-box" }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: "11px", fontWeight: 600, color: "#717171", display: "block", marginBottom: "4px" }}>Check-out</label>
+                      <input
+                        type="date"
+                        value={checkoutDate}
+                        onChange={(e) => setCheckoutDate(e.target.value)}
+                        style={{ width: "100%", padding: "9px 12px", borderRadius: "10px", border: "1.5px solid #E0E0E0", fontSize: "14px", color: "#1a1a1a", backgroundColor: "#FAFAFA", outline: "none", boxSizing: "border-box" }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Day selection — only shown when non-lodging, trip selected, trip has dates */}
+              {!isLodging && selectedId !== SAVE_LATER && (() => {
                 const trip = trips.find(t => t.id === selectedId);
                 const dayPills = trip ? generateDayPills(trip.startDate, trip.endDate) : [];
                 if (dayPills.length === 0) return null;

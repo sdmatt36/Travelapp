@@ -5,8 +5,9 @@ import {
   Bookmark, Globe,
   Map, Utensils, Star, Camera, Heart, Users,
   Layers, Compass, Navigation, Award,
-  Copy,
+  Copy, Download,
 } from "lucide-react";
+import { WorldMap } from "@/components/features/profile/WorldMap";
 
 interface StatsData {
   tripsTaken: number;
@@ -48,7 +49,6 @@ const EARN_ACTIONS = [
   { label: "Upload a tagged photo", pts: "+15 pts", highlight: false },
   { label: "Your tip saved by another family", pts: "+10 pts bonus", highlight: false },
   { label: "Refer a friend who joins", pts: "+75 pts", highlight: false },
-  { label: "Import camera roll", pts: "+500 pts", highlight: true },
   { label: "Complete a destination guide", pts: "+100 pts", highlight: false },
 ];
 
@@ -136,37 +136,87 @@ function TierCard() {
             <div
               key={action.label}
               style={{
-                backgroundColor: action.highlight ? "rgba(196,102,74,0.08)" : "#F9F9F9",
+                backgroundColor: "#F9F9F9",
                 borderRadius: "8px",
                 padding: "12px 14px",
                 display: "flex",
-                alignItems: action.highlight ? "flex-start" : "center",
+                alignItems: "center",
                 justifyContent: "space-between",
                 gap: "12px",
               }}
             >
-              <div>
-                <p style={{ fontSize: "14px", fontWeight: 500, color: "#1B3A5C", margin: 0 }}>
-                  {action.label}
-                </p>
-                {action.highlight && (
-                  <p style={{ fontSize: "12px", color: "#C4664A", margin: "2px 0 0" }}>
-                    Pioneer tier fast track
-                  </p>
-                )}
-              </div>
+              <p style={{ fontSize: "14px", fontWeight: 500, color: "#1B3A5C", margin: 0 }}>
+                {action.label}
+              </p>
               <span style={{
                 flexShrink: 0,
                 fontSize: "12px", fontWeight: 600,
                 padding: "3px 10px", borderRadius: "999px",
-                backgroundColor: action.highlight ? "rgba(196,102,74,0.15)" : "rgba(27,58,92,0.08)",
-                color: action.highlight ? "#C4664A" : "#1B3A5C",
+                backgroundColor: "rgba(27,58,92,0.08)",
+                color: "#1B3A5C",
                 whiteSpace: "nowrap",
               }}>
                 {action.pts}
               </span>
             </div>
           ))}
+        </div>
+
+        {/* Camera roll rows — full width */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginTop: "12px" }}>
+          {/* Past trip import */}
+          <div style={{
+            backgroundColor: "rgba(196,102,74,0.06)", borderRadius: "8px", padding: "16px 14px",
+            display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px",
+            border: "1px solid rgba(196,102,74,0.15)",
+          }}>
+            <div>
+              <p style={{ fontSize: "14px", fontWeight: 600, color: "#1B3A5C", margin: 0 }}>
+                Import a past trip from camera roll
+              </p>
+              <p style={{ fontSize: "12px", color: "#717171", margin: "2px 0 0" }}>
+                Unlock memories and let Flokk build a trip from your photos.
+              </p>
+            </div>
+            <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "4px" }}>
+              <span style={{
+                fontSize: "12px", fontWeight: 600, padding: "3px 10px", borderRadius: "999px",
+                backgroundColor: "rgba(196,102,74,0.15)", color: "#C4664A", whiteSpace: "nowrap",
+              }}>
+                +300 pts
+              </span>
+            </div>
+          </div>
+
+          {/* Live capture */}
+          <div style={{
+            backgroundColor: "rgba(196,102,74,0.08)", borderRadius: "8px", padding: "16px 14px",
+            display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px",
+            border: "1px solid rgba(196,102,74,0.2)",
+          }}>
+            <div>
+              <p style={{ fontSize: "14px", fontWeight: 600, color: "#1B3A5C", margin: 0 }}>
+                Enable live capture for a current trip
+              </p>
+              <p style={{ fontSize: "12px", color: "#C4664A", margin: "2px 0 0" }}>
+                Pioneer tier fast track
+              </p>
+            </div>
+            <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "4px" }}>
+              <span style={{
+                fontSize: "10px", fontWeight: 700, padding: "2px 8px", borderRadius: "999px",
+                backgroundColor: "#C4664A", color: "#fff", whiteSpace: "nowrap",
+              }}>
+                Most points
+              </span>
+              <span style={{
+                fontSize: "12px", fontWeight: 600, padding: "3px 10px", borderRadius: "999px",
+                backgroundColor: "rgba(196,102,74,0.15)", color: "#C4664A", whiteSpace: "nowrap",
+              }}>
+                +500 pts
+              </span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -407,19 +457,43 @@ export function StatsSection() {
         <StatCard value={data?.avgTripLength != null ? String(data.avgTripLength) : "—"} label="Avg. trip length (days)" />
       </div>
 
-      {/* B — World map placeholder */}
+      {/* B — World map */}
       <div style={cardStyle}>
-        <p style={{ fontSize: "15px", fontWeight: 600, color: "#1B3A5C", margin: "0 0 4px" }}>Countries visited</p>
-        <p style={{ fontSize: "13px", color: "#C4664A", fontWeight: 500, margin: "0 0 16px" }}>
-          {data?.countriesVisited ? `${data.countriesVisited} ${data.countriesVisited === 1 ? "country" : "countries"}` : (
-            <span style={{ color: "#717171", fontWeight: 400 }}>Your map is waiting. Complete a trip to start filling it in.</span>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "4px" }}>
+          <p style={{ fontSize: "15px", fontWeight: 600, color: "#1B3A5C", margin: 0 }}>Countries visited</p>
+          <button
+            onClick={async () => {
+              try {
+                const { default: html2canvas } = await import("html2canvas");
+                const mapEl = document.getElementById("flokk-world-map");
+                if (!mapEl) return;
+                const canvas = await html2canvas(mapEl, { backgroundColor: "#E8EEF4", scale: 2 });
+                const a = document.createElement("a");
+                a.href = canvas.toDataURL("image/png");
+                a.download = "flokk-travel-map.png";
+                a.click();
+              } catch (e) { console.error("Map share failed:", e); }
+            }}
+            style={{
+              display: "flex", alignItems: "center", gap: "4px",
+              fontSize: "12px", fontWeight: 600, color: "#1B3A5C",
+              background: "none", border: "1px solid #E8E8E8", borderRadius: "20px",
+              padding: "4px 10px", cursor: "pointer",
+            }}
+          >
+            <Download size={12} />
+            Share map
+          </button>
+        </div>
+        <p style={{ fontSize: "13px", margin: "0 0 12px" }}>
+          {data?.countriesVisited ? (
+            <span style={{ color: "#C4664A", fontWeight: 500 }}>{data.countriesVisited} {data.countriesVisited === 1 ? "country" : "countries"}</span>
+          ) : (
+            <span style={{ color: "#717171" }}>Your map is waiting. Complete a trip to start filling it in.</span>
           )}
         </p>
-        <div style={{
-          width: "100%", height: "160px", backgroundColor: "#E8EEF4", borderRadius: "8px",
-          display: "flex", alignItems: "center", justifyContent: "center",
-        }}>
-          <p style={{ color: "#717171", fontSize: "13px", margin: 0 }}>Interactive map coming soon</p>
+        <div id="flokk-world-map">
+          <WorldMap visitedCountries={[]} />
         </div>
       </div>
 

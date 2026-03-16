@@ -21,6 +21,8 @@ const SaveSchema = z.object({
   lat: z.number().optional(),
   lng: z.number().optional(),
   dayIndex: z.number().int().min(1).optional(),
+  extractedCheckin: z.string().optional(),
+  extractedCheckout: z.string().optional(),
 });
 
 function detectSourceType(url: string): SourceType {
@@ -38,7 +40,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const body = await request.json();
-    const { url, tripId, title, description, thumbnailUrl, tags, lat, lng, dayIndex } = SaveSchema.parse(body);
+    const { url, tripId, title, description, thumbnailUrl, tags, lat, lng, dayIndex, extractedCheckin, extractedCheckout } = SaveSchema.parse(body);
 
     const user = await db.user.findUnique({
       where: { clerkId: userId },
@@ -78,6 +80,8 @@ export async function POST(request: Request) {
         lat: lat ?? null,
         lng: lng ?? null,
         dayIndex: dayIndex ?? null,
+        extractedCheckin: extractedCheckin ?? null,
+        extractedCheckout: extractedCheckout ?? null,
         extractionStatus: rawTitle ? "ENRICHED" : "PENDING",
         status: tripId ? "TRIP_ASSIGNED" : "UNORGANIZED",
       },
@@ -134,9 +138,7 @@ export async function GET(request: Request) {
         ...(category && category !== "all"
           ? { categoryTags: { has: category } }
           : {}),
-        ...(tripId
-          ? { OR: [{ tripId }, { tripId: null }] }
-          : {}),
+        ...(tripId ? { tripId } : {}),
       },
       orderBy: { savedAt: "desc" },
       include: { trip: { select: { id: true, title: true } } },

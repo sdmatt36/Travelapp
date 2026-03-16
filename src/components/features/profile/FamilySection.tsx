@@ -370,6 +370,23 @@ const AIRPORTS: AirportDef[] = [
   { code: "GUM", name: "Antonio B. Won Pat International", city: "Guam", country: "Guam" },
 ];
 
+const COUNTRIES = [
+  "Afghanistan","Albania","Algeria","Andorra","Angola","Argentina","Armenia","Australia","Austria","Azerbaijan",
+  "Bahamas","Bahrain","Bangladesh","Belarus","Belgium","Belize","Bolivia","Bosnia & Herzegovina","Brazil","Bulgaria",
+  "Cambodia","Canada","Chile","China","Colombia","Costa Rica","Croatia","Cuba","Cyprus","Czech Republic",
+  "Denmark","Dominican Republic","Ecuador","Egypt","El Salvador","Estonia","Ethiopia",
+  "Finland","France","Georgia","Germany","Ghana","Greece","Guatemala","Honduras","Hungary",
+  "Iceland","India","Indonesia","Iran","Iraq","Ireland","Israel","Italy",
+  "Jamaica","Japan","Jordan","Kazakhstan","Kenya","Kuwait",
+  "Latvia","Lebanon","Lithuania","Luxembourg","Malaysia","Mexico","Morocco","Myanmar",
+  "Nepal","Netherlands","New Zealand","Nigeria","Norway",
+  "Pakistan","Panama","Peru","Philippines","Poland","Portugal","Qatar","Romania","Russia",
+  "Saudi Arabia","Senegal","Serbia","Singapore","Slovakia","Slovenia","South Africa","South Korea","Spain","Sri Lanka","Sweden","Switzerland",
+  "Taiwan","Tanzania","Thailand","Tunisia","Turkey",
+  "UAE","Ukraine","United Kingdom","United States","Uruguay","Uzbekistan",
+  "Venezuela","Vietnam","Yemen","Zimbabwe",
+];
+
 interface FamilyProfileData {
   familyName: string;
   homeCity: string;
@@ -822,7 +839,10 @@ export function FamilySection() {
         </div>
         <div>
           <label className={labelCls}>Home country</label>
-          <input className={inputCls} placeholder="Japan" {...field("homeCountry")} />
+          <select className={inputCls} {...field("homeCountry")}>
+            <option value="">Select country...</option>
+            {COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
         </div>
         <div>
           <label className={labelCls}>Travel frequency</label>

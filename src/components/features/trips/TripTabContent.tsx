@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useParams } from "next/navigation";
 
@@ -54,8 +54,10 @@ import {
   ChevronDown,
   DollarSign,
   Star,
+  Bookmark,
 } from "lucide-react";
 import { TripMap } from "@/components/features/trips/TripMap";
+import { DropLinkModal } from "@/components/features/home/DropLinkModal";
 
 type Tab = "saved" | "itinerary" | "recommended" | "packing";
 
@@ -118,6 +120,12 @@ function FilledSlot({
   icon,
   iconBg = "#e4dfd6",
   tags,
+  description,
+  hours,
+  slotKey,
+  isExpanded,
+  onExpandToggle,
+  onRemove,
 }: {
   time?: string;
   title: string;
@@ -126,71 +134,94 @@ function FilledSlot({
   icon?: React.ReactNode;
   iconBg?: string;
   tags?: string[];
+  description?: string;
+  hours?: string;
+  slotKey?: string;
+  isExpanded?: boolean;
+  onExpandToggle?: () => void;
+  onRemove?: () => void;
 }) {
+  const [note, setNote] = useState("");
+  const isClickable = !!onExpandToggle;
+
   return (
-    <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-      {/* TODO: Implement drag-and-drop reordering
-           Suggested library: @dnd-kit/core
-           Behavior:
-             - Drag within a day to reorder activities
-             - Drag between day cards to move to different day
-             - On drop, recalculate travel time connectors
-             - Persist order to trip state / database
-           Priority: Phase 1 polish, post-beta */}
-      <GripVertical size={14} style={{ color: "#d0cbc2", flexShrink: 0 }} />
-      {img ? (
-        <div
-          style={{
-            width: "56px",
-            height: "56px",
-            borderRadius: "8px",
-            flexShrink: 0,
-            backgroundImage: `url('${img}')`,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-          }}
-        />
-      ) : (
-        <div
-          style={{
-            width: "56px",
-            height: "56px",
-            borderRadius: "8px",
-            flexShrink: 0,
-            backgroundColor: iconBg,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          {icon}
-        </div>
-      )}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{ fontSize: "14px", fontWeight: 700, color: "#1a1a1a", lineHeight: 1.2 }}>{title}</p>
-        <p style={{ fontSize: "12px", color: "#717171", marginTop: "2px" }}>{subtitle}</p>
-        {tags && tags.length > 0 && (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "5px" }}>
-            {tags.map((tag) => (
-              <span
-                key={tag}
-                style={{
-                  backgroundColor: "rgba(0,0,0,0.05)",
-                  color: "#666",
-                  fontSize: "11px",
-                  padding: "2px 8px",
-                  borderRadius: "999px",
-                  display: "inline-block",
-                }}
-              >
-                {tag}
-              </span>
-            ))}
+    <div style={{ marginBottom: "2px" }}>
+      <div
+        onClick={onExpandToggle}
+        style={{
+          display: "flex", gap: "10px", alignItems: "center",
+          cursor: isClickable ? "pointer" : "default",
+          borderRadius: isExpanded ? "8px 8px 0 0" : "8px",
+          padding: "4px",
+          margin: "-4px",
+          transition: "background-color 0.1s",
+        }}
+        className={isClickable ? "hover:bg-black/[0.02]" : ""}
+      >
+        <GripVertical size={14} style={{ color: "#d0cbc2", flexShrink: 0 }} />
+        {img ? (
+          <div
+            style={{
+              width: "56px", height: "56px", borderRadius: "8px", flexShrink: 0,
+              backgroundImage: `url('${img}')`, backgroundSize: "cover", backgroundPosition: "center",
+            }}
+          />
+        ) : (
+          <div
+            style={{
+              width: "56px", height: "56px", borderRadius: "8px", flexShrink: 0,
+              backgroundColor: iconBg, display: "flex", alignItems: "center", justifyContent: "center",
+            }}
+          >
+            {icon}
           </div>
         )}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ fontSize: "14px", fontWeight: 700, color: "#1a1a1a", lineHeight: 1.2 }}>{title}</p>
+          <p style={{ fontSize: "12px", color: "#717171", marginTop: "2px" }}>{subtitle}</p>
+          {tags && tags.length > 0 && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "5px" }}>
+              {tags.map((tag) => (
+                <span key={tag} style={{ backgroundColor: "rgba(0,0,0,0.05)", color: "#666", fontSize: "11px", padding: "2px 8px", borderRadius: "999px", display: "inline-block" }}>
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+        {time && <span style={{ fontSize: "12px", color: "#717171", flexShrink: 0 }}>{time}</span>}
+        {isClickable && (
+          <ChevronDown size={14} style={{ color: "#aaa", flexShrink: 0, transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s ease" }} />
+        )}
       </div>
-      {time && (
-        <span style={{ fontSize: "12px", color: "#717171", flexShrink: 0 }}>{time}</span>
+
+      {/* Inline expanded detail */}
+      {isExpanded && (
+        <div style={{ backgroundColor: "#F9F9F9", borderRadius: "0 0 8px 8px", padding: "12px 16px", borderTop: "1px solid #E8E8E8", display: "flex", flexDirection: "column", gap: "8px" }}>
+          {description && <p style={{ fontSize: "13px", color: "#717171", lineHeight: 1.5, margin: 0 }}>{description}</p>}
+          {hours && (
+            <p style={{ fontSize: "12px", color: "#717171", margin: 0 }}>
+              <span style={{ fontWeight: 600, color: "#555" }}>Hours: </span>{hours}
+            </p>
+          )}
+          <div>
+            <input
+              type="text"
+              value={note}
+              onChange={e => setNote(e.target.value)}
+              placeholder="Add a note..."
+              style={{ width: "100%", fontSize: "13px", color: "#555", border: "1px solid #E8E8E8", borderRadius: "6px", padding: "6px 10px", backgroundColor: "#fff", outline: "none", boxSizing: "border-box" }}
+            />
+          </div>
+          {onRemove && (
+            <button
+              onClick={e => { e.stopPropagation(); onRemove(); }}
+              style={{ alignSelf: "flex-start", fontSize: "12px", color: "#e53e3e", background: "none", border: "none", cursor: "pointer", padding: 0, fontWeight: 500 }}
+            >
+              Remove from itinerary
+            </button>
+          )}
+        </div>
       )}
     </div>
   );
@@ -407,86 +438,6 @@ type SavedDisplayItem = {
   description?: string;
 };
 
-const SAVED_LEFT: { category: string; items: SavedDisplayItem[] }[] = [
-  {
-    category: "LODGING",
-    items: [
-      {
-        title: "Halekulani Okinawa",
-        detail: "Onna Village · Check-in May 4 → May 8",
-        status: "Booked ✓",
-        statusBooked: true,
-        families: "2,340 families saved this",
-        img: "https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?w=200&auto=format&fit=crop&q=80",
-        icon: <BedDouble size={18} style={{ color: "#C4664A" }} />,
-        bookUrl: "https://www.halekulani.com/okinawa",
-        description: "Perched along Onna Village's coral coast, Halekulani Okinawa is a luxury resort built around traditional Ryukyuan culture. Private beach, multiple pools, and world-class dining — your home base for the trip.",
-      },
-    ],
-  },
-  {
-    category: "AIRFARE",
-    items: [
-      {
-        title: "JAL Flight 917 · Tokyo → Naha",
-        detail: "May 4 · Departs 08:35 · Arrives 11:35",
-        status: "Booked ✓",
-        statusBooked: true,
-        families: "1,820 families saved this",
-        img: "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=200&auto=format&fit=crop&q=80",
-        icon: <Plane size={18} style={{ color: "#C4664A" }} />,
-        bookUrl: "https://www.jal.co.jp",
-        description: "Direct JAL flight from Haneda to Naha. 2h 45m flight with full service. Arrive in time for afternoon check-in at the resort.",
-      },
-    ],
-  },
-];
-
-const SAVED_RIGHT: { category: string; items: SavedDisplayItem[] }[] = [
-  {
-    category: "RESTAURANTS",
-    items: [
-      {
-        title: "Makishi Public Market",
-        detail: "Naha · Kokusai-dori",
-        status: "Want to try",
-        statusBooked: false,
-        families: "890 families saved this",
-        img: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=200&auto=format&fit=crop&q=80",
-        icon: <Utensils size={18} style={{ color: "#C4664A" }} />,
-        websiteUrl: "https://www.makishi-public-market.jp",
-        description: "The heart of Naha's food scene. Browse fresh seafood on the first floor, then take your picks upstairs to be cooked by market restaurants. No reservation needed — just show up and explore.",
-      },
-    ],
-  },
-  {
-    category: "ACTIVITIES",
-    items: [
-      {
-        title: "Ocean Expo Park Churaumi Aquarium",
-        detail: "Motobu · All day · Ages 0+",
-        status: "Booked ✓",
-        statusBooked: true,
-        families: "3,100 families saved this",
-        img: "https://images.unsplash.com/photo-1583212292454-1fe6229603b7?w=200&auto=format&fit=crop&q=80",
-        icon: <Waves size={18} style={{ color: "#C4664A" }} />,
-        bookUrl: "https://churaumi.okinawa/en/",
-        description: "One of the world's largest aquariums, home to whale sharks and manta rays in the spectacular Kuroshio Sea tank. Set inside Ocean Expo Park with free outdoor attractions including a dolphin show.",
-      },
-      {
-        title: "Katsuren Castle Ruins",
-        detail: "Uruma · Half day · UNESCO site",
-        status: "Want to visit",
-        statusBooked: false,
-        families: "780 families saved this",
-        img: "https://images.unsplash.com/photo-1545569341-9eb8b30979d9?w=200&auto=format&fit=crop&q=80",
-        icon: <Landmark size={18} style={{ color: "#C4664A" }} />,
-        websiteUrl: "https://www.visitokinawa.jp/information/katsuren-castle-ruin",
-        description: "A UNESCO World Heritage Site on a hilltop peninsula overlooking the Pacific. The 12th–15th century Ryukyuan castle ruins offer panoramic ocean views and are free to explore. Easy walk for kids.",
-      },
-    ],
-  },
-];
 
 const TRIP_DAYS = [
   { dayIndex: 0, label: "Day 1", date: "Sun May 4" },
@@ -678,76 +629,173 @@ function SavedHorizCard({ item, isDesktop, onAddToItinerary, onBook, onLearnMore
   );
 }
 
+// ── Real saved items helpers ──────────────────────────────────────────────────
+
+type ApiSavedItem = {
+  id: string;
+  sourceType: string;
+  sourceUrl: string;
+  rawTitle: string | null;
+  rawDescription: string | null;
+  mediaThumbnailUrl: string | null;
+  categoryTags: string[];
+  extractedCheckin: string | null;
+  extractedCheckout: string | null;
+};
+
+function inferSavedCategory(item: ApiSavedItem): string {
+  const haystack = [...item.categoryTags, item.rawTitle ?? "", item.sourceUrl].join(" ").toLowerCase();
+  if (/lodg|hotel|resort|hostel|airbnb\.com|booking\.com|vrbo/.test(haystack)) return "LODGING";
+  if (/flight|airline|airfare/.test(haystack)) return "AIRFARE";
+  if (/restaurant|food|dining|eat|cafe|market|bar|kitchen/.test(haystack)) return "RESTAURANTS";
+  return "ACTIVITIES";
+}
+
+function apiToDisplayItem(item: ApiSavedItem): SavedDisplayItem {
+  const cat = inferSavedCategory(item);
+  let detail = "";
+  if (cat === "LODGING" && (item.extractedCheckin || item.extractedCheckout)) {
+    detail = [item.extractedCheckin, item.extractedCheckout].filter(Boolean).join(" → ");
+  } else {
+    const desc = item.rawDescription ?? "";
+    detail = desc.length > 0 ? desc.slice(0, 80) : item.sourceUrl.replace(/^https?:\/\//, "").split("/")[0];
+  }
+  const icon = cat === "LODGING" ? <BedDouble size={18} style={{ color: "#C4664A" }} />
+    : cat === "AIRFARE" ? <Plane size={18} style={{ color: "#C4664A" }} />
+    : cat === "RESTAURANTS" ? <Utensils size={18} style={{ color: "#C4664A" }} />
+    : <Compass size={18} style={{ color: "#C4664A" }} />;
+  const isBookable = /airbnb\.com|booking\.com|hotels\.com|expedia\.com/.test(item.sourceUrl);
+  return {
+    title: item.rawTitle ?? item.sourceUrl.replace(/^https?:\/\//, "").split("/")[0],
+    detail,
+    status: "Saved",
+    statusBooked: false,
+    families: "",
+    img: item.mediaThumbnailUrl ?? "",
+    icon,
+    bookUrl: isBookable ? item.sourceUrl : undefined,
+    websiteUrl: item.sourceUrl,
+    description: item.rawDescription ?? "",
+  };
+}
+
 function SavedContent({ tripId: tripIdProp }: { tripId?: string }) {
   const isDesktop = useIsDesktop();
   const [dayPickerItem, setDayPickerItem] = useState<SavedDisplayItem | null>(null);
   const [detailItem, setDetailItem] = useState<SavedDisplayItem | null>(null);
-  // title → dayIndex (0-based) for visual confirmation on the pill
   const [assignedDays, setAssignedDays] = useState<Record<string, number>>({});
+  const [loading, setLoading] = useState(true);
+  const [leftSections, setLeftSections] = useState<{ category: string; items: SavedDisplayItem[] }[]>([]);
+  const [rightSections, setRightSections] = useState<{ category: string; items: SavedDisplayItem[] }[]>([]);
+  const [dropLinkOpen, setDropLinkOpen] = useState(false);
 
-  function handleAddToItinerary(item: SavedDisplayItem) {
-    setDayPickerItem(item);
+  const fetchSaves = useCallback(() => {
+    if (!tripIdProp) { setLoading(false); return; }
+    fetch(`/api/saves?tripId=${tripIdProp}`, { cache: "no-store" })
+      .then(r => r.json())
+      .then(({ saves }: { saves: ApiSavedItem[] }) => {
+        if (!saves?.length) {
+          setLeftSections([]);
+          setRightSections([]);
+          setLoading(false);
+          return;
+        }
+        const groups: Record<string, SavedDisplayItem[]> = {};
+        for (const s of saves) {
+          const cat = inferSavedCategory(s);
+          if (!groups[cat]) groups[cat] = [];
+          groups[cat].push(apiToDisplayItem(s));
+        }
+        const left: { category: string; items: SavedDisplayItem[] }[] = [];
+        const right: { category: string; items: SavedDisplayItem[] }[] = [];
+        const LEFT_CATS = ["LODGING", "AIRFARE"];
+        for (const [cat, items] of Object.entries(groups)) {
+          if (LEFT_CATS.includes(cat)) left.push({ category: cat, items });
+          else right.push({ category: cat, items });
+        }
+        setLeftSections(left);
+        setRightSections(right);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, [tripIdProp]);
+
+  useEffect(() => {
+    fetchSaves();
+    window.addEventListener("flokk:refresh", fetchSaves);
+    return () => window.removeEventListener("flokk:refresh", fetchSaves);
+  }, [fetchSaves]);
+
+  function handleAddToItinerary(item: SavedDisplayItem) { setDayPickerItem(item); }
+  function handleBook(item: SavedDisplayItem) { const url = item.bookUrl ?? item.websiteUrl; if (url) window.open(url, "_blank"); }
+  function handleLearnMore(item: SavedDisplayItem) { setDetailItem(item); }
+
+  function renderSection(section: { category: string; items: SavedDisplayItem[] }) {
+    return (
+      <div key={section.category} style={{ marginBottom: "20px" }}>
+        <div style={{ fontSize: "11px", fontWeight: 700, color: "#717171", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "10px", paddingBottom: "8px", borderBottom: "1px solid #EEEEEE", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <span>{section.category}</span>
+          <span style={{ fontSize: "11px", color: "#bbb", fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>{section.items.length}</span>
+        </div>
+        {section.items.map(item => (
+          <SavedHorizCard
+            key={item.title + item.detail}
+            item={item}
+            isDesktop={isDesktop}
+            onAddToItinerary={() => handleAddToItinerary(item)}
+            onBook={() => handleBook(item)}
+            onLearnMore={() => handleLearnMore(item)}
+            assignedDay={assignedDays[item.title]}
+          />
+        ))}
+      </div>
+    );
   }
-  function handleBook(item: SavedDisplayItem) {
-    const url = item.bookUrl ?? item.websiteUrl;
-    if (url) window.open(url, "_blank");
+
+  if (loading) {
+    return (
+      <div style={{ padding: "40px 0", textAlign: "center" }}>
+        <p style={{ fontSize: "14px", color: "#999" }}>Loading saved items…</p>
+      </div>
+    );
   }
-  function handleLearnMore(item: SavedDisplayItem) {
-    setDetailItem(item);
+
+  const hasSaves = leftSections.length > 0 || rightSections.length > 0;
+
+  if (!hasSaves) {
+    const emptyTrip = tripIdProp ? [{ id: tripIdProp, title: "This trip", startDate: null, endDate: null }] : [];
+    return (
+      <>
+        <div style={{ padding: "40px 24px", textAlign: "center" }}>
+          <Bookmark size={32} style={{ color: "#C4664A", margin: "0 auto 12px" }} />
+          <p style={{ fontSize: "16px", fontWeight: 700, color: "#1a1a1a", marginBottom: "6px" }}>No saves yet</p>
+          <p style={{ fontSize: "14px", color: "#717171", marginBottom: "20px" }}>Save hotels, restaurants, and activities directly to this trip.</p>
+          {tripIdProp && (
+            <button
+              onClick={() => setDropLinkOpen(true)}
+              style={{ fontSize: "14px", fontWeight: 600, padding: "10px 24px", borderRadius: "999px", backgroundColor: "#C4664A", color: "#fff", border: "none", cursor: "pointer" }}
+            >
+              Drop a link
+            </button>
+          )}
+        </div>
+        {dropLinkOpen && (
+          <DropLinkModal
+            trips={emptyTrip}
+            initialTripId={tripIdProp}
+            onClose={() => setDropLinkOpen(false)}
+            onSaved={() => { setDropLinkOpen(false); fetchSaves(); }}
+          />
+        )}
+      </>
+    );
   }
 
   return (
     <div>
-      {/* Two-column layout: left=Lodging+Airfare, right=Restaurants+Activities */}
-      <div style={{
-        display: "grid",
-        gridTemplateColumns: isDesktop ? "repeat(2, 1fr)" : "1fr",
-        gap: "20px",
-      }}>
-        {/* LEFT COLUMN */}
-        <div>
-          {SAVED_LEFT.map(section => (
-            <div key={section.category} style={{ marginBottom: "20px" }}>
-              <div style={{ fontSize: "11px", fontWeight: 700, color: "#717171", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "10px", paddingBottom: "8px", borderBottom: "1px solid #EEEEEE", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <span>{section.category}</span>
-                <span style={{ fontSize: "11px", color: "#bbb", fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>{section.items.length}</span>
-              </div>
-              {section.items.map(item => (
-                <SavedHorizCard
-                  key={item.title}
-                  item={item}
-                  isDesktop={isDesktop}
-                  onAddToItinerary={() => handleAddToItinerary(item)}
-                  onBook={() => handleBook(item)}
-                  onLearnMore={() => handleLearnMore(item)}
-                  assignedDay={assignedDays[item.title]}
-                />
-              ))}
-            </div>
-          ))}
-        </div>
-        {/* RIGHT COLUMN */}
-        <div>
-          {SAVED_RIGHT.map(section => (
-            <div key={section.category} style={{ marginBottom: "20px" }}>
-              <div style={{ fontSize: "11px", fontWeight: 700, color: "#717171", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "10px", paddingBottom: "8px", borderBottom: "1px solid #EEEEEE", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <span>{section.category}</span>
-                <span style={{ fontSize: "11px", color: "#bbb", fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>{section.items.length}</span>
-              </div>
-              {section.items.map(item => (
-                <SavedHorizCard
-                  key={item.title}
-                  item={item}
-                  isDesktop={isDesktop}
-                  onAddToItinerary={() => handleAddToItinerary(item)}
-                  onBook={() => handleBook(item)}
-                  onLearnMore={() => handleLearnMore(item)}
-                  assignedDay={assignedDays[item.title]}
-                />
-              ))}
-            </div>
-          ))}
-        </div>
+      <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(2, 1fr)" : "1fr", gap: "20px" }}>
+        <div>{leftSections.map(renderSection)}</div>
+        <div>{rightSections.map(renderSection)}</div>
       </div>
 
       {dayPickerItem && (
@@ -759,7 +807,6 @@ function SavedContent({ tripId: tripIdProp }: { tripId?: string }) {
               const existing: RecAddition[] = JSON.parse(localStorage.getItem(key) ?? "[]");
               existing.push({ dayIndex, title: dayPickerItem.title, location: dayPickerItem.detail, img: dayPickerItem.img });
               localStorage.setItem(key, JSON.stringify(existing));
-              console.log("[ItineraryWrite] saved item to day", dayIndex, "(Day", dayIndex + 1, "):", dayPickerItem.title, "| stored:", existing.length, "total");
             } catch (e) { console.error("[ItineraryWrite] localStorage write failed:", e); }
             setAssignedDays(prev => ({ ...prev, [dayPickerItem.title]: dayIndex }));
             setDayPickerItem(null);
@@ -853,6 +900,92 @@ type RecAddition = { dayIndex: number; title: string; location: string; img: str
 
 const ITINERARY_KEY = (tripId?: string) => `flokk_itinerary_additions_${tripId ?? "default"}`;
 
+const BUDGET_RANGE_OPTIONS = [
+  { value: "BUDGET", label: "Budget — Under $3,000" },
+  { value: "MID", label: "Mid-range — $3,000–$8,000" },
+  { value: "PREMIUM", label: "Premium — $8,000–$20,000" },
+  { value: "LUXURY", label: "Luxury — $20,000+" },
+];
+
+function BudgetPromptBanner({ tripId }: { tripId?: string }) {
+  const [showModal, setShowModal] = useState(false);
+  const [selected, setSelected] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  async function handleSave() {
+    if (!selected || !tripId) return;
+    setSaving(true);
+    try {
+      await fetch(`/api/trips/${tripId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ budgetRange: selected }),
+      });
+      setSaved(true);
+      setShowModal(false);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (saved) {
+    const label = BUDGET_RANGE_OPTIONS.find(o => o.value === selected)?.label ?? selected;
+    return (
+      <div style={{ padding: "12px 16px", borderRadius: "12px", backgroundColor: "rgba(107,143,113,0.08)", border: "1px solid rgba(107,143,113,0.2)", marginBottom: "16px", display: "flex", alignItems: "center", gap: "8px" }}>
+        <CheckCircle size={14} style={{ color: "#4a7c59", flexShrink: 0 }} />
+        <span style={{ fontSize: "13px", color: "#4a7c59", fontWeight: 600 }}>Budget set: {label}</span>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div style={{ padding: "14px 16px", borderRadius: "12px", backgroundColor: "#FAFAFA", border: "1.5px dashed #E0E0E0", marginBottom: "16px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <DollarSign size={15} style={{ color: "#717171", flexShrink: 0 }} />
+          <div>
+            <p style={{ fontSize: "13px", fontWeight: 700, color: "#1a1a1a", marginBottom: "1px" }}>No budget set</p>
+            <p style={{ fontSize: "12px", color: "#717171" }}>Set a trip budget to track spending</p>
+          </div>
+        </div>
+        <button
+          onClick={() => setShowModal(true)}
+          style={{ flexShrink: 0, padding: "7px 14px", borderRadius: "20px", border: "none", backgroundColor: "#C4664A", color: "#fff", fontSize: "12px", fontWeight: 700, cursor: "pointer" }}
+        >
+          Set budget
+        </button>
+      </div>
+
+      {showModal && (
+        <div onClick={() => setShowModal(false)} style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.45)", zIndex: 300, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+          <div onClick={e => e.stopPropagation()} style={{ backgroundColor: "#fff", borderRadius: "20px 20px 0 0", width: "100%", maxWidth: "480px", padding: "24px 20px 32px" }}>
+            <p style={{ fontSize: "17px", fontWeight: 800, color: "#1a1a1a", marginBottom: "16px" }}>Set a trip budget</p>
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "20px" }}>
+              {BUDGET_RANGE_OPTIONS.map(opt => (
+                <button
+                  key={opt.value}
+                  onClick={() => setSelected(opt.value)}
+                  style={{ padding: "12px 16px", borderRadius: "12px", border: "1.5px solid", borderColor: selected === opt.value ? "#C4664A" : "#EEEEEE", backgroundColor: selected === opt.value ? "rgba(196,102,74,0.06)" : "#fff", cursor: "pointer", textAlign: "left", fontSize: "14px", fontWeight: 600, color: "#1a1a1a" }}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={handleSave}
+              disabled={!selected || saving}
+              style={{ width: "100%", padding: "14px", borderRadius: "12px", border: "none", backgroundColor: selected ? "#C4664A" : "#E0E0E0", color: selected ? "#fff" : "#aaa", fontSize: "15px", fontWeight: 700, cursor: selected ? "pointer" : "default" }}
+            >
+              {saving ? "Saving..." : "Save budget →"}
+            </button>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 function ItineraryContent({ flyTarget, onFlyTargetConsumed, tripId, onSwitchToRecommended }: {
   flyTarget: { lat: number; lng: number } | null;
   onFlyTargetConsumed: () => void;
@@ -863,6 +996,11 @@ function ItineraryContent({ flyTarget, onFlyTargetConsumed, tripId, onSwitchToRe
   const [openDay, setOpenDay] = useState(0); // -1 = all collapsed
   const [notes, setNotes] = useState(["", "", "", "", ""]);
   const [recAdditions, setRecAdditions] = useState<RecAddition[]>([]);
+  const [expandedSlotKey, setExpandedSlotKey] = useState<string | null>(null);
+
+  function toggleSlot(key: string) {
+    setExpandedSlotKey(prev => prev === key ? null : key);
+  }
   const [suggToast, setSuggToast] = useState(false);
 
   // Load additions from localStorage on mount (persists across tab switches)
@@ -919,20 +1057,8 @@ function ItineraryContent({ flyTarget, onFlyTargetConsumed, tripId, onSwitchToRe
         </div>
       )}
 
-      {/* Budget bar — trip-level, full width */}
-      <div style={{ padding: "16px 0", borderBottom: "1px solid rgba(0,0,0,0.06)", background: "#fff", marginBottom: "16px", borderRadius: "12px", paddingLeft: "16px", paddingRight: "16px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
-          <span style={{ fontSize: "13px", fontWeight: 600 }}>Trip budget</span>
-          <span style={{ fontSize: "13px", fontWeight: 600 }}>$1,312 of $3,500</span>
-        </div>
-        <div style={{ height: "6px", background: "#eee", borderRadius: "3px", marginBottom: "8px" }}>
-          <div style={{ width: "37%", height: "100%", background: "#C4664A", borderRadius: "3px" }} />
-        </div>
-        <div style={{ display: "flex", justifyContent: "space-between" }}>
-          <span style={{ fontSize: "12px", color: "#717171" }}>Transportation + lodging booked</span>
-          <span style={{ fontSize: "12px", color: "#C4664A", fontWeight: 500 }}>$2,188 remaining</span>
-        </div>
-      </div>
+      {/* Budget prompt or bar */}
+      <BudgetPromptBanner tripId={tripId} />
 
       {/* Booking status bar — trip-level, full width */}
       <div
@@ -1033,6 +1159,11 @@ function ItineraryContent({ flyTarget, onFlyTargetConsumed, tripId, onSwitchToRe
                             title="Arrive Naha (JAL 917)"
                             subtitle="2h 45m · Economy"
                             icon={<Plane size={20} style={{ color: "#717171" }} />}
+                            description="Direct JAL flight from Tokyo Haneda (HND) to Naha (OKA). Economy class with 2 checked bags included. Terminal 2 departure."
+                            hours="Dep 08:35 HND · Arr 11:35 OKA"
+                            slotKey="day0-jal"
+                            isExpanded={expandedSlotKey === "day0-jal"}
+                            onExpandToggle={() => toggleSlot("day0-jal")}
                           />
                           <TravelConnector duration="45 min drive" />
                           <FilledSlot
@@ -1040,6 +1171,11 @@ function ItineraryContent({ flyTarget, onFlyTargetConsumed, tripId, onSwitchToRe
                             title="Halekulani Okinawa"
                             subtitle="Check-in · Onna Village"
                             img="https://images.unsplash.com/photo-1566073771259-6a8506099945?w=200&q=80"
+                            description="5-star beachfront resort in Onna Village. Private beach, 3 pools, 5 restaurants. Ryukyuan-inspired design throughout."
+                            hours="Check-in 3:00pm · Check-out 11:00am"
+                            slotKey="day0-hotel"
+                            isExpanded={expandedSlotKey === "day0-hotel"}
+                            onExpandToggle={() => toggleSlot("day0-hotel")}
                           />
                           <TravelConnector duration="20 min drive" />
                           <FilledSlot
@@ -1048,6 +1184,11 @@ function ItineraryContent({ flyTarget, onFlyTargetConsumed, tripId, onSwitchToRe
                             subtitle="Dinner · Naha"
                             img="https://images.unsplash.com/photo-1569050467447-ce54b3bbc37d?w=200&q=80"
                             tags={["All ages", "Walk-in", "Evening"]}
+                            description="Okinawa's main entertainment street with local food stalls, soki soba, taco rice, and fresh awamori. Best explored on foot."
+                            hours="Stalls open from 6:00pm until midnight"
+                            slotKey="day0-food"
+                            isExpanded={expandedSlotKey === "day0-food"}
+                            onExpandToggle={() => toggleSlot("day0-food")}
                           />
                         </>
                       )}
@@ -1062,6 +1203,11 @@ function ItineraryContent({ flyTarget, onFlyTargetConsumed, tripId, onSwitchToRe
                             icon={<Landmark size={24} style={{ color: "#fff" }} />}
                             iconBg="#c8b89a"
                             tags={["Ages 6+", "Outdoor", "Free"]}
+                            description="UNESCO World Heritage Site. 12th-century Ryukyuan castle ruins on a hilltop peninsula overlooking the Pacific. Easy walk for kids, panoramic views."
+                            hours="Open 8:30am–6:00pm. Free entry. Parking available."
+                            slotKey="day1-castle"
+                            isExpanded={expandedSlotKey === "day1-castle"}
+                            onExpandToggle={() => toggleSlot("day1-castle")}
                           />
                           <EmptySlot onClick={onSwitchToRecommended} />
                           <EmptySlot onClick={onSwitchToRecommended} />
@@ -1097,15 +1243,46 @@ function ItineraryContent({ flyTarget, onFlyTargetConsumed, tripId, onSwitchToRe
                             subtitle="Then to Naha Airport"
                             icon={<BedDouble size={20} style={{ color: "#717171" }} />}
                             tags={["11am checkout", "To airport"]}
+                            description="Check out by 11am. 45-minute drive to Naha Airport. Allow 90 minutes before your flight for check-in and security."
+                            hours="Checkout 11:00am · Airport 45 min drive"
+                            slotKey="day4-checkout"
+                            isExpanded={expandedSlotKey === "day4-checkout"}
+                            onExpandToggle={() => toggleSlot("day4-checkout")}
                           />
                           <EmptySlot onClick={onSwitchToRecommended} />
                         </>
                       )}
 
                       {/* Additions from Recommended tab */}
-                      {recAdditions.filter(a => a.dayIndex === i).map((a, idx) => (
-                        <FilledSlot key={`rec-${idx}`} title={a.title} subtitle={a.location} img={a.img} tags={["Added from Recommended"]} />
-                      ))}
+                      {recAdditions.filter(a => a.dayIndex === i).map((a, idx) => {
+                        const key = `rec-${i}-${idx}`;
+                        return (
+                          <FilledSlot
+                            key={key}
+                            title={a.title}
+                            subtitle={a.location}
+                            img={a.img}
+                            tags={["Added from Recommended"]}
+                            slotKey={key}
+                            isExpanded={expandedSlotKey === key}
+                            onExpandToggle={() => toggleSlot(key)}
+                            onRemove={() => {
+                              try {
+                                const stored: RecAddition[] = JSON.parse(localStorage.getItem(ITINERARY_KEY(tripId)) ?? "[]");
+                                const withIndex = stored.map((item, si) => ({ item, si }));
+                                const dayItems = withIndex.filter(({ item }) => item.dayIndex === i);
+                                const globalIdx = dayItems[idx]?.si;
+                                if (globalIdx !== undefined) {
+                                  const updated = stored.filter((_, si) => si !== globalIdx);
+                                  localStorage.setItem(ITINERARY_KEY(tripId), JSON.stringify(updated));
+                                  setRecAdditions(updated);
+                                }
+                              } catch { /* ignore */ }
+                              setExpandedSlotKey(null);
+                            }}
+                          />
+                        );
+                      })}
 
                       {/* Per-day notes */}
                       <div style={{ marginTop: "12px", paddingTop: "12px", borderTop: "1px solid rgba(0,0,0,0.05)" }}>
@@ -1258,29 +1435,197 @@ function PackingSection({ Icon, photoUrl, gradient, label, count, note, children
   );
 }
 
-function PackingContent() {
-  const [checked, setChecked] = useState<Set<string>>(new Set(["passports", "travel-insurance"]));
+const TRIP_TYPE_OPTIONS = [
+  { value: "beach", label: "Beach" },
+  { value: "city", label: "City" },
+  { value: "hiking", label: "Hiking" },
+  { value: "ski", label: "Ski" },
+  { value: "road_trip", label: "Road Trip" },
+  { value: "fast_travel", label: "Fast Travel" },
+];
+
+const TRIP_TYPE_PACKING: Record<string, { documents: PackingItemDef[]; kids: PackingItemDef[]; clothing: PackingItemDef[]; gear: PackingItemDef[] }> = {
+  city: {
+    documents: PACKING_ITEMS.documents,
+    kids: [
+      { id: "sunscreen-city", label: "Sunscreen SPF 50+" },
+      { id: "snacks-city", label: "Portable snacks" },
+      { id: "travel-games-city", label: "Travel games / tablet" },
+      { id: "backpack-kids", label: "Kids daypack" },
+    ],
+    clothing: [
+      { id: "walking-shoes-city", label: "Comfortable walking shoes" },
+      { id: "layers-city", label: "Light layers for A/C" },
+      { id: "smart-casual", label: "Smart casual outfit (restaurants)" },
+      { id: "rain-city", label: "Packable rain jacket" },
+    ],
+    gear: [
+      { id: "power-adapter-city", label: "Universal power adapter" },
+      { id: "portable-charger-city", label: "Portable charger" },
+      { id: "city-map-app", label: "Offline maps downloaded" },
+    ],
+  },
+  beach: PACKING_ITEMS as typeof PACKING_ITEMS,
+  hiking: {
+    documents: PACKING_ITEMS.documents,
+    kids: [
+      { id: "sunscreen-hike", label: "Sunscreen SPF 50+" },
+      { id: "insect-hike", label: "Insect repellent" },
+      { id: "snacks-hike", label: "Energy snacks / trail mix" },
+      { id: "first-aid", label: "Basic first aid kit" },
+    ],
+    clothing: [
+      { id: "hiking-boots", label: "Hiking boots / trail shoes" },
+      { id: "moisture-wicking", label: "Moisture-wicking base layers" },
+      { id: "fleece-hike", label: "Fleece mid-layer" },
+      { id: "waterproof-hike", label: "Waterproof jacket" },
+      { id: "hat-hike", label: "Sun hat / buff" },
+    ],
+    gear: [
+      { id: "daypack", label: "Daypack (20-30L)" },
+      { id: "trekking-poles", label: "Trekking poles" },
+      { id: "water-bottles", label: "Reusable water bottles" },
+      { id: "headlamp", label: "Headlamp + batteries" },
+    ],
+  },
+  ski: {
+    documents: PACKING_ITEMS.documents,
+    kids: [
+      { id: "helmet-ski", label: "Ski helmet (kids)" },
+      { id: "goggles-kids", label: "Ski goggles (kids)" },
+      { id: "hand-warmers", label: "Hand warmers" },
+      { id: "lip-balm-ski", label: "SPF lip balm" },
+    ],
+    clothing: [
+      { id: "ski-jacket", label: "Insulated ski jacket" },
+      { id: "ski-pants", label: "Waterproof ski pants" },
+      { id: "base-layers-ski", label: "Thermal base layers" },
+      { id: "ski-gloves", label: "Waterproof gloves / mittens" },
+      { id: "wool-socks-ski", label: "Wool ski socks" },
+      { id: "neck-gaiter", label: "Neck gaiter / balaclava" },
+    ],
+    gear: [
+      { id: "boot-bag", label: "Ski boot bag" },
+      { id: "lock-ski", label: "Ski lock" },
+      { id: "portable-charger-ski", label: "Portable charger (cold weather)" },
+    ],
+  },
+  road_trip: {
+    documents: [
+      ...PACKING_ITEMS.documents,
+      { id: "car-insurance", label: "Car insurance / rental docs" },
+      { id: "road-maps", label: "Offline maps / GPS" },
+    ],
+    kids: [
+      { id: "car-snacks", label: "Car snacks (plenty)" },
+      { id: "tablet-road", label: "Tablets / headphones" },
+      { id: "car-games", label: "Car games / activity books" },
+      { id: "motion-road", label: "Motion sickness tablets" },
+    ],
+    clothing: [
+      { id: "comfy-road", label: "Comfortable travel clothes" },
+      { id: "layers-road", label: "Layers for varied weather" },
+      { id: "walking-road", label: "Walking shoes" },
+    ],
+    gear: [
+      { id: "car-charger", label: "Car charging cables" },
+      { id: "cooler-road", label: "Soft cooler / thermos" },
+      { id: "emergency-kit", label: "Car emergency kit" },
+      { id: "power-bank-road", label: "Power bank" },
+    ],
+  },
+  fast_travel: {
+    documents: PACKING_ITEMS.documents,
+    kids: [
+      { id: "snacks-fast", label: "Portable snacks" },
+      { id: "tablet-fast", label: "Tablet / headphones" },
+    ],
+    clothing: [
+      { id: "carry-on-outfits", label: "3 versatile outfits" },
+      { id: "layers-fast", label: "Light layers" },
+      { id: "walking-fast", label: "One pair comfortable shoes" },
+    ],
+    gear: [
+      { id: "carry-on-bag", label: "Carry-on bag only" },
+      { id: "packing-cubes", label: "Packing cubes" },
+      { id: "charger-fast", label: "Portable charger" },
+    ],
+  },
+};
+
+function PackingContent({ tripId }: { tripId?: string }) {
+  const storageKey = `flokk_packing_${tripId ?? "default"}`;
+  const typeKey = `flokk_packing_type_${tripId ?? "default"}`;
+
+  const [tripType, setTripType] = useState<string>(() => {
+    try { return localStorage.getItem(typeKey) ?? "beach"; } catch { return "beach"; }
+  });
+
+  const packingItems = TRIP_TYPE_PACKING[tripType] ?? PACKING_ITEMS;
+
+  const allIds = [
+    ...packingItems.documents, ...packingItems.kids,
+    ...packingItems.clothing, ...(packingItems.gear ?? []),
+    ...TODDLER_ITEMS,
+  ].map(i => i.id);
+
+  const [checked, setChecked] = useState<Set<string>>(() => {
+    try {
+      const raw = localStorage.getItem(storageKey);
+      return raw ? new Set(JSON.parse(raw)) : new Set(["passports", "travel-insurance"]);
+    } catch { return new Set(["passports", "travel-insurance"]); }
+  });
 
   const toggle = (id: string) => {
     setChecked((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
+      try { localStorage.setItem(storageKey, JSON.stringify([...next])); } catch {}
       return next;
     });
   };
 
+  function handleTripTypeChange(type: string) {
+    setTripType(type);
+    try { localStorage.setItem(typeKey, type); } catch {}
+  }
+
   const allItems = [
-    ...PACKING_ITEMS.documents, ...PACKING_ITEMS.kids,
-    ...PACKING_ITEMS.clothing,  ...PACKING_ITEMS.gear,
+    ...packingItems.documents, ...packingItems.kids,
+    ...packingItems.clothing, ...(packingItems.gear ?? []),
     ...TODDLER_ITEMS,
   ];
   const total = allItems.length;
-  const packed = checked.size;
+  const packed = allItems.filter(i => checked.has(i.id)).length;
   const progressPct = Math.round((packed / total) * 100);
 
   return (
     <div>
+      {/* Trip type selector */}
+      <div style={{ marginBottom: "20px" }}>
+        <p style={{ fontSize: "12px", fontWeight: 700, color: "#717171", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "10px" }}>Trip type</p>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+          {TRIP_TYPE_OPTIONS.map(opt => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => handleTripTypeChange(opt.value)}
+              style={{
+                padding: "6px 14px", borderRadius: "999px", fontSize: "13px", fontWeight: 600,
+                border: "1.5px solid",
+                borderColor: tripType === opt.value ? "#C4664A" : "#E0E0E0",
+                backgroundColor: tripType === opt.value ? "#C4664A" : "#fff",
+                color: tripType === opt.value ? "#fff" : "#555",
+                cursor: "pointer",
+              }}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Summary row */}
       <div style={{ marginBottom: "20px" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
@@ -1307,13 +1652,13 @@ function PackingContent() {
 
         {/* Left: Documents + Kids */}
         <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-          <PackingSection Icon={FileText} photoUrl="https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=600&auto=format&fit=crop" label="Documents" count={PACKING_ITEMS.documents.length}>
-            {PACKING_ITEMS.documents.map((item) => (
+          <PackingSection Icon={FileText} photoUrl="https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=600&auto=format&fit=crop" label="Documents" count={packingItems.documents.length}>
+            {packingItems.documents.map((item) => (
               <PackingItem key={item.id} {...item} checked={checked.has(item.id)} onToggle={toggle} />
             ))}
           </PackingSection>
-          <PackingSection Icon={Baby} photoUrl="https://images.unsplash.com/photo-1502781252888-9143ba7f074e?w=600&auto=format&fit=crop" label="Kids" count={PACKING_ITEMS.kids.length}>
-            {PACKING_ITEMS.kids.map((item) => (
+          <PackingSection Icon={Baby} photoUrl="https://images.unsplash.com/photo-1502781252888-9143ba7f074e?w=600&auto=format&fit=crop" label="Kids" count={packingItems.kids.length}>
+            {packingItems.kids.map((item) => (
               <PackingItem key={item.id} {...item} checked={checked.has(item.id)} onToggle={toggle} />
             ))}
           </PackingSection>
@@ -1321,16 +1666,18 @@ function PackingContent() {
 
         {/* Right: Clothing + Gear + Toddler */}
         <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-          <PackingSection Icon={Shirt} gradient="linear-gradient(135deg, #8B6F5E 0%, #C4A882 50%, #D4956A 100%)" label="Clothing" count={PACKING_ITEMS.clothing.length}>
-            {PACKING_ITEMS.clothing.map((item) => (
+          <PackingSection Icon={Shirt} gradient="linear-gradient(135deg, #8B6F5E 0%, #C4A882 50%, #D4956A 100%)" label="Clothing" count={packingItems.clothing.length}>
+            {packingItems.clothing.map((item) => (
               <PackingItem key={item.id} {...item} checked={checked.has(item.id)} onToggle={toggle} />
             ))}
           </PackingSection>
-          <PackingSection Icon={Backpack} photoUrl="https://images.unsplash.com/photo-1452780212940-6f5c0d14d848?w=600&auto=format&fit=crop" label="Gear" count={PACKING_ITEMS.gear.length}>
-            {PACKING_ITEMS.gear.map((item) => (
+          {(packingItems.gear ?? []).length > 0 && (
+          <PackingSection Icon={Backpack} photoUrl="https://images.unsplash.com/photo-1452780212940-6f5c0d14d848?w=600&auto=format&fit=crop" label="Gear" count={(packingItems.gear ?? []).length}>
+            {(packingItems.gear ?? []).map((item) => (
               <PackingItem key={item.id} {...item} checked={checked.has(item.id)} onToggle={toggle} />
             ))}
           </PackingSection>
+          )}
           <PackingSection
             Icon={Baby}
             photoUrl="https://images.unsplash.com/photo-1596464716127-f2a82984de30?w=600&auto=format&fit=crop"
@@ -1657,12 +2004,16 @@ function RecommendedContent({
   tripId,
   tripStartDate,
   tripEndDate,
+  destinationCity,
+  destinationCountry,
   onViewOnMap,
   onSaved,
 }: {
   tripId?: string;
   tripStartDate?: string | null;
   tripEndDate?: string | null;
+  destinationCity?: string | null;
+  destinationCountry?: string | null;
   onViewOnMap: (lat: number, lng: number) => void;
   onSaved: (rec: SavedRec) => void;
 }) {
@@ -1727,8 +2078,15 @@ function RecommendedContent({
     }
   }
 
+  // Filter recommendations by destination
+  const okinawaKeywords = ["okinawa", "naha", "onna", "chatan", "motobu", "nago", "uruma", "nanjo", "ryukyu"];
+  const destHaystack = [destinationCity ?? "", destinationCountry ?? ""].join(" ").toLowerCase();
+  const hasDestination = !!(destinationCity || destinationCountry);
+  const matchesOkinawa = !hasDestination || okinawaKeywords.some(k => destHaystack.includes(k));
+  const filteredRecs = matchesOkinawa ? RECOMMENDATIONS : [];
+
   // Group by category (first segment of tags), sort categories and items alphabetically
-  const grouped = RECOMMENDATIONS.reduce((acc, rec) => {
+  const grouped = filteredRecs.reduce((acc, rec) => {
     const cat = rec.tags.split(" · ")[0];
     if (!acc[cat]) acc[cat] = [];
     acc[cat].push(rec);
@@ -1736,6 +2094,21 @@ function RecommendedContent({
   }, {} as Record<string, typeof RECOMMENDATIONS>);
   const sortedCategories = Object.keys(grouped).sort();
   sortedCategories.forEach((cat) => grouped[cat].sort((a, b) => a.title.localeCompare(b.title)));
+
+  if (!matchesOkinawa) {
+    const dest = [destinationCity, destinationCountry].filter(Boolean).join(", ");
+    return (
+      <div style={{ padding: "40px 24px", textAlign: "center" }}>
+        <Compass size={32} style={{ color: "#C4664A", margin: "0 auto 12px" }} />
+        <p style={{ fontSize: "16px", fontWeight: 700, color: "#1a1a1a", marginBottom: "6px" }}>
+          No recommendations for {dest} yet
+        </p>
+        <p style={{ fontSize: "14px", color: "#717171", lineHeight: 1.5 }}>
+          We&apos;re constantly adding new destinations. Check back soon — or be the first to contribute a trip from {dest}.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -1754,7 +2127,7 @@ function RecommendedContent({
 
       {/* All cards in one flat 2-column grid */}
       <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(2, 1fr)" : "1fr", gap: "16px" }}>
-        {RECOMMENDATIONS.map((rec) => {
+        {filteredRecs.map((rec) => {
           const isSaved = savedSet.has(rec.title);
           const isSaving = savingTitle === rec.title;
           const isPending = pendingRec === rec.title;
@@ -1814,6 +2187,19 @@ function RecommendedContent({
                 </div>
               );
           })}
+      </div>
+
+      {/* Community contribution banner */}
+      <div style={{ marginTop: "28px", backgroundColor: "#1B3A5C", borderRadius: "14px", padding: "20px 20px 20px 24px", display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px" }}>
+        <div>
+          <p style={{ fontSize: "15px", fontWeight: 700, color: "#fff", marginBottom: "4px" }}>Been here? Help the next family.</p>
+          <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.7)", lineHeight: 1.5 }}>
+            Your first-hand tips get surfaced to families just like yours — and earn you Pioneer tier points.
+          </p>
+        </div>
+        <button style={{ flexShrink: 0, backgroundColor: "#C4664A", color: "#fff", border: "none", borderRadius: "20px", padding: "8px 16px", fontSize: "13px", fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>
+          Contribute →
+        </button>
       </div>
 
       {/* Rec detail modal */}
@@ -1893,7 +2279,7 @@ type SavedRec = {
   tags: string;
 };
 
-export function TripTabContent({ initialTab = "saved", tripId, tripStartDate, tripEndDate }: { initialTab?: Tab; tripId?: string; tripStartDate?: string | null; tripEndDate?: string | null }) {
+export function TripTabContent({ initialTab = "saved", tripId, tripStartDate, tripEndDate, destinationCity, destinationCountry }: { initialTab?: Tab; tripId?: string; tripStartDate?: string | null; tripEndDate?: string | null; destinationCity?: string | null; destinationCountry?: string | null }) {
   const [tab, setTab] = useState<Tab>(initialTab);
   const [flyTarget, setFlyTarget] = useState<{ lat: number; lng: number } | null>(null);
 
@@ -1943,12 +2329,14 @@ export function TripTabContent({ initialTab = "saved", tripId, tripStartDate, tr
 
       {tab === "saved" && <SavedContent tripId={tripId} />}
       {tab === "itinerary" && <ItineraryContent flyTarget={flyTarget} onFlyTargetConsumed={() => setFlyTarget(null)} tripId={tripId} onSwitchToRecommended={() => setTab("recommended")} />}
-      {tab === "packing" && <PackingContent />}
+      {tab === "packing" && <PackingContent tripId={tripId} />}
       {tab === "recommended" && (
         <RecommendedContent
           tripId={tripId}
           tripStartDate={tripStartDate}
           tripEndDate={tripEndDate}
+          destinationCity={destinationCity}
+          destinationCountry={destinationCountry}
           onViewOnMap={(lat, lng) => { setTab("itinerary"); setFlyTarget({ lat, lng }); }}
           onSaved={() => {}}
         />

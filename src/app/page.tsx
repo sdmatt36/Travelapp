@@ -67,7 +67,7 @@ export default function LandingPage() {
             <div className="grid md:grid-cols-[1fr_360px] gap-10 items-center">
 
               {/* Left: hero text */}
-              <div className="text-center md:text-left space-y-7">
+              <div className="text-center md:text-left space-y-7 pb-8">
                 <div className="inline-flex items-center gap-2 text-sm font-semibold px-4 py-1.5 rounded-full" style={{ backgroundColor: "#6B8F71", color: "#fff" }}>
                   Now in early access
                 </div>
@@ -75,7 +75,7 @@ export default function LandingPage() {
                   Your family&apos;s next great trip —{" "}
                   <span style={{ color: "#C4664A" }}>finally in one place.</span>
                 </h1>
-                <p className="text-lg font-medium italic" style={{ color: "#C4664A", marginTop: "12px", marginBottom: "8px" }}>
+                <p className="text-lg font-medium italic" style={{ color: "#C4664A", marginTop: "16px", marginBottom: "8px" }}>
                   Because 47 browser tabs isn&apos;t a plan.
                 </p>
                 <p className="text-xl leading-relaxed" style={{ color: "#717171" }}>
@@ -135,13 +135,20 @@ export default function LandingPage() {
       </section>
 
       {/* From the community strip — separate section, no overlap with hero */}
-      <section style={{ backgroundColor: "#FAFAFA", paddingTop: "5rem", paddingBottom: "5rem", paddingLeft: "1.5rem", paddingRight: "1.5rem", position: "relative", zIndex: 0 }}>
-        <p className="text-center text-sm font-semibold tracking-widest uppercase mb-6" style={{ color: "#717171" }}>From the community</p>
-        <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-4">
+      <section style={{ backgroundColor: "#FAFAFA", paddingTop: "4rem", paddingBottom: "4rem", paddingLeft: "1.5rem", paddingRight: "1.5rem", position: "relative", zIndex: 0 }}>
+        <p className="text-center text-sm font-semibold tracking-widest uppercase" style={{ color: "#717171", marginBottom: "12px" }}>From the community</p>
+        <div className="max-w-3xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-4" style={{ marginTop: "32px" }}>
           {[
-            { img: "https://picsum.photos/seed/santorini/400/300", label: "Saved from Instagram", sub: "Santorini · Bucket list" },
-            { img: "https://picsum.photos/seed/tokyo/400/300", label: "Tokyo with Kids", sub: "Itinerary · 8 days" },
-            { img: "https://picsum.photos/seed/tuscany/400/300", label: "Villa Rental · Tuscany", sub: "Summer 2026 · Shortlist" },
+            {
+              img: "https://images.unsplash.com/photo-1478436127897-769e1b3f0f36?w=800&q=80",
+              label: "Japan — Kyoto & Tokyo",
+              sub: "Family of 4 · Kids ages 7 & 10",
+            },
+            {
+              img: "https://images.unsplash.com/photo-1518259102261-b40117eabbc9?w=800&q=80",
+              label: "Costa Rica — Guanacaste",
+              sub: "Family of 5 · Kids ages 4, 9 & 12",
+            },
           ].map((card) => (
             <div key={card.label} className="rounded-2xl overflow-hidden shadow-sm border" style={{ backgroundColor: "#fff", borderColor: "#EEEEEE" }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -172,7 +179,7 @@ export default function LandingPage() {
           {/* Row 1 — Copy left, UI right */}
           <div className="flex flex-col md:flex-row p-8 md:px-14 md:py-16 gap-10 md:gap-16" style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", boxShadow: "0 2px 16px rgba(0,0,0,0.06)", alignItems: "center", overflow: "hidden" }}>
             <div style={{ flex: 1 }}>
-              <p style={{ fontSize: "13px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em", color: "#C4664A", marginBottom: "12px" }}>01 — Save</p>
+              <p style={{ fontSize: "13px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em", color: "#C4664A", marginBottom: "12px" }}>Step 1 — Save</p>
               <h3 className={playfair.className} style={{ fontSize: "32px", fontWeight: 700, color: "#1a1a1a", lineHeight: 1.2, marginBottom: "16px" }}>Nothing gets lost. Ever again.</h3>
               <p style={{ fontSize: "16px", color: "#717171", lineHeight: 1.75 }}>See something on Instagram? Share it to Flokk. Google Maps star? Imported. TikTok reel? Saved with location, context, and category — automatically. If you can share it, we can save it.</p>
             </div>
@@ -204,7 +211,7 @@ export default function LandingPage() {
           {/* Row 2 — UI left, Copy right */}
           <div className="flex flex-col md:flex-row-reverse p-8 md:px-14 md:py-16 gap-10 md:gap-16" style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", boxShadow: "0 2px 16px rgba(0,0,0,0.06)", alignItems: "center", overflow: "hidden" }}>
             <div style={{ flex: 1 }}>
-              <p style={{ fontSize: "13px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em", color: "#C4664A", marginBottom: "12px" }}>02 — Surface</p>
+              <p style={{ fontSize: "13px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em", color: "#C4664A", marginBottom: "12px" }}>Step 2 — Surface</p>
               <h3 className={playfair.className} style={{ fontSize: "32px", fontWeight: 700, color: "#1a1a1a", lineHeight: 1.2, marginBottom: "16px" }}>The right save, at exactly the right moment.</h3>
               <p style={{ fontSize: "16px", color: "#717171", lineHeight: 1.75 }}>You saved that market six months ago. Now you&apos;re planning Madrid. Flokk surfaces it — 600 metres from your hotel, open before your museum visit, with a churros counter your kids will love.</p>
             </div>
@@ -238,7 +245,7 @@ export default function LandingPage() {
           {/* Row 3 — Copy left, UI right */}
           <div className="flex flex-col md:flex-row p-8 md:px-14 md:py-16 gap-10 md:gap-16" style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", boxShadow: "0 2px 16px rgba(0,0,0,0.06)", alignItems: "center", overflow: "hidden" }}>
             <div style={{ flex: 1 }}>
-              <p style={{ fontSize: "13px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em", color: "#C4664A", marginBottom: "12px" }}>03 — Plan</p>
+              <p style={{ fontSize: "13px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em", color: "#C4664A", marginBottom: "12px" }}>Step 3 — Plan</p>
               <h3 className={playfair.className} style={{ fontSize: "32px", fontWeight: 700, color: "#1a1a1a", lineHeight: 1.2, marginBottom: "16px" }}>A real itinerary, built around your family.</h3>
               <p style={{ fontSize: "16px", color: "#717171", lineHeight: 1.75 }}>Day-by-day planning with travel times, weather, budget tracking, and a live map. Built from your saves and personalized recommendations — not a generic template.</p>
             </div>
@@ -300,12 +307,15 @@ export default function LandingPage() {
           {/* Row 4 — UI left, Copy right */}
           <div className="flex flex-col md:flex-row-reverse p-8 md:px-14 md:py-16 gap-10 md:gap-16" style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", boxShadow: "0 2px 16px rgba(0,0,0,0.06)", alignItems: "center", overflow: "hidden" }}>
             <div style={{ flex: 1 }}>
-              <p style={{ fontSize: "13px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em", color: "#C4664A", marginBottom: "12px" }}>04 — Personalize</p>
+              <p style={{ fontSize: "13px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em", color: "#C4664A", marginBottom: "12px" }}>Step 4 — Personalize</p>
               <h3 className={playfair.className} style={{ fontSize: "32px", fontWeight: 700, color: "#1a1a1a", lineHeight: 1.2, marginBottom: "16px" }}>Recommendations that actually know your family.</h3>
               <p style={{ fontSize: "16px", color: "#717171", lineHeight: 1.75 }}>Not &ldquo;top 10 things to do&rdquo;. Recommendations scored against your kids&apos; ages, your interests, your budget, and what families just like yours actually loved.</p>
             </div>
             <div style={{ flex: 1, display: "flex", justifyContent: "center", alignItems: "center" }}>
-              <div style={{ backgroundColor: "#fff", borderRadius: "16px", boxShadow: "0 4px 16px rgba(0,0,0,0.08)", border: "1px solid #EEEEEE", padding: "20px", width: "100%", maxWidth: "340px" }}>
+              <div style={{ backgroundColor: "#fff", borderRadius: "16px", boxShadow: "0 4px 16px rgba(0,0,0,0.08)", border: "1px solid #EEEEEE", overflow: "hidden", width: "100%", maxWidth: "340px" }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="https://images.unsplash.com/photo-1490806843957-31f4c9a91c65?w=800&q=80" alt="Shuri Castle, Okinawa, Japan" style={{ width: "100%", height: "140px", objectFit: "cover", display: "block" }} />
+                <div style={{ padding: "16px 20px 20px" }}>
                 <span style={{ fontSize: "11px", backgroundColor: "rgba(196,102,74,0.1)", color: "#C4664A", borderRadius: "20px", padding: "3px 10px", fontWeight: 700 }}>Culture</span>
                 <p style={{ fontSize: "22px", fontWeight: 700, color: "#1a1a1a", margin: "12px 0 8px" }}>Shuri Castle</p>
                 <div style={{ display: "flex", gap: "8px", alignItems: "flex-start", marginBottom: "16px" }}>
@@ -315,6 +325,7 @@ export default function LandingPage() {
                 <button style={{ width: "100%", padding: "10px", borderRadius: "12px", border: "1.5px solid #C4664A", backgroundColor: "transparent", color: "#C4664A", fontSize: "14px", fontWeight: 600, cursor: "pointer" }}>
                   Save to trip
                 </button>
+                </div>
               </div>
             </div>
           </div>
@@ -322,7 +333,7 @@ export default function LandingPage() {
         </div>
 
         {/* Mini CTA */}
-        <div style={{ textAlign: "center", padding: "64px 24px 0" }}>
+        <div style={{ textAlign: "center", padding: "32px 24px 0" }}>
           <p style={{ fontSize: "22px", fontWeight: 700, color: "#1a1a1a", marginBottom: "20px" }}>Ready to plan your next trip?</p>
           <Link
             href="/sign-up"
@@ -337,8 +348,8 @@ export default function LandingPage() {
       </section>
 
       {/* What's coming — contained navy block */}
-      <div className="px-4 sm:px-6 lg:px-8">
-      <section style={{ backgroundColor: "#1B3A5C" }} className="max-w-6xl mx-auto rounded-2xl py-20 md:py-24">
+      <div className="px-4 sm:px-6 lg:px-8 mt-8">
+      <section style={{ backgroundColor: "#1B3A5C" }} className="max-w-6xl mx-auto rounded-2xl py-10 md:py-12">
         <div style={{ maxWidth: "1100px", margin: "0 auto", padding: "0 24px" }}>
           <div style={{ textAlign: "center", marginBottom: "40px" }}>
             <h2 className={`${playfair.className} text-4xl md:text-5xl`} style={{ fontWeight: 400, color: "#fff", marginBottom: "12px" }}>More coming soon</h2>
@@ -398,16 +409,16 @@ export default function LandingPage() {
           <div className="grid md:grid-cols-2 gap-6">
             {[
               {
-                img: "https://picsum.photos/seed/kyoto/600/400",
+                img: "https://images.unsplash.com/photo-1478436127897-769e1b3f0f36?w=800&q=80",
                 destination: "Japan — Kyoto & Tokyo",
                 family: "Family of 4 · Kids ages 7 & 10",
                 tags: ["Kid-friendly", "10 days", "Gluten-free"],
                 items: ["Arashiyama Bamboo Grove", "teamLab Planets", "Tsukiji Outer Market"],
               },
               {
-                img: "https://picsum.photos/seed/jungle/600/400",
+                img: "https://images.unsplash.com/photo-1518259102261-b40117eabbc9?w=800&q=80",
                 destination: "Costa Rica — Guanacaste",
-                family: "Family of 5 · Kids ages 4, 8 & 12",
+                family: "Family of 5 · Kids ages 4, 9 & 12",
                 tags: ["Adventure", "7 days", "All-inclusive"],
                 items: ["Monteverde Cloud Forest", "Manuel Antonio Beach", "Arenal Volcano"],
               },
@@ -539,7 +550,7 @@ export default function LandingPage() {
       </section>
 
       {/* CTA */}
-      <section className="py-28 px-6 text-center" style={{ backgroundColor: "#1a1a1a" }}>
+      <section className="py-28 px-6 text-center" style={{ backgroundColor: "#1B3A5C" }}>
         <div className="max-w-2xl mx-auto space-y-6">
           <h2 className="text-3xl md:text-4xl font-bold text-white">
             Your family&apos;s next great trip starts here.
