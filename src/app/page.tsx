@@ -446,7 +446,7 @@ export default function LandingPage() {
                 items: ["Arashiyama Bamboo Grove", "teamLab Planets", "Tsukiji Outer Market"],
               },
               {
-                img: "https://images.unsplash.com/photo-1518259102261-b40117eabbc9?w=800&q=80",
+                img: "https://images.unsplash.com/photo-1552465011-b4e21bf6e79a?w=800&q=80",
                 destination: "Costa Rica — Guanacaste",
                 family: "Family of 5 · Kids ages 4, 9 & 12",
                 tags: ["Adventure", "7 days", "All-inclusive"],
