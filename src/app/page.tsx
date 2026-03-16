@@ -307,13 +307,14 @@ export default function LandingPage() {
             <div style={{ flex: 1, display: "flex", justifyContent: "center", alignItems: "center" }}>
               <div style={{ backgroundColor: "#fff", borderRadius: "16px", boxShadow: "0 4px 16px rgba(0,0,0,0.08)", border: "1px solid #EEEEEE", overflow: "hidden", width: "100%", maxWidth: "340px" }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="https://images.unsplash.com/photo-1511739001486-6bfe10ce785f?w=800&q=80" alt="Eiffel Tower, Paris at dusk" style={{ width: "100%", height: "140px", objectFit: "cover", objectPosition: "center 30%", display: "block" }} />
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="https://images.unsplash.com/photo-1508009603885-50cf7c579365?w=800&q=80" alt="Angkor Wat, Cambodia" style={{ width: "100%", height: "140px", objectFit: "cover", objectPosition: "center center", display: "block" }} />
                 <div style={{ padding: "16px 20px 20px" }}>
                 <span style={{ fontSize: "11px", backgroundColor: "rgba(196,102,74,0.1)", color: "#C4664A", borderRadius: "20px", padding: "3px 10px", fontWeight: 700 }}>Culture</span>
-                <p style={{ fontSize: "22px", fontWeight: 700, color: "#1a1a1a", margin: "12px 0 8px" }}>Eiffel Tower</p>
+                <p style={{ fontSize: "22px", fontWeight: 700, color: "#1a1a1a", margin: "12px 0 8px" }}>Angkor Wat</p>
                 <div style={{ display: "flex", gap: "8px", alignItems: "flex-start", marginBottom: "16px" }}>
                   <Sparkles size={14} style={{ color: "#C4664A", flexShrink: 0, marginTop: "2px" }} />
-                  <p style={{ fontSize: "13px", color: "#717171", lineHeight: 1.5 }}>History & Culture · All ages · Iconic landmark · 2,847 families saved</p>
+                  <p style={{ fontSize: "13px", color: "#717171", lineHeight: 1.5 }}>History & Culture · Ages 5+ · UNESCO site · 3,104 families saved</p>
                 </div>
                 <button style={{ width: "100%", padding: "10px", borderRadius: "12px", border: "1.5px solid #C4664A", backgroundColor: "transparent", color: "#C4664A", fontSize: "14px", fontWeight: 600, cursor: "pointer" }}>
                   Save to trip
@@ -409,7 +410,7 @@ export default function LandingPage() {
                 items: ["Fushimi Inari Shrine", "Arashiyama Bamboo Grove", "Kinkaku-ji Golden Pavilion"],
               },
               {
-                img: "https://images.unsplash.com/photo-1518259102261-b40117eabbc9?w=800&q=80",
+                img: "https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800&q=80",
                 destination: "Costa Rica — Guanacaste",
                 family: "Family of 5 · Kids ages 4, 9 & 12",
                 tags: ["Adventure", "7 days", "All-inclusive"],
