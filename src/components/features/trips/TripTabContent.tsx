@@ -879,16 +879,17 @@ function SavedContent({ tripId: tripIdProp }: { tripId?: string }) {
 
   return (
     <div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          {/* Left column: LODGING + AIRFARE */}
-          {leftSections.map(renderSection)}
-        </div>
-        <div>
-          {/* Right column: RESTAURANTS + ACTIVITIES */}
-          {rightSections.map(renderSection)}
-        </div>
-      </div>
+      {(() => {
+        const all = [...leftSections, ...rightSections];
+        const col1 = all.filter((_, i) => i % 2 === 0);
+        const col2 = all.filter((_, i) => i % 2 !== 0);
+        return (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>{col1.map(renderSection)}</div>
+            <div>{col2.map(renderSection)}</div>
+          </div>
+        );
+      })()}
 
       {inlineToast && (
         <div style={{ position: "fixed", bottom: "80px", left: "50%", transform: "translateX(-50%)", backgroundColor: "#1a1a1a", color: "#fff", fontSize: "13px", fontWeight: 600, padding: "10px 20px", borderRadius: "999px", zIndex: 9999, pointerEvents: "none", whiteSpace: "nowrap" }}>
