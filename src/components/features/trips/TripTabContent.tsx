@@ -879,7 +879,7 @@ function SavedContent({ tripId: tripIdProp }: { tripId?: string }) {
 
   return (
     <div>
-      <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(2, 1fr)" : "1fr", gap: "20px" }}>
+      <div className="grid grid-cols-2 gap-5">
         <div>{leftSections.map(renderSection)}</div>
         <div>{rightSections.map(renderSection)}</div>
       </div>
