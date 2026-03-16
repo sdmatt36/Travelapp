@@ -436,6 +436,8 @@ type SavedDisplayItem = {
   bookUrl?: string;
   websiteUrl?: string;
   description?: string;
+  isLodging?: boolean;
+  lodgingDates?: { checkin: string | null; checkout: string | null };
 };
 
 
@@ -497,6 +499,65 @@ function SavedDayPickerModal({ itemTitle, onConfirm, onClose }: {
           }}
         >
           {selected !== null ? `Add to ${TRIP_DAYS[selected].label} →` : "Select a day"}
+        </button>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+function LodgingDateModal({ itemTitle, onConfirm, onClose }: {
+  itemTitle: string;
+  onConfirm: (checkin: string, checkout: string) => void;
+  onClose: () => void;
+}) {
+  const [checkin, setCheckin] = useState("");
+  const [checkout, setCheckout] = useState("");
+  return createPortal(
+    <div
+      onClick={onClose}
+      style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.5)", zIndex: 9999, display: "flex", alignItems: "flex-end", justifyContent: "center" }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{ backgroundColor: "#fff", borderRadius: "20px 20px 0 0", width: "100%", maxWidth: "480px", padding: "24px 20px 32px" }}
+      >
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "4px" }}>
+          <p style={{ fontSize: "16px", fontWeight: 800, color: "#1a1a1a" }}>When are you staying?</p>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "20px", color: "#999", lineHeight: 1 }}>×</button>
+        </div>
+        <p style={{ fontSize: "13px", color: "#717171", marginBottom: "16px" }}>Add <strong>{itemTitle}</strong> to your itinerary</p>
+        <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "20px" }}>
+          <div>
+            <label style={{ fontSize: "12px", fontWeight: 600, color: "#555", display: "block", marginBottom: "4px" }}>Check-in</label>
+            <input
+              type="date"
+              value={checkin}
+              onChange={e => setCheckin(e.target.value)}
+              style={{ width: "100%", padding: "10px 12px", borderRadius: "10px", border: "1.5px solid #EEEEEE", fontSize: "14px", color: "#1a1a1a", outline: "none", boxSizing: "border-box" }}
+            />
+          </div>
+          <div>
+            <label style={{ fontSize: "12px", fontWeight: 600, color: "#555", display: "block", marginBottom: "4px" }}>Check-out</label>
+            <input
+              type="date"
+              value={checkout}
+              onChange={e => setCheckout(e.target.value)}
+              style={{ width: "100%", padding: "10px 12px", borderRadius: "10px", border: "1.5px solid #EEEEEE", fontSize: "14px", color: "#1a1a1a", outline: "none", boxSizing: "border-box" }}
+            />
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => { if (checkin && checkout) onConfirm(checkin, checkout); }}
+          style={{
+            width: "100%", padding: "14px", borderRadius: "12px", border: "none",
+            backgroundColor: checkin && checkout ? "#C4664A" : "#E0E0E0",
+            color: checkin && checkout ? "#fff" : "#aaa",
+            fontSize: "15px", fontWeight: 700, cursor: checkin && checkout ? "pointer" : "default",
+          }}
+        >
+          Add to itinerary
         </button>
       </div>
     </div>,
@@ -666,6 +727,9 @@ function apiToDisplayItem(item: ApiSavedItem): SavedDisplayItem {
     : cat === "RESTAURANTS" ? <Utensils size={18} style={{ color: "#C4664A" }} />
     : <Compass size={18} style={{ color: "#C4664A" }} />;
   const isBookable = item.sourceUrl ? /airbnb\.com|booking\.com|hotels\.com|expedia\.com/.test(item.sourceUrl) : false;
+  const LODGING_TAGS = /lodging|accommodation|hotel|airbnb|hostel/i;
+  const tagsStr = item.categoryTags.join(" ");
+  const isLodging = LODGING_TAGS.test(tagsStr);
   return {
     title: item.rawTitle ?? urlHost,
     detail,
@@ -677,14 +741,18 @@ function apiToDisplayItem(item: ApiSavedItem): SavedDisplayItem {
     bookUrl: isBookable ? (item.sourceUrl ?? undefined) : undefined,
     websiteUrl: item.sourceUrl ?? undefined,
     description: item.rawDescription ?? "",
+    isLodging,
+    lodgingDates: { checkin: item.extractedCheckin, checkout: item.extractedCheckout },
   };
 }
 
 function SavedContent({ tripId: tripIdProp }: { tripId?: string }) {
   const isDesktop = useIsDesktop();
   const [dayPickerItem, setDayPickerItem] = useState<SavedDisplayItem | null>(null);
+  const [lodgingDateItem, setLodgingDateItem] = useState<SavedDisplayItem | null>(null);
   const [detailItem, setDetailItem] = useState<SavedDisplayItem | null>(null);
   const [assignedDays, setAssignedDays] = useState<Record<string, number>>({});
+  const [inlineToast, setInlineToast] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [leftSections, setLeftSections] = useState<{ category: string; items: SavedDisplayItem[] }[]>([]);
   const [rightSections, setRightSections] = useState<{ category: string; items: SavedDisplayItem[] }[]>([]);
@@ -727,7 +795,24 @@ function SavedContent({ tripId: tripIdProp }: { tripId?: string }) {
     return () => window.removeEventListener("flokk:refresh", fetchSaves);
   }, [fetchSaves]);
 
-  function handleAddToItinerary(item: SavedDisplayItem) { setDayPickerItem(item); }
+  function handleAddToItinerary(item: SavedDisplayItem) {
+    if (item.isLodging && item.lodgingDates?.checkin && item.lodgingDates?.checkout) {
+      // Auto-assign: push to localStorage at day 0
+      try {
+        const key = ITINERARY_KEY(tripIdProp);
+        const existing: RecAddition[] = JSON.parse(localStorage.getItem(key) ?? "[]");
+        existing.push({ dayIndex: 0, title: item.title, location: item.detail, img: item.img });
+        localStorage.setItem(key, JSON.stringify(existing));
+      } catch (e) { console.error("[ItineraryWrite] localStorage write failed:", e); }
+      setAssignedDays(prev => ({ ...prev, [item.title]: 0 }));
+      setInlineToast(`Added · ${item.lodgingDates.checkin} → ${item.lodgingDates.checkout}`);
+      setTimeout(() => setInlineToast(null), 3000);
+    } else if (item.isLodging) {
+      setLodgingDateItem(item);
+    } else {
+      setDayPickerItem(item);
+    }
+  }
   function handleBook(item: SavedDisplayItem) { const url = item.bookUrl ?? item.websiteUrl; if (url) window.open(url, "_blank"); }
   function handleLearnMore(item: SavedDisplayItem) { setDetailItem(item); }
 
@@ -799,6 +884,11 @@ function SavedContent({ tripId: tripIdProp }: { tripId?: string }) {
         <div>{rightSections.map(renderSection)}</div>
       </div>
 
+      {inlineToast && (
+        <div style={{ position: "fixed", bottom: "80px", left: "50%", transform: "translateX(-50%)", backgroundColor: "#1a1a1a", color: "#fff", fontSize: "13px", fontWeight: 600, padding: "10px 20px", borderRadius: "999px", zIndex: 9999, pointerEvents: "none", whiteSpace: "nowrap" }}>
+          {inlineToast}
+        </div>
+      )}
       {dayPickerItem && (
         <SavedDayPickerModal
           itemTitle={dayPickerItem.title}
@@ -813,6 +903,24 @@ function SavedContent({ tripId: tripIdProp }: { tripId?: string }) {
             setDayPickerItem(null);
           }}
           onClose={() => setDayPickerItem(null)}
+        />
+      )}
+      {lodgingDateItem && (
+        <LodgingDateModal
+          itemTitle={lodgingDateItem.title}
+          onConfirm={(checkin, checkout) => {
+            try {
+              const key = ITINERARY_KEY(tripIdProp);
+              const existing: RecAddition[] = JSON.parse(localStorage.getItem(key) ?? "[]");
+              existing.push({ dayIndex: 0, title: lodgingDateItem.title, location: lodgingDateItem.detail, img: lodgingDateItem.img });
+              localStorage.setItem(key, JSON.stringify(existing));
+            } catch (e) { console.error("[ItineraryWrite] localStorage write failed:", e); }
+            setAssignedDays(prev => ({ ...prev, [lodgingDateItem.title]: 0 }));
+            setInlineToast(`Added · ${checkin} → ${checkout}`);
+            setTimeout(() => setInlineToast(null), 3000);
+            setLodgingDateItem(null);
+          }}
+          onClose={() => setLodgingDateItem(null)}
         />
       )}
       {detailItem && (
@@ -2079,12 +2187,17 @@ function RecommendedContent({
     }
   }
 
-  // Filter recommendations by destination
-  const okinawaKeywords = ["okinawa", "naha", "onna", "chatan", "motobu", "nago", "uruma", "nanjo", "ryukyu"];
-  const destHaystack = [destinationCity ?? "", destinationCountry ?? ""].join(" ").toLowerCase();
+  // Filter recommendations by destination.
+  // WHERE: destinationCity (case-insensitive partial) OR destinationCountry (case-insensitive partial).
+  // If neither param is provided, return empty array.
   const hasDestination = !!(destinationCity || destinationCountry);
-  const matchesOkinawa = !hasDestination || okinawaKeywords.some(k => destHaystack.includes(k));
-  const filteredRecs = matchesOkinawa ? RECOMMENDATIONS : [];
+  const cityLower = (destinationCity ?? "").toLowerCase().trim();
+  const countryLower = (destinationCountry ?? "").toLowerCase().trim();
+  const filteredRecs = !hasDestination ? [] : RECOMMENDATIONS.filter(rec => {
+    const locLower = rec.location.toLowerCase();
+    return (cityLower && locLower.includes(cityLower)) || (countryLower && locLower.includes(countryLower));
+  });
+  const matchesDestination = filteredRecs.length > 0;
 
   // Group by category (first segment of tags), sort categories and items alphabetically
   const grouped = filteredRecs.reduce((acc, rec) => {
@@ -2096,8 +2209,8 @@ function RecommendedContent({
   const sortedCategories = Object.keys(grouped).sort();
   sortedCategories.forEach((cat) => grouped[cat].sort((a, b) => a.title.localeCompare(b.title)));
 
-  if (!matchesOkinawa) {
-    const dest = [destinationCity, destinationCountry].filter(Boolean).join(", ");
+  if (!matchesDestination) {
+    const dest = hasDestination ? [destinationCity, destinationCountry].filter(Boolean).join(", ") : "this destination";
     return (
       <div style={{ padding: "40px 24px", textAlign: "center" }}>
         <Compass size={32} style={{ color: "#C4664A", margin: "0 auto 12px" }} />
