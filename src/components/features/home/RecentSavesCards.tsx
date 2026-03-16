@@ -52,7 +52,7 @@ const TITLE_LOCATIONS: Array<[RegExp, string]> = [
   [/okinawa/i, "Okinawa, Japan"],
 ];
 
-function getImageSrc(item: RecentSaveItem): string {
+function getImageSrc(item: RecentSaveItem): string | null {
   // Specific override for Shuri Castle — scraper returns wrong thumbnail
   if (/shuri/i.test(item.rawTitle ?? "")) {
     return "https://images.unsplash.com/photo-1610976689391-c749d937dcab?w=400&q=80";
@@ -60,8 +60,9 @@ function getImageSrc(item: RecentSaveItem): string {
   if (item.mediaThumbnailUrl) return item.mediaThumbnailUrl;
   const city = (item.destinationCity || "").toLowerCase();
   const country = (item.destinationCountry || "").toLowerCase();
-  const photoId = CITY_IMAGES[city] || CITY_IMAGES[country] || "photo-1476514525535-07fb3b4ae5f1";
-  return `https://images.unsplash.com/${photoId}?w=400&q=80`;
+  const photoId = CITY_IMAGES[city] || CITY_IMAGES[country];
+  if (photoId) return `https://images.unsplash.com/${photoId}?w=400&q=80`;
+  return null; // use placeholder div
 }
 
 function getLocation(item: RecentSaveItem): string {
@@ -84,6 +85,7 @@ export function RecentSavesCards({ items }: { items: RecentSaveItem[] }) {
           const tags = item.categoryTags ?? [];
           const loc = getLocation(item);
           const gradient = getGradient(tags);
+          const imgSrc = getImageSrc(item);
           return (
             <div
               key={item.id}
@@ -91,13 +93,27 @@ export function RecentSavesCards({ items }: { items: RecentSaveItem[] }) {
               style={{ cursor: "pointer", textDecoration: "none" }}
             >
               <div style={{ backgroundColor: "#FAFAFA", borderRadius: "12px", boxShadow: "0 1px 4px rgba(0,0,0,0.08)", overflow: "hidden" }}>
-                <div style={{
-                  height: "130px",
-                  background: gradient,
-                  backgroundImage: `url(${getImageSrc(item)})`,
-                  backgroundSize: "cover",
-                  backgroundPosition: "center",
-                }} />
+                {imgSrc ? (
+                  <div style={{
+                    height: "130px",
+                    background: gradient,
+                    backgroundImage: `url(${imgSrc})`,
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                  }} />
+                ) : (
+                  <div style={{
+                    height: "130px",
+                    background: gradient,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}>
+                    <span style={{ fontSize: "36px", fontWeight: 700, color: "rgba(255,255,255,0.6)" }}>
+                      {(item.destinationCity || item.rawTitle || "?").charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                )}
                 <div style={{ padding: "12px" }}>
                   <p style={{ fontSize: "14px", fontWeight: 700, color: "#1a1a1a", marginBottom: "2px", lineHeight: 1.3 }}>
                     {item.rawTitle ?? "Saved place"}
