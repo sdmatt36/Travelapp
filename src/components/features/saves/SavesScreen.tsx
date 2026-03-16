@@ -25,7 +25,7 @@ type Save = {
   tags: string[];
   assigned: string | null;
   distance: string | null;
-  img: string;
+  img: string | null;
 };
 
 const FILTER_PILLS = ["All", "Culture", "Food", "Kids", "Lodging", "Outdoor", "Shopping", "Transportation", "Unorganized"];
@@ -47,29 +47,6 @@ const SOURCE_LABEL_MAP: Record<string, string> = {
   MANUAL: "Manually added", IN_APP: "In-app", EMAIL_IMPORT: "Email", PHOTO_IMPORT: "Photo",
 };
 
-const CITY_IMAGES: Record<string, string> = {
-  "kyoto": "photo-1478436127897-769e1b3f0f36",
-  "tokyo": "photo-1540959733332-eab4deabeeaf",
-  "okinawa": "photo-1590559899731-a382839e5549",
-  "osaka": "photo-1555400038-63f5ba517a47",
-  "japan": "photo-1478436127897-769e1b3f0f36",
-  "costa rica": "photo-1518259102261-b40117eabbc9",
-  "paris": "photo-1502602898657-3e91760cbb34",
-  "london": "photo-1513635269975-59663e0ac1ad",
-  "new york": "photo-1485871981521-5b1fd3805eee",
-  "bali": "photo-1537996194471-e657df975ab4",
-  "madrid": "photo-1539037116277-4db20889f2d4",
-  "lisbon": "photo-1555881400-74d7acaacd8b",
-};
-
-function getItemImageSrc(item: ApiItem): string {
-  if (item.mediaThumbnailUrl) return item.mediaThumbnailUrl;
-  const city = (item.destinationCity || "").toLowerCase();
-  const country = (item.destinationCountry || "").toLowerCase();
-  const photoId = CITY_IMAGES[city] || CITY_IMAGES[country] || "photo-1476514525535-07fb3b4ae5f1";
-  return `https://images.unsplash.com/${photoId}?w=400&q=80`;
-}
-
 function mapApiItem(item: ApiItem): Save {
   return {
     id: item.id,
@@ -79,7 +56,7 @@ function mapApiItem(item: ApiItem): Save {
     tags: item.categoryTags,
     assigned: item.trip?.title ?? null,
     distance: null,
-    img: getItemImageSrc(item),
+    img: item.mediaThumbnailUrl || null,
   };
 }
 
@@ -113,32 +90,49 @@ function SaveCard({ save, openDropdown, setOpenDropdown, assignTrip, onTripClick
       }}
     >
       {/* Thumbnail */}
-      <div
-        style={{
-          height: "130px",
-          backgroundImage: `url(${save.img})`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          position: "relative",
-          borderRadius: "12px 12px 0 0",
-          overflow: "hidden",
-        }}
-      >
+      {save.img ? (
         <div
           style={{
-            position: "absolute",
-            bottom: "6px",
-            left: "8px",
-            backgroundColor: "rgba(0,0,0,0.6)",
-            color: "#fff",
-            fontSize: "10px",
-            padding: "2px 8px",
-            borderRadius: "20px",
+            height: "130px",
+            backgroundImage: `url(${save.img})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            position: "relative",
+            borderRadius: "12px 12px 0 0",
+            overflow: "hidden",
           }}
         >
-          {save.source}
+          <div
+            style={{
+              position: "absolute",
+              bottom: "6px",
+              left: "8px",
+              backgroundColor: "rgba(0,0,0,0.6)",
+              color: "#fff",
+              fontSize: "10px",
+              padding: "2px 8px",
+              borderRadius: "20px",
+            }}
+          >
+            {save.source}
+          </div>
         </div>
-      </div>
+      ) : (
+        <div
+          style={{
+            height: "130px",
+            backgroundColor: "#f1f5f9",
+            borderRadius: "12px 12px 0 0",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <span style={{ fontSize: "13px", color: "#94a3b8" }}>
+            {save.tags[0] ?? "Saved place"}
+          </span>
+        </div>
+      )}
 
       {/* Card body */}
       <div style={{ padding: "12px" }}>
