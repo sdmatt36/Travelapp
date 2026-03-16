@@ -634,7 +634,7 @@ function SavedHorizCard({ item, isDesktop, onAddToItinerary, onBook, onLearnMore
 type ApiSavedItem = {
   id: string;
   sourceType: string;
-  sourceUrl: string;
+  sourceUrl: string | null;
   rawTitle: string | null;
   rawDescription: string | null;
   mediaThumbnailUrl: string | null;
@@ -644,37 +644,38 @@ type ApiSavedItem = {
 };
 
 function inferSavedCategory(item: ApiSavedItem): string {
-  const haystack = [...item.categoryTags, item.rawTitle ?? "", item.sourceUrl].join(" ").toLowerCase();
-  if (/lodg|hotel|resort|hostel|airbnb\.com|booking\.com|vrbo/.test(haystack)) return "LODGING";
-  if (/flight|airline|airfare/.test(haystack)) return "AIRFARE";
-  if (/restaurant|food|dining|eat|cafe|market|bar|kitchen/.test(haystack)) return "RESTAURANTS";
+  const haystack = [...item.categoryTags, item.rawTitle ?? "", item.sourceUrl ?? ""].join(" ").toLowerCase();
+  if (/lodg|hotel|resort|hostel|airbnb\.com|booking\.com|vrbo|accommodation/.test(haystack)) return "LODGING";
+  if (/flight|airline|airfare|transport/.test(haystack)) return "AIRFARE";
+  if (/restaurant|food|dining|eat|cafe|market|bar|kitchen|street food/.test(haystack)) return "RESTAURANTS";
   return "ACTIVITIES";
 }
 
 function apiToDisplayItem(item: ApiSavedItem): SavedDisplayItem {
   const cat = inferSavedCategory(item);
+  const urlHost = (item.sourceUrl ?? "").replace(/^https?:\/\//, "").split("/")[0];
   let detail = "";
   if (cat === "LODGING" && (item.extractedCheckin || item.extractedCheckout)) {
     detail = [item.extractedCheckin, item.extractedCheckout].filter(Boolean).join(" → ");
   } else {
     const desc = item.rawDescription ?? "";
-    detail = desc.length > 0 ? desc.slice(0, 80) : item.sourceUrl.replace(/^https?:\/\//, "").split("/")[0];
+    detail = desc.length > 0 ? desc.slice(0, 80) : urlHost;
   }
   const icon = cat === "LODGING" ? <BedDouble size={18} style={{ color: "#C4664A" }} />
     : cat === "AIRFARE" ? <Plane size={18} style={{ color: "#C4664A" }} />
     : cat === "RESTAURANTS" ? <Utensils size={18} style={{ color: "#C4664A" }} />
     : <Compass size={18} style={{ color: "#C4664A" }} />;
-  const isBookable = /airbnb\.com|booking\.com|hotels\.com|expedia\.com/.test(item.sourceUrl);
+  const isBookable = item.sourceUrl ? /airbnb\.com|booking\.com|hotels\.com|expedia\.com/.test(item.sourceUrl) : false;
   return {
-    title: item.rawTitle ?? item.sourceUrl.replace(/^https?:\/\//, "").split("/")[0],
+    title: item.rawTitle ?? urlHost,
     detail,
     status: "Saved",
     statusBooked: false,
     families: "",
     img: item.mediaThumbnailUrl ?? "",
     icon,
-    bookUrl: isBookable ? item.sourceUrl : undefined,
-    websiteUrl: item.sourceUrl,
+    bookUrl: isBookable ? (item.sourceUrl ?? undefined) : undefined,
+    websiteUrl: item.sourceUrl ?? undefined,
     description: item.rawDescription ?? "",
   };
 }
