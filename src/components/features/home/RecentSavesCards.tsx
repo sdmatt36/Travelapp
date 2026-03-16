@@ -45,32 +45,19 @@ const CITY_IMAGES: Record<string, string> = {
   "lisbon": "photo-1555881400-74d7acaacd8b",
 };
 
-// Title-keyword image overrides — used when DB thumbnail is unreliable
-const TITLE_IMAGES: Array<[RegExp, string]> = [
-  [/shuri/i, "photo-1610976689391-c749d937dcab"],
-  [/churaumi|ocean expo/i, "photo-1590559899731-a382839e5549"],
-  [/kokusai/i, "photo-1540959733332-eab4deabeeaf"],
-  [/katsuren/i, "photo-1590559899731-a382839e5549"],
-];
-
 // Title-keyword location fallback when DB has no city/country
 const TITLE_LOCATIONS: Array<[RegExp, string]> = [
-  [/shuri|kokusai|naha/i, "Naha, Okinawa"],
-  [/churaumi|ocean expo|motobu/i, "Motobu, Okinawa"],
+  [/shuri/i, "Naha, Okinawa"],
   [/katsuren/i, "Uruma, Okinawa"],
   [/okinawa/i, "Okinawa, Japan"],
 ];
 
 function getImageSrc(item: RecentSaveItem): string {
-  const title = item.rawTitle ?? "";
-  // Check title overrides first (fixes bad scraped thumbnails for known places)
-  for (const [pattern, photoId] of TITLE_IMAGES) {
-    if (pattern.test(title)) return `https://images.unsplash.com/${photoId}?w=400&q=80`;
+  // Specific override for Shuri Castle — scraper returns wrong thumbnail
+  if (/shuri/i.test(item.rawTitle ?? "")) {
+    return "https://images.unsplash.com/photo-1610976689391-c749d937dcab?w=400&q=80";
   }
-  // Only trust mediaThumbnailUrl when location was also successfully extracted
-  if (item.mediaThumbnailUrl && (item.destinationCity || item.destinationCountry)) {
-    return item.mediaThumbnailUrl;
-  }
+  if (item.mediaThumbnailUrl) return item.mediaThumbnailUrl;
   const city = (item.destinationCity || "").toLowerCase();
   const country = (item.destinationCountry || "").toLowerCase();
   const photoId = CITY_IMAGES[city] || CITY_IMAGES[country] || "photo-1476514525535-07fb3b4ae5f1";
@@ -80,7 +67,6 @@ function getImageSrc(item: RecentSaveItem): string {
 function getLocation(item: RecentSaveItem): string {
   const loc = [item.destinationCity, item.destinationCountry].filter(Boolean).join(", ");
   if (loc) return loc;
-  // Infer from title when DB location is missing
   const title = item.rawTitle ?? "";
   for (const [pattern, location] of TITLE_LOCATIONS) {
     if (pattern.test(title)) return location;
