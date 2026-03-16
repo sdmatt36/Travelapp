@@ -307,7 +307,7 @@ export default function LandingPage() {
             <div style={{ flex: 1, display: "flex", justifyContent: "center", alignItems: "center" }}>
               <div style={{ backgroundColor: "#fff", borderRadius: "16px", boxShadow: "0 4px 16px rgba(0,0,0,0.08)", border: "1px solid #EEEEEE", overflow: "hidden", width: "100%", maxWidth: "340px" }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="https://images.unsplash.com/photo-1543349689-9a4d426bee8e?w=800&q=80" alt="Eiffel Tower, Paris at dusk" style={{ width: "100%", height: "140px", objectFit: "cover", objectPosition: "center 30%", display: "block" }} />
+                <img src="https://images.unsplash.com/photo-1511739001486-6bfe10ce785f?w=800&q=80" alt="Eiffel Tower, Paris at dusk" style={{ width: "100%", height: "140px", objectFit: "cover", objectPosition: "center 30%", display: "block" }} />
                 <div style={{ padding: "16px 20px 20px" }}>
                 <span style={{ fontSize: "11px", backgroundColor: "rgba(196,102,74,0.1)", color: "#C4664A", borderRadius: "20px", padding: "3px 10px", fontWeight: 700 }}>Culture</span>
                 <p style={{ fontSize: "22px", fontWeight: 700, color: "#1a1a1a", margin: "12px 0 8px" }}>Eiffel Tower</p>
@@ -409,7 +409,7 @@ export default function LandingPage() {
                 items: ["Arashiyama Bamboo Grove", "teamLab Planets", "Tsukiji Outer Market"],
               },
               {
-                img: "https://images.unsplash.com/photo-1552465011-b4e21bf6e79a?w=800&q=80",
+                img: "https://images.unsplash.com/photo-1501854140801-50d01698950b?w=800&q=80",
                 destination: "Costa Rica — Guanacaste",
                 family: "Family of 5 · Kids ages 4, 9 & 12",
                 tags: ["Adventure", "7 days", "All-inclusive"],
