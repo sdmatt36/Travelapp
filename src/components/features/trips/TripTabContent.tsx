@@ -1934,7 +1934,7 @@ const RECOMMENDATIONS: RecItem[] = [
     location: "Chatan",
     tags: "Food · Free · 2–3 hrs",
     match: "Street Food · Evening · All ages",
-    img: "https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=400&auto=format&fit=crop&q=80",
+    img: "/images/american-village-mihama.jpg",
     saved: 980,
     lat: 26.3109,
     lng: 127.7540,
@@ -1950,7 +1950,7 @@ const RECOMMENDATIONS: RecItem[] = [
     location: "Nago",
     tags: "Kids · $15 · 1.5 hrs",
     match: "Unique to Okinawa · Ages 3+ · Self-guided tour",
-    img: "https://images.unsplash.com/photo-1550258987-190a2d41a8ba?w=400&auto=format&fit=crop&q=80",
+    img: "/images/nago-pineapple-park.jpg",
     saved: 760,
     lat: 26.6017,
     lng: 127.9711,
@@ -2094,10 +2094,6 @@ function RecommendedContent({
 }) {
   const isDesktop = useIsDesktop();
   const [savedSet, setSavedSet] = useState<Set<string>>(new Set());
-  const [savingTitle, setSavingTitle] = useState<string | null>(null);
-  const [pendingRec, setPendingRec] = useState<string | null>(null);
-  const [pendingDayIndex, setPendingDayIndex] = useState<number | null>(null);
-  const [pendingCategory, setPendingCategory] = useState<string>("");
   const [drawerRec, setDrawerRec] = useState<DrawerRec | null>(null);
 
   function generateDayPillsForRec(start: string | null, end: string | null): { dayIndex: number; label: string }[] {
@@ -2115,45 +2111,6 @@ function RecommendedContent({
     });
   }
   const recDayPills = generateDayPillsForRec(tripStartDate ?? null, tripEndDate ?? null);
-  const CATEGORY_OPTIONS_REC = ["Culture", "Food", "Kids", "Lodging", "Outdoor", "Shopping", "Transportation"];
-
-  async function handleSave(rec: RecItem, dayIndex: number | null, category: string) {
-    if (savedSet.has(rec.title) || savingTitle === rec.title) return;
-    setSavingTitle(rec.title);
-    setPendingRec(null);
-    try {
-      const cat = category || rec.tags.split(" · ")[0];
-      await fetch("/api/saves", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          url: `https://flokk.app/rec/${encodeURIComponent(rec.title)}`,
-          tripId: tripId ?? undefined,
-          title: rec.title,
-          description: rec.match,
-          thumbnailUrl: rec.img,
-          tags: [cat],
-          lat: rec.lat,
-          lng: rec.lng,
-          dayIndex: dayIndex ?? undefined,
-        }),
-      });
-      setSavedSet((prev) => new Set([...prev, rec.title]));
-      onSaved({ title: rec.title, location: rec.location, img: rec.img, tags: rec.tags });
-      if (dayIndex !== null) {
-        try {
-          const key = ITINERARY_KEY(tripId);
-          const existing: RecAddition[] = JSON.parse(localStorage.getItem(key) ?? "[]");
-          existing.push({ dayIndex, title: rec.title, location: rec.location, img: rec.img });
-          localStorage.setItem(key, JSON.stringify(existing));
-          console.log("[ItineraryWrite] rec saved to day", dayIndex, "(Day", dayIndex + 1, "):", rec.title, "| stored:", existing.length, "total");
-        } catch (e) { console.error("[ItineraryWrite] localStorage write failed:", e); }
-      }
-      window.dispatchEvent(new Event("flokk:refresh"));
-    } finally {
-      setSavingTitle(null);
-    }
-  }
 
   // Filter recommendations by destination city — match rec.city exactly (case-insensitive).
   // If no destinationCity is provided, return empty array so we show the "no recs yet" state.
@@ -2208,63 +2165,16 @@ function RecommendedContent({
       <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(2, 1fr)" : "1fr", gap: "16px" }}>
         {filteredRecs.map((rec) => {
           const isSaved = savedSet.has(rec.title);
-          const isSaving = savingTitle === rec.title;
-          const isPending = pendingRec === rec.title;
           return (
-            <div key={rec.title} style={{ display: "flex", flexDirection: "column", gap: "0" }}>
-              <RecCard
-                rec={rec}
-                isSaved={isSaved}
-                isSaving={isSaving}
-                onToggle={() => {
-                  if (isSaved || isSaving) return;
-                  setPendingRec(rec.title);
-                  setPendingDayIndex(null);
-                  setPendingCategory(rec.tags.split(" · ")[0]);
-                }}
-                onOpenDetail={() => setDrawerRec(rec as DrawerRec)}
-              />
-                  {isPending && (
-                    <div style={{ backgroundColor: "#FAFAFA", borderRadius: "0 0 12px 12px", border: "1px solid #EEEEEE", borderTop: "none", padding: "12px 14px", display: "flex", flexDirection: "column", gap: "10px" }}>
-                      {recDayPills.length > 0 && (
-                        <div>
-                          <p style={{ fontSize: "12px", fontWeight: 700, color: "#555", marginBottom: "7px" }}>Which day?</p>
-                          <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
-                            <button type="button" onClick={() => setPendingDayIndex(null)} style={{ padding: "5px 12px", borderRadius: "999px", fontSize: "11px", fontWeight: 600, border: "1.5px solid", borderColor: pendingDayIndex === null ? "#C4664A" : "#DDD", backgroundColor: pendingDayIndex === null ? "#C4664A" : "#fff", color: pendingDayIndex === null ? "#fff" : "#666", cursor: "pointer" }}>
-                              No specific day
-                            </button>
-                            {recDayPills.map(({ dayIndex, label }) => (
-                              <button type="button" key={dayIndex} onClick={() => setPendingDayIndex(dayIndex)} style={{ padding: "5px 12px", borderRadius: "999px", fontSize: "11px", fontWeight: 600, border: "1.5px solid", borderColor: pendingDayIndex === dayIndex ? "#C4664A" : "#DDD", backgroundColor: pendingDayIndex === dayIndex ? "#C4664A" : "#fff", color: pendingDayIndex === dayIndex ? "#fff" : "#666", cursor: "pointer" }}>
-                                {label}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      <div>
-                        <p style={{ fontSize: "12px", fontWeight: 700, color: "#555", marginBottom: "7px" }}>Category</p>
-                        <select
-                          value={pendingCategory}
-                          onChange={e => setPendingCategory(e.target.value)}
-                          style={{ width: "100%", padding: "8px 12px", borderRadius: "8px", border: "1.5px solid #E0E0E0", fontSize: "13px", color: "#1a1a1a", backgroundColor: "#fff", outline: "none", cursor: "pointer" }}
-                        >
-                          <option value="">No category</option>
-                          {CATEGORY_OPTIONS_REC.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                        </select>
-                      </div>
-                      <div style={{ display: "flex", gap: "8px" }}>
-                        <button type="button" onClick={() => setPendingRec(null)} style={{ flex: 1, padding: "9px", borderRadius: "8px", border: "1.5px solid #DDD", backgroundColor: "#fff", fontSize: "12px", fontWeight: 600, color: "#717171", cursor: "pointer" }}>
-                          Cancel
-                        </button>
-                        <button type="button" onClick={() => handleSave(rec, pendingDayIndex, pendingCategory)} style={{ flex: 2, padding: "9px", borderRadius: "8px", border: "none", backgroundColor: "#C4664A", fontSize: "12px", fontWeight: 700, color: "#fff", cursor: "pointer" }}>
-                          {pendingDayIndex !== null ? `Save to Day ${pendingDayIndex} →` : "Save to trip →"}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-          })}
+            <RecCard
+              key={rec.title}
+              rec={rec}
+              isSaved={isSaved}
+              onToggle={() => { if (!isSaved) setDrawerRec(rec as DrawerRec); }}
+              onOpenDetail={() => setDrawerRec(rec as DrawerRec)}
+            />
+          );
+        })}
       </div>
 
       {/* Community contribution banner */}
@@ -2294,7 +2204,7 @@ function RecommendedContent({
   );
 }
 
-function RecCard({ rec, isSaved, isSaving, onToggle, onOpenDetail }: { rec: RecItem; isSaved: boolean; isSaving: boolean; onToggle: () => void; onOpenDetail: () => void }) {
+function RecCard({ rec, isSaved, onToggle, onOpenDetail }: { rec: RecItem; isSaved: boolean; onToggle: () => void; onOpenDetail: () => void }) {
   const [imgFailed, setImgFailed] = useState(false);
   return (
     <div
@@ -2326,10 +2236,10 @@ function RecCard({ rec, isSaved, isSaving, onToggle, onOpenDetail }: { rec: RecI
         <div style={{ display: "flex", gap: "6px", marginTop: "8px" }}>
           <button
             type="button"
-            onClick={e => { e.stopPropagation(); if (!isSaved && !isSaving) onToggle(); }}
+            onClick={e => { e.stopPropagation(); if (!isSaved) onToggle(); }}
             style={{ fontSize: "11px", fontWeight: 700, padding: "4px 10px", borderRadius: "999px", backgroundColor: isSaved ? "rgba(74,124,89,0.1)" : "#C4664A", color: isSaved ? "#4a7c59" : "#fff", border: isSaved ? "1px solid rgba(74,124,89,0.2)" : "none", cursor: isSaved ? "default" : "pointer", whiteSpace: "nowrap" }}
           >
-            {isSaved ? "Saved ✓" : isSaving ? "Saving…" : "+ Itinerary"}
+            {isSaved ? "Saved ✓" : "+ Itinerary"}
           </button>
           <button
             type="button"
