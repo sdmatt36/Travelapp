@@ -45,9 +45,9 @@ const DESTINATION_RECS: Record<string, Array<{
   ],
   Madrid: [
     { title: "Santiago Bernabéu Stadium Tour", location: "Chamartín, Madrid", tags: "Sports · $35 · 1.5 hrs", match: "Football fans · Ages 6+ · Unique experience", img: "/images/bernabeu-stadium.jpg", saved: 2890, lat: 40.4531, lng: -3.6883 },
-    { title: "Aquópolis Water Park", location: "Villanueva de la Cañada", tags: "Kids · $30 · Full day", match: "Summer essential · Ages 3+ · Waterslides", img: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&auto=format&fit=crop&q=80", saved: 1560, lat: 40.4449, lng: -3.9972 },
+    { title: "Aquópolis Water Park", location: "Villanueva de la Cañada", tags: "Kids · $30 · Full day", match: "Summer essential · Ages 3+ · Waterslides", img: "/images/aquopolis-waterpark.jpg", saved: 1560, lat: 40.4449, lng: -3.9972 },
     { title: "Reina Sofía Museum", location: "Atocha, Madrid", tags: "Culture · $12 · 2 hrs", match: "Guernica · Modern art · Ages 8+", img: "/images/reina-sofia-museum.jpg", saved: 2140, lat: 40.4080, lng: -3.6944 },
-    { title: "Parque de Atracciones", location: "Casa de Campo, Madrid", tags: "Kids · $35 · Half day", match: "Rides & roller coasters · Ages 3+ · Family classic", img: "https://images.unsplash.com/photo-1513002749826-77c61bfa41b8?w=400&auto=format&fit=crop&q=80", saved: 1230, lat: 40.4085, lng: -3.7517 },
+    { title: "Parque de Atracciones", location: "Casa de Campo, Madrid", tags: "Kids · $35 · Half day", match: "Rides & roller coasters · Ages 3+ · Family classic", img: "/images/parque-atracciones.jpg", saved: 1230, lat: 40.4085, lng: -3.7517 },
     { title: "Flamenco Show at Corral de la Morería", location: "Opera, Madrid", tags: "Culture · $45 · 1.5 hrs", match: "Authentic tablao · Evening · Ages 7+", img: "/images/flamenco-show.jpg", saved: 1740, lat: 40.4150, lng: -3.7126 },
     { title: "Chocolatería San Ginés", location: "Sol, Madrid", tags: "Food · $8 · 30 min", match: "Best churros con chocolate in Madrid · All ages", img: "/images/chocolateria-san-gines.jpg", saved: 3380, lat: 40.4157, lng: -3.7077 },
   ],
