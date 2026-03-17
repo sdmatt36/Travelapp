@@ -97,16 +97,17 @@ export function CommunityTripMap({
           markersRef.current.push(marker);
         });
 
-        // Fit bounds to show all markers
+        // Fit bounds to show all markers — duration:0 so no slow zoom-out on first render
         if (allMarkers.length >= 2) {
           const bounds = new mapboxgl.LngLatBounds();
           allMarkers.forEach((m) => bounds.extend([m.lng, m.lat]));
-          map.fitBounds(bounds, { padding: 60, duration: 800 });
+          map.fitBounds(bounds, { padding: { top: 60, bottom: 60, left: 60, right: 60 }, maxZoom: 14, duration: 0 });
         } else if (allMarkers.length === 1) {
-          map.flyTo({ center: [allMarkers[0].lng, allMarkers[0].lat], zoom: 13, duration: 800 });
+          map.flyTo({ center: [allMarkers[0].lng, allMarkers[0].lat], zoom: 13, duration: 0 });
         }
 
         initializedRef.current = true;
+        map.resize();
       });
     });
 
@@ -118,6 +119,17 @@ export function CommunityTripMap({
       initializedRef.current = false;
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Resize map when container dimensions change
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const observer = new ResizeObserver(() => {
+      mapRef.current?.resize();
+    });
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
 
   // Fly to a specific coordinate when flyTarget is set
   useEffect(() => {
@@ -142,7 +154,7 @@ export function CommunityTripMap({
   return (
     <div style={{ height: "100%", borderRadius: "16px", overflow: "hidden", background: "#F5F5F5", display: "flex", flexDirection: "column" }}>
       <div style={{ flex: 1, minHeight: 0, position: "relative", overflow: "hidden" }}>
-        <div ref={containerRef} style={{ width: "100%", height: "100%" }} />
+        <div ref={containerRef} style={{ position: "absolute", inset: 0 }} />
         {toast && (
           <div style={{
             position: "absolute", top: "12px", left: "50%", transform: "translateX(-50%)",

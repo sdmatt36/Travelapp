@@ -1998,11 +1998,13 @@ function RecommendedContent({
   function generateDayPillsForRec(start: string | null, end: string | null): { dayIndex: number; label: string }[] {
     if (!start) return [];
     const startD = new Date(start);
+    if (isNaN(startD.getTime())) return [];
     const endD = end ? new Date(end) : startD;
-    const n = Math.round((endD.getTime() - startD.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    if (isNaN(endD.getTime())) return [];
+    const diffDays = Math.round((endD.getTime() - startD.getTime()) / (1000 * 60 * 60 * 24));
+    const n = Math.max(1, diffDays + 1);
     return Array.from({ length: n }, (_, i) => {
-      const d = new Date(startD);
-      d.setDate(startD.getDate() + i);
+      const d = new Date(startD.getTime() + i * 86400000);
       const dateStr = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
       return { dayIndex: i, label: `Day ${i + 1} · ${dateStr}` };
     });

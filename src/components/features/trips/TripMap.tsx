@@ -126,8 +126,18 @@ export function TripMap({ activeDay, flyTarget, onFlyTargetConsumed, tripId }: {
         if (!destroyed) {
           const day = DAY_DATA[0];
           addMarkersInternal(day.markers);
-          flyToDay(map, mapboxgl, day.markers);
+          // Use fitBounds with duration:0 so no slow zoom-out animation on first render
+          if (day.markers.length >= 2) {
+            const bounds = new mapboxgl.LngLatBounds();
+            day.markers.forEach((m) => bounds.extend([m.lng, m.lat]));
+            map.fitBounds(bounds, { padding: { top: 60, bottom: 60, left: 60, right: 60 }, maxZoom: 14, duration: 0 });
+          } else if (day.markers.length === 1) {
+            map.flyTo({ center: [day.markers[0].lng, day.markers[0].lat], zoom: 13, duration: 0 });
+          } else {
+            map.flyTo({ center: OKINAWA_CENTER, zoom: 10, duration: 0 });
+          }
           initializedRef.current = true;
+          map.resize();
         }
       });
     });
@@ -142,6 +152,17 @@ export function TripMap({ activeDay, flyTarget, onFlyTargetConsumed, tripId }: {
       }
       initializedRef.current = false;
     };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Resize map when container dimensions change (panel height syncs via ResizeObserver)
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const observer = new ResizeObserver(() => {
+      mapRef.current?.resize();
+    });
+    observer.observe(container);
+    return () => observer.disconnect();
   }, []);
 
   // Respond to day changes driven by parent
@@ -199,7 +220,7 @@ export function TripMap({ activeDay, flyTarget, onFlyTargetConsumed, tripId }: {
 
       {/* Map container — flex:1 + minHeight:0 lets it fill without overflowing */}
       <div style={{ flex: 1, minHeight: 0, position: "relative", overflow: "hidden" }}>
-        <div ref={containerRef} style={{ width: "100%", height: "100%" }} />
+        <div ref={containerRef} style={{ position: "absolute", inset: 0 }} />
 
         {/* Back button */}
         <button
