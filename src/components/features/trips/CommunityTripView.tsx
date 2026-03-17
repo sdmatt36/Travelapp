@@ -568,14 +568,18 @@ export function CommunityTripView({
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4" style={{ gap: "12px" }}>
           {relatedTrips.map((trip) => (
-            <Link key={`${trip.city}-${trip.country}`} href={trip.id ? `/trips/${trip.id}` : "/discover"} style={{ textDecoration: "none" }}>
-              <div style={{ height: "160px", borderRadius: "14px", overflow: "hidden", position: "relative", backgroundImage: `url('${trip.img}')`, backgroundSize: "cover", backgroundPosition: "center" }}>
+            <Link
+              key={`${trip.city}-${trip.country}`}
+              href={trip.id ? `/trips/${trip.id}` : "/discover"}
+              style={{ textDecoration: "none", display: "block", cursor: "pointer" }}
+            >
+              <div style={{ height: "160px", borderRadius: "14px", overflow: "hidden", position: "relative", backgroundImage: `url('${trip.img}')`, backgroundSize: "cover", backgroundPosition: "center", cursor: "pointer" }}>
                 <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, transparent 30%, rgba(0,0,0,0.72) 100%)" }} />
-                <div style={{ position: "absolute", bottom: "10px", left: "10px", right: "10px", zIndex: 2 }}>
+                <div style={{ position: "absolute", bottom: "10px", left: "10px", right: "10px", zIndex: 2, pointerEvents: "none" }}>
                   <p style={{ fontSize: "13px", fontWeight: 700, color: "#fff", lineHeight: 1.2 }}>{trip.city}</p>
                   <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.75)", marginTop: "2px" }}>{trip.country}</p>
                 </div>
-                <div style={{ position: "absolute", top: "8px", left: "8px", zIndex: 2, display: "flex", gap: "4px", flexWrap: "wrap" }}>
+                <div style={{ position: "absolute", top: "8px", left: "8px", zIndex: 2, display: "flex", gap: "4px", flexWrap: "wrap", pointerEvents: "none" }}>
                   {trip.tags.map((tag) => (
                     <span key={tag} style={{ fontSize: "10px", fontWeight: 700, backgroundColor: "rgba(0,0,0,0.45)", color: "#fff", borderRadius: "999px", padding: "2px 7px", backdropFilter: "blur(4px)" }}>{tag}</span>
                   ))}
