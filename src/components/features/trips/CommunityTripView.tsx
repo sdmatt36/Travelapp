@@ -291,6 +291,7 @@ export function CommunityTripView({
   const [flyTarget, setFlyTarget] = useState<{ lat: number; lng: number } | null>(null);
   const [showCloneModal, setShowCloneModal] = useState(false);
   const [drawerRec, setDrawerRec] = useState<DrawerRec | null>(null);
+  const [recAddedTitles, setRecAddedTitles] = useState<Set<string>>(new Set());
   const [leftHeight, setLeftHeight] = useState<number | null>(null);
   const leftPanelRef = useRef<HTMLDivElement>(null);
 
@@ -537,10 +538,10 @@ export function CommunityTripView({
                     <div style={{ display: "flex", gap: "6px", marginTop: "8px" }}>
                       <button
                         type="button"
-                        onClick={e => { e.stopPropagation(); setDrawerRec(rec); }}
-                        style={{ fontSize: "11px", fontWeight: 700, padding: "4px 10px", borderRadius: "999px", backgroundColor: "#C4664A", color: "#fff", border: "none", cursor: "pointer", whiteSpace: "nowrap" }}
+                        onClick={e => { e.stopPropagation(); if (!recAddedTitles.has(rec.title)) setDrawerRec(rec); }}
+                        style={{ fontSize: "11px", fontWeight: 700, padding: "4px 10px", borderRadius: "999px", backgroundColor: recAddedTitles.has(rec.title) ? "rgba(74,124,89,0.1)" : "#C4664A", color: recAddedTitles.has(rec.title) ? "#4a7c59" : "#fff", border: recAddedTitles.has(rec.title) ? "1px solid rgba(74,124,89,0.2)" : "none", cursor: recAddedTitles.has(rec.title) ? "default" : "pointer", whiteSpace: "nowrap" }}
                       >
-                        + Itinerary
+                        {recAddedTitles.has(rec.title) ? "Saved ✓" : "+ Itinerary"}
                       </button>
                       <button
                         type="button"
@@ -596,6 +597,10 @@ export function CommunityTripView({
         tripId={tripId}
         dayPills={recDayPills}
         onClose={() => setDrawerRec(null)}
+        onAddedToDay={(_, title) => {
+          setRecAddedTitles(prev => new Set([...prev, title]));
+          setTimeout(() => setDrawerRec(null), 1200);
+        }}
       />
 
       {/* Clone modal */}

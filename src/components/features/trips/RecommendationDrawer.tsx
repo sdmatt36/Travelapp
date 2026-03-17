@@ -66,21 +66,29 @@ export function RecommendationDrawer({
     if (adding || added) return;
     setAdding(true);
     try {
+      // Fire-and-forget API call — wrapped in its own try/catch so a network
+      // error never prevents the localStorage write below.
       if (tripId) {
-        await fetch(`/api/trips/${tripId}/itinerary`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            title: item!.title,
-            location: item!.location,
-            imageUrl: item!.img,
-            dayIndex,
-            lat: item!.lat,
-            lng: item!.lng,
-            categoryTags: [item!.tags.split(" · ")[0]],
-          }),
-        });
+        try {
+          await fetch(`/api/trips/${tripId}/itinerary`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              title: item!.title,
+              location: item!.location,
+              imageUrl: item!.img,
+              dayIndex,
+              lat: item!.lat,
+              lng: item!.lng,
+              categoryTags: [item!.tags.split(" · ")[0]],
+            }),
+          });
+        } catch (e) {
+          console.error("DB save failed (continuing with local save):", e);
+        }
       }
+      // Always write to localStorage so the Itinerary tab shows the item
+      // even if the API call failed.
       const key = `flokk_itinerary_additions_${tripId ?? "default"}`;
       try {
         const existing = JSON.parse(localStorage.getItem(key) ?? "[]");

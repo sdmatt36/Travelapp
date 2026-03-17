@@ -1122,31 +1122,36 @@ function ItineraryContent({ flyTarget, onFlyTargetConsumed, tripId, onSwitchToRe
   }
   const [suggToast, setSuggToast] = useState(false);
 
-  // Load additions from localStorage on mount (persists across tab switches)
+  // Load additions from localStorage on mount and whenever flokk:refresh fires
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(ITINERARY_KEY(tripId));
-      const parsed: RecAddition[] = raw ? JSON.parse(raw) : [];
-      if (parsed.length > 0) {
-        setRecAdditions(parsed);
-        // Refresh thumbnails for any items saved before DB was updated (img was empty at save time)
-        if (tripId && parsed.some(a => !a.img && a.savedItemId)) {
-          fetch(`/api/saves?tripId=${tripId}`)
-            .then(r => r.json())
-            .then(({ saves }: { saves: ApiSavedItem[] }) => {
-              const thumbMap: Record<string, string> = {};
-              for (const s of saves ?? []) if (s.mediaThumbnailUrl) thumbMap[s.id] = s.mediaThumbnailUrl;
-              setRecAdditions(prev => prev.map(a =>
-                !a.img && a.savedItemId && thumbMap[a.savedItemId]
-                  ? { ...a, img: thumbMap[a.savedItemId] }
-                  : a
-              ));
-            })
-            .catch(() => {});
+    function load() {
+      try {
+        const raw = localStorage.getItem(ITINERARY_KEY(tripId));
+        const parsed: RecAddition[] = raw ? JSON.parse(raw) : [];
+        if (parsed.length > 0) {
+          setRecAdditions(parsed);
+          // Refresh thumbnails for any items saved before DB was updated (img was empty at save time)
+          if (tripId && parsed.some(a => !a.img && a.savedItemId)) {
+            fetch(`/api/saves?tripId=${tripId}`)
+              .then(r => r.json())
+              .then(({ saves }: { saves: ApiSavedItem[] }) => {
+                const thumbMap: Record<string, string> = {};
+                for (const s of saves ?? []) if (s.mediaThumbnailUrl) thumbMap[s.id] = s.mediaThumbnailUrl;
+                setRecAdditions(prev => prev.map(a =>
+                  !a.img && a.savedItemId && thumbMap[a.savedItemId]
+                    ? { ...a, img: thumbMap[a.savedItemId] }
+                    : a
+                ));
+              })
+              .catch(() => {});
+          }
         }
-      }
-    } catch (e) { console.error("[ItineraryRead] localStorage read failed:", e); }
-  }, [tripId]);
+      } catch (e) { console.error("[ItineraryRead] localStorage read failed:", e); }
+    }
+    load();
+    window.addEventListener("flokk:refresh", load);
+    return () => window.removeEventListener("flokk:refresh", load);
+  }, [tripId]); // eslint-disable-line react-hooks/exhaustive-deps
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [leftHeight, setLeftHeight] = useState<number | null>(null);
   const leftPanelRef = useRef<HTMLDivElement>(null);
@@ -2199,6 +2204,7 @@ function RecommendedContent({
         onClose={() => setDrawerRec(null)}
         onAddedToDay={(dayIndex, title) => {
           setSavedSet(prev => new Set([...prev, title]));
+          setTimeout(() => setDrawerRec(null), 1200);
         }}
       />
     </div>
