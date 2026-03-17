@@ -1946,11 +1946,12 @@ const RECOMMENDATIONS: RecItem[] = [
   },
   {
     city: "Okinawa",
+    // TODO: replace with real Nago Pineapple Park photo when a reliable source is available
     title: "Nago Pineapple Park",
     location: "Nago",
     tags: "Kids · $15 · 1.5 hrs",
     match: "Unique to Okinawa · Ages 3+ · Self-guided tour",
-    img: "/images/nago-pineapple-park.jpg",
+    img: "/images/okinawa-world-cave.jpg",
     saved: 760,
     lat: 26.6017,
     lng: 127.9711,

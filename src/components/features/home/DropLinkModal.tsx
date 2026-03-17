@@ -224,7 +224,7 @@ export function DropLinkModal({
     : selectedId === SAVE_LATER
       ? "Save for later →"
       : selectedDayIndex !== null
-        ? `Save to Day ${selectedDayIndex} · ${selectedTrip?.title ?? ""} →`
+        ? `Save to Day ${selectedDayIndex + 1} · ${selectedTrip?.title ?? ""} →`
         : `Save to ${selectedTrip?.title ?? ""} →`;
 
   return (
