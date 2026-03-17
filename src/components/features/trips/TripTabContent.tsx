@@ -1122,36 +1122,23 @@ function ItineraryContent({ flyTarget, onFlyTargetConsumed, tripId, onSwitchToRe
   }
   const [suggToast, setSuggToast] = useState(false);
 
-  // Load additions from localStorage on mount and whenever flokk:refresh fires
+  // Load rec additions from DB on mount (key prop forces remount after each save)
   useEffect(() => {
-    function load() {
-      try {
-        const raw = localStorage.getItem(ITINERARY_KEY(tripId));
-        const parsed: RecAddition[] = raw ? JSON.parse(raw) : [];
-        if (parsed.length > 0) {
-          setRecAdditions(parsed);
-          // Refresh thumbnails for any items saved before DB was updated (img was empty at save time)
-          if (tripId && parsed.some(a => !a.img && a.savedItemId)) {
-            fetch(`/api/saves?tripId=${tripId}`)
-              .then(r => r.json())
-              .then(({ saves }: { saves: ApiSavedItem[] }) => {
-                const thumbMap: Record<string, string> = {};
-                for (const s of saves ?? []) if (s.mediaThumbnailUrl) thumbMap[s.id] = s.mediaThumbnailUrl;
-                setRecAdditions(prev => prev.map(a =>
-                  !a.img && a.savedItemId && thumbMap[a.savedItemId]
-                    ? { ...a, img: thumbMap[a.savedItemId] }
-                    : a
-                ));
-              })
-              .catch(() => {});
-          }
-        }
-      } catch (e) { console.error("[ItineraryRead] localStorage read failed:", e); }
-    }
-    load();
-    window.addEventListener("flokk:refresh", load);
-    return () => window.removeEventListener("flokk:refresh", load);
-  }, [tripId]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!tripId) return;
+    fetch(`/api/trips/${tripId}/itinerary`)
+      .then(r => r.json())
+      .then(({ items }: { items: Array<{ id: string; rawTitle: string | null; rawDescription: string | null; mediaThumbnailUrl: string | null; dayIndex: number | null }> }) => {
+        if (!items?.length) return;
+        setRecAdditions(items.map(item => ({
+          dayIndex: item.dayIndex ?? 0,
+          title: item.rawTitle ?? "",
+          location: item.rawDescription ?? "",
+          img: item.mediaThumbnailUrl ?? "",
+          savedItemId: item.id,
+        })));
+      })
+      .catch(e => console.error("[ItineraryRead] API fetch failed:", e));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [leftHeight, setLeftHeight] = useState<number | null>(null);
   const leftPanelRef = useRef<HTMLDivElement>(null);
@@ -2089,6 +2076,7 @@ function RecommendedContent({
   destinationCountry,
   onViewOnMap,
   onSaved,
+  onRefreshItinerary,
 }: {
   tripId?: string;
   tripStartDate?: string | null;
@@ -2097,6 +2085,7 @@ function RecommendedContent({
   destinationCountry?: string | null;
   onViewOnMap: (lat: number, lng: number) => void;
   onSaved: (rec: SavedRec) => void;
+  onRefreshItinerary?: () => void;
 }) {
   const isDesktop = useIsDesktop();
   const [savedSet, setSavedSet] = useState<Set<string>>(new Set());
@@ -2204,6 +2193,7 @@ function RecommendedContent({
         onClose={() => setDrawerRec(null)}
         onAddedToDay={(dayIndex, title) => {
           setSavedSet(prev => new Set([...prev, title]));
+          onRefreshItinerary?.();
           setTimeout(() => setDrawerRec(null), 1200);
         }}
       />
@@ -2273,6 +2263,7 @@ type SavedRec = {
 export function TripTabContent({ initialTab = "saved", tripId, tripStartDate, tripEndDate, destinationCity, destinationCountry }: { initialTab?: Tab; tripId?: string; tripStartDate?: string | null; tripEndDate?: string | null; destinationCity?: string | null; destinationCountry?: string | null }) {
   const [tab, setTab] = useState<Tab>(initialTab);
   const [flyTarget, setFlyTarget] = useState<{ lat: number; lng: number } | null>(null);
+  const [itineraryVersion, setItineraryVersion] = useState(0);
 
   return (
     <div style={{ padding: "0 24px", overflowX: "hidden", maxWidth: "900px", margin: "0 auto" }}>
@@ -2319,7 +2310,7 @@ export function TripTabContent({ initialTab = "saved", tripId, tripStartDate, tr
       </div>
 
       {tab === "saved" && <SavedContent tripId={tripId} />}
-      {tab === "itinerary" && <ItineraryContent flyTarget={flyTarget} onFlyTargetConsumed={() => setFlyTarget(null)} tripId={tripId} onSwitchToRecommended={() => setTab("recommended")} />}
+      {tab === "itinerary" && <ItineraryContent key={itineraryVersion} flyTarget={flyTarget} onFlyTargetConsumed={() => setFlyTarget(null)} tripId={tripId} onSwitchToRecommended={() => setTab("recommended")} />}
       {tab === "packing" && <PackingContent tripId={tripId} />}
       {tab === "recommended" && (
         <RecommendedContent
@@ -2330,6 +2321,7 @@ export function TripTabContent({ initialTab = "saved", tripId, tripStartDate, tr
           destinationCountry={destinationCountry}
           onViewOnMap={(lat, lng) => { setTab("itinerary"); setFlyTarget({ lat, lng }); }}
           onSaved={() => {}}
+          onRefreshItinerary={() => setItineraryVersion(v => v + 1)}
         />
       )}
     </div>

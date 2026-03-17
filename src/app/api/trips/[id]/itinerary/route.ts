@@ -4,6 +4,48 @@ import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
+// GET /api/trips/[id]/itinerary
+// Returns all IN_APP SavedItems with a non-null dayIndex (items added from recommendations).
+export async function GET(
+  _req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { userId } = await auth();
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { id: tripId } = await params;
+
+  const user = await db.user.findUnique({
+    where: { clerkId: userId },
+    include: { familyProfile: true },
+  });
+
+  if (!user?.familyProfile) {
+    return NextResponse.json({ error: "No family profile" }, { status: 400 });
+  }
+
+  const trip = await db.trip.findUnique({ where: { id: tripId } });
+  if (!trip || trip.familyProfileId !== user.familyProfile.id) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  const items = await db.savedItem.findMany({
+    where: { tripId, sourceType: "IN_APP", dayIndex: { not: null } },
+    orderBy: [{ dayIndex: "asc" }, { savedAt: "asc" }],
+    select: {
+      id: true,
+      rawTitle: true,
+      rawDescription: true,
+      mediaThumbnailUrl: true,
+      dayIndex: true,
+      lat: true,
+      lng: true,
+    },
+  });
+
+  return NextResponse.json({ items });
+}
+
 // POST /api/trips/[id]/itinerary
 // Adds a recommended item to the trip itinerary by creating a SavedItem
 // with the given dayIndex.

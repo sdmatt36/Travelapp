@@ -41,6 +41,7 @@ export function RecommendationDrawer({
   const [adding, setAdding] = useState(false);
   const [added, setAdded] = useState(false);
   const [addedDay, setAddedDay] = useState<number | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
   // Drag-to-dismiss state
   const [dragStartY, setDragStartY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -53,6 +54,7 @@ export function RecommendationDrawer({
     setAdding(false);
     setAdded(false);
     setAddedDay(null);
+    setSaveError(null);
   }, [item?.title]);
 
   useEffect(() => {
@@ -64,44 +66,39 @@ export function RecommendationDrawer({
 
   const handleAddToDay = async (dayIndex: number) => {
     if (adding || added) return;
+    setSaveError(null);
     setAdding(true);
     try {
-      // Fire-and-forget API call — wrapped in its own try/catch so a network
-      // error never prevents the localStorage write below.
-      if (tripId) {
-        try {
-          await fetch(`/api/trips/${tripId}/itinerary`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              title: item!.title,
-              location: item!.location,
-              imageUrl: item!.img,
-              dayIndex,
-              lat: item!.lat,
-              lng: item!.lng,
-              categoryTags: [item!.tags.split(" · ")[0]],
-            }),
-          });
-        } catch (e) {
-          console.error("DB save failed (continuing with local save):", e);
-        }
+      if (!tripId) {
+        setSaveError("No trip selected — open a trip first.");
+        return;
       }
-      // Always write to localStorage so the Itinerary tab shows the item
-      // even if the API call failed.
-      const key = `flokk_itinerary_additions_${tripId ?? "default"}`;
-      try {
-        const existing = JSON.parse(localStorage.getItem(key) ?? "[]");
-        existing.push({ dayIndex, title: item!.title, location: item!.location, img: item!.img });
-        localStorage.setItem(key, JSON.stringify(existing));
-      } catch { /* ignore */ }
-      window.dispatchEvent(new Event("flokk:refresh"));
+      const res = await fetch(`/api/trips/${tripId}/itinerary`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: item!.title,
+          location: item!.location,
+          imageUrl: item!.img,
+          dayIndex,
+          lat: item!.lat,
+          lng: item!.lng,
+          categoryTags: [item!.tags.split(" · ")[0]],
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        console.error("Itinerary save failed:", err);
+        setSaveError("Could not save — please try again.");
+        return;
+      }
       setAdded(true);
       setAddedDay(dayIndex);
       setShowDayPicker(false);
       onAddedToDay?.(dayIndex, item!.title);
     } catch (e) {
       console.error("Failed to add to itinerary", e);
+      setSaveError("Could not save — please try again.");
     } finally {
       setAdding(false);
     }
@@ -252,6 +249,9 @@ export function RecommendationDrawer({
           className="sticky bottom-0 bg-white border-t border-gray-100 px-5 pt-4"
           style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom, 1rem))" }}
         >
+          {saveError && (
+            <p style={{ fontSize: "12px", color: "#C4664A", marginBottom: "8px", textAlign: "center" }}>{saveError}</p>
+          )}
           {added ? (
             <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", padding: "13px", borderRadius: "12px", backgroundColor: "rgba(74,124,89,0.1)", border: "1px solid rgba(74,124,89,0.2)" }}>
               <CheckCircle size={15} style={{ color: "#4a7c59" }} />
