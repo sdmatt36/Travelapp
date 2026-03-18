@@ -18,11 +18,12 @@ export async function AppHeader() {
   const email = user?.emailAddresses?.[0]?.emailAddress ?? "";
 
   // Greeting name: firstName → first word of fullName → email prefix → "there"
-  const firstName =
+  const rawFirst =
     user?.firstName?.trim() ||
     user?.fullName?.trim().split(" ")[0] ||
     email.split("@")[0] ||
     "there";
+  const firstName = rawFirst.charAt(0).toUpperCase() + rawFirst.slice(1);
 
   const fullName = [user?.firstName, user?.lastName].filter(Boolean).join(" ") || email.split("@")[0] || "User";
   const initials = getInitials(user?.firstName, user?.lastName, email);

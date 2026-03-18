@@ -106,10 +106,8 @@ export default async function HomePage() {
   }).slice(0, 6);
 
   const greeting = getGreeting();
-  const displayName =
-    profile.familyName ||
-    user?.email?.split("@")[0] ||
-    "there";
+  const rawName = profile.familyName || user?.email?.split("@")[0] || "there";
+  const displayName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
   const activeTrip = profile.trips[0] ?? null;
 
   const adultCount = profile.members.filter((m) => m.role === "ADULT").length;
