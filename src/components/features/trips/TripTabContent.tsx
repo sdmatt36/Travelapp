@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useParams } from "next/navigation";
+import Link from "next/link";
 
 function useIsDesktop() {
   const [isDesktop, setIsDesktop] = useState(false);
@@ -2180,9 +2181,9 @@ function RecommendedContent({
             Your first-hand tips get surfaced to families just like yours — and earn you Pioneer tier points.
           </p>
         </div>
-        <button style={{ flexShrink: 0, backgroundColor: "#C4664A", color: "#fff", border: "none", borderRadius: "20px", padding: "8px 16px", fontSize: "13px", fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>
+        <Link href="/profile?tab=stats" style={{ flexShrink: 0, backgroundColor: "#C4664A", color: "#fff", border: "none", borderRadius: "20px", padding: "8px 16px", fontSize: "13px", fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap", textDecoration: "none" }}>
           Contribute →
-        </button>
+        </Link>
       </div>
 
       {/* Rec detail drawer */}

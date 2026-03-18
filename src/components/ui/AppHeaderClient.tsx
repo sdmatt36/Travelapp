@@ -37,11 +37,13 @@ export function AppHeaderClient({
   firstName,
   fullName,
   email,
+  imageUrl,
 }: {
   initials: string;
   firstName: string;
   fullName: string;
   email: string;
+  imageUrl: string;
 }) {
   const pathname = usePathname();
   const isDesktop = useIsDesktop();
@@ -147,9 +149,16 @@ export function AppHeaderClient({
                   outline: "none",
                   boxShadow: avatarOpen ? "0 0 0 3px rgba(196,102,74,0.2)" : "none",
                   transition: "box-shadow 0.15s",
+                  overflow: "hidden",
+                  padding: 0,
                 }}
               >
-                <span style={{ fontSize: "14px", fontWeight: 700, color: "#fff" }}>{initials}</span>
+                {imageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={imageUrl} alt={fullName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                ) : (
+                  <span style={{ fontSize: "14px", fontWeight: 700, color: "#fff" }}>{initials}</span>
+                )}
               </button>
 
               {/* Dropdown */}

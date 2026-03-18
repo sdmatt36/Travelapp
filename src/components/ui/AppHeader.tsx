@@ -1,10 +1,13 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { AppHeaderClient } from "./AppHeaderClient";
 
-function getInitials(firstName?: string | null, lastName?: string | null): string {
+function getInitials(firstName?: string | null, lastName?: string | null, email?: string | null): string {
   const f = firstName?.trim()?.[0]?.toUpperCase() ?? "";
   const l = lastName?.trim()?.[0]?.toUpperCase() ?? "";
-  return (f + l) || "?";
+  if (f || l) return f + l;
+  // Fall back to first letter of email prefix
+  const emailPrefix = email?.split("@")[0]?.[0]?.toUpperCase() ?? "";
+  return emailPrefix || "?";
 }
 
 export async function AppHeader() {
@@ -12,10 +15,18 @@ export async function AppHeader() {
   if (!userId) return null;
 
   const user = await currentUser();
-  const initials = getInitials(user?.firstName, user?.lastName);
-  const firstName = user?.firstName ?? "there";
-  const fullName = [user?.firstName, user?.lastName].filter(Boolean).join(" ") || "User";
   const email = user?.emailAddresses?.[0]?.emailAddress ?? "";
 
-  return <AppHeaderClient initials={initials} firstName={firstName} fullName={fullName} email={email} />;
+  // Greeting name: firstName → first word of fullName → email prefix → "there"
+  const firstName =
+    user?.firstName?.trim() ||
+    user?.fullName?.trim().split(" ")[0] ||
+    email.split("@")[0] ||
+    "there";
+
+  const fullName = [user?.firstName, user?.lastName].filter(Boolean).join(" ") || email.split("@")[0] || "User";
+  const initials = getInitials(user?.firstName, user?.lastName, email);
+  const imageUrl = user?.imageUrl ?? "";
+
+  return <AppHeaderClient initials={initials} firstName={firstName} fullName={fullName} email={email} imageUrl={imageUrl} />;
 }

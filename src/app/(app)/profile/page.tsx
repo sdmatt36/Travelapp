@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { useUser, useClerk } from "@clerk/nextjs";
 import { FamilySection } from "@/components/features/profile/FamilySection";
 import { TravelersSection } from "@/components/features/profile/TravelersSection";
@@ -19,7 +20,9 @@ const NAV_ITEMS = [
 ];
 
 export default function ProfilePage() {
-  const [activeSection, setActiveSection] = useState("family");
+  const searchParams = useSearchParams();
+  const initialTab = searchParams.get("tab") ?? "family";
+  const [activeSection, setActiveSection] = useState(initialTab);
   const [isDesktop, setIsDesktop] = useState(false);
   const { user } = useUser();
   const { signOut } = useClerk();

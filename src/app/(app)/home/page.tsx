@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/db";
@@ -105,8 +105,13 @@ export default async function HomePage() {
     return true;
   }).slice(0, 6);
 
+  const clerkUser = await currentUser();
   const greeting = getGreeting();
-  const displayName = profile.familyName ?? "there";
+  const displayName =
+    profile.familyName ||
+    clerkUser?.firstName ||
+    clerkUser?.emailAddresses?.[0]?.emailAddress?.split("@")[0] ||
+    "there";
   const activeTrip = profile.trips[0] ?? null;
 
   const adultCount = profile.members.filter((m) => m.role === "ADULT").length;
