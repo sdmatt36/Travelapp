@@ -30,12 +30,17 @@ export async function POST(request: Request) {
     const body = await request.json();
     const data = OnboardingSchema.parse(body);
 
-    // Find or create user record — avoid upsert to prevent email unique constraint collisions
+    // Find by clerkId first; if not found, upsert by email so existing accounts
+    // get their clerkId re-linked instead of hitting a unique constraint crash.
     let user = await db.user.findUnique({ where: { clerkId: userId } });
     if (!user) {
       const clerkUser = await currentUser();
       const email = clerkUser?.emailAddresses?.[0]?.emailAddress ?? `${userId}@placeholder.flokk`;
-      user = await db.user.create({ data: { clerkId: userId, email } });
+      user = await db.user.upsert({
+        where: { email },
+        update: { clerkId: userId },
+        create: { clerkId: userId, email },
+      });
     }
 
     // Delete any existing family profile (re-onboarding support)
