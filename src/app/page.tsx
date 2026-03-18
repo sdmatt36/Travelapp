@@ -351,27 +351,27 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
               {
-                name: "Book everything in one place",
-                desc: "Flights, hotels, and experiences — booked and filed to your trip automatically.",
+                name: "Dynamic Booking Portal",
+                desc: "Hotels, flights, and experiences — all in one place, built around your family.",
               },
               {
                 name: "Forward it. Done.",
                 desc: "Send any booking confirmation to trips@flokktravel.com — we extract every detail.",
               },
               {
-                name: "One tap to navigate.",
-                desc: "Export your day as a live route in Google or Apple Maps.",
+                name: "One Tap Navigation",
+                desc: "Export your full day as a live route in Google or Apple Maps instantly.",
               },
               {
-                name: "Already in your calendar.",
-                desc: "Every booking drops into your family calendar automatically.",
+                name: "Perfect Calendar Sync",
+                desc: "Every booking drops into your family calendar automatically. No manual entries.",
               },
               {
-                name: "Know your points.",
-                desc: "Your miles and rewards surfaced alongside every search.",
+                name: "Earn & Track Points",
+                desc: "Your miles and rewards surfaced alongside every search and booking.",
               },
               {
-                name: "Trips that worked.",
+                name: "Pre-Vetted Family Trips",
                 desc: "Real itineraries from families with kids the same ages and interests as yours.",
               },
             ].map(({ name, desc }) => (

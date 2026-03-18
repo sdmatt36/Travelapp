@@ -118,14 +118,25 @@ export default function HelpPage() {
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                     {cat.articles.map((article) => (
-                      <div key={article} style={{ fontSize: "14px", color: "#717171", lineHeight: 1.5, padding: "6px 0", borderBottom: "1px solid #F8F8F8" }}>
+                      <a
+                        key={article}
+                        href={`/contact?subject=${encodeURIComponent(article)}`}
+                        className="text-sm text-[#717171] hover:text-[#C4664A] transition-colors cursor-pointer block py-1"
+                        style={{ textDecoration: "none", borderBottom: "1px solid #F8F8F8" }}
+                      >
                         {article}
-                      </div>
+                      </a>
                     ))}
                   </div>
                 </div>
               );
             })}
+          </div>
+          <div className="text-center mt-12 py-8 border-t border-gray-100">
+            <p className="text-[#717171] text-sm">Can't find what you're looking for?</p>
+            <a href="/contact" className="text-[#C4664A] text-sm font-medium hover:underline mt-1 inline-block">
+              Ask us directly — we respond within 24 hours →
+            </a>
           </div>
         </div>
       </section>

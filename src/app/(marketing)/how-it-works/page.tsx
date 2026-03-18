@@ -8,7 +8,7 @@ export default function HowItWorksPage() {
       <section style={{ backgroundColor: "#1B3A5C", padding: "80px 24px" }}>
         <div style={{ maxWidth: "1280px", margin: "0 auto", textAlign: "center" }}>
           <p style={{ fontSize: "12px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "#C4664A", marginBottom: "16px" }}>How it works</p>
-          <h1 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: "clamp(32px, 5vw, 52px)", fontWeight: 600, color: "#fff", maxWidth: "900px", margin: "0 auto 24px", lineHeight: 1.2 }}>
+          <h1 className="font-['Playfair_Display'] text-3xl sm:text-4xl md:text-5xl font-semibold text-white max-w-2xl mx-auto leading-tight text-center" style={{ marginBottom: "24px" }}>
             Trip planning is a second job. We're here to fire you from it.
           </h1>
           <p style={{ fontSize: "18px", color: "rgba(255,255,255,0.7)", maxWidth: "600px", margin: "0 auto", lineHeight: 1.6 }}>
@@ -131,21 +131,24 @@ export default function HowItWorksPage() {
       <section style={{ backgroundColor: "rgba(27,58,92,0.04)", padding: "80px 24px" }}>
         <div style={{ maxWidth: "1280px", margin: "0 auto", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "64px", alignItems: "center" }}>
           {/* Stacked community trip cards */}
-          <div style={{ position: "relative", maxWidth: "380px", height: "200px" }}>
-            <div style={{ backgroundColor: "#fff", borderRadius: "16px", padding: "20px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", border: "1px solid #F0F0F0", position: "absolute", top: "16px", left: "16px", right: "16px", opacity: 0.6, transform: "rotate(-2deg)" }}>
-              <p style={{ fontWeight: 600, color: "#1B3A5C", fontSize: "14px", margin: "0 0 4px" }}>Kyoto with Kids</p>
-              <p style={{ fontSize: "12px", color: "#717171", margin: 0 }}>6 days · Family of 4</p>
+          <div className="relative max-w-xs mx-auto" style={{ height: "180px" }}>
+            {/* Back card — Kyoto */}
+            <div className="absolute bg-white rounded-2xl p-4 shadow-sm border border-gray-100 left-4 right-4 top-6 opacity-50" style={{ transform: "rotate(-2deg)" }}>
+              <p className="font-semibold text-[#1B3A5C] text-sm" style={{ margin: "0 0 4px" }}>Kyoto with Kids</p>
+              <p className="text-xs text-[#717171]" style={{ margin: 0 }}>6 days · Family of 4</p>
             </div>
-            <div style={{ backgroundColor: "#fff", borderRadius: "16px", padding: "20px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", border: "1px solid #F0F0F0", position: "absolute", top: "8px", left: "8px", right: "8px", opacity: 0.8, transform: "rotate(1deg)" }}>
-              <p style={{ fontWeight: 600, color: "#1B3A5C", fontSize: "14px", margin: "0 0 4px" }}>Madrid Long Weekend</p>
-              <p style={{ fontSize: "12px", color: "#717171", margin: 0 }}>4 days · Kids 7 & 10</p>
+            {/* Middle card — Madrid */}
+            <div className="absolute bg-white rounded-2xl p-4 shadow-sm border border-gray-100 left-2 right-2 top-3 opacity-75" style={{ transform: "rotate(1deg)" }}>
+              <p className="font-semibold text-[#1B3A5C] text-sm" style={{ margin: "0 0 4px" }}>Madrid Long Weekend</p>
+              <p className="text-xs text-[#717171]" style={{ margin: 0 }}>4 days · Kids 7 & 10</p>
             </div>
-            <div style={{ backgroundColor: "#fff", borderRadius: "16px", padding: "20px", boxShadow: "0 4px 16px rgba(0,0,0,0.1)", border: "1px solid #F0F0F0", position: "relative", zIndex: 10 }}>
-              <p style={{ fontWeight: 600, color: "#1B3A5C", fontSize: "14px", margin: "0 0 4px" }}>Okinawa May '25</p>
-              <p style={{ fontSize: "12px", color: "#717171", margin: "0 0 12px" }}>5 days · Beach + Culture</p>
-              <div style={{ display: "flex", gap: "8px" }}>
-                <button style={{ fontSize: "12px", padding: "6px 12px", backgroundColor: "#C4664A", color: "#fff", borderRadius: "999px", border: "none", fontWeight: 600, cursor: "pointer" }}>Add to my trips</button>
-                <button style={{ fontSize: "12px", padding: "6px 12px", border: "1.5px solid #E0E0E0", color: "#1B3A5C", borderRadius: "999px", backgroundColor: "#fff", cursor: "pointer" }}>Preview</button>
+            {/* Front card — Okinawa */}
+            <div className="absolute bg-white rounded-2xl p-4 shadow-lg border border-gray-100 left-0 right-0 top-0 z-10">
+              <p className="font-semibold text-[#1B3A5C] text-sm" style={{ margin: "0 0 4px" }}>Okinawa May '25</p>
+              <p className="text-xs text-[#717171] mt-0.5" style={{ margin: "0 0 12px" }}>5 days · Beach + Culture</p>
+              <div className="mt-3 flex gap-2">
+                <button className="text-xs px-3 bg-[#C4664A] text-white rounded-full font-medium" style={{ padding: "6px 12px", border: "none", cursor: "pointer" }}>Add to my trips</button>
+                <button className="text-xs border border-gray-200 text-[#1B3A5C] rounded-full" style={{ padding: "6px 12px", backgroundColor: "#fff", cursor: "pointer" }}>Preview</button>
               </div>
             </div>
           </div>
