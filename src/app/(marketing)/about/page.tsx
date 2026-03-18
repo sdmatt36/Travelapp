@@ -37,20 +37,20 @@ const ADVISORS: typeof FOUNDERS = [
 
 const BELIEFS = [
   {
-    title: "Planning should be half the fun",
+    title: "Planning should be half the fun.",
     body: "We believe the anticipation of a trip is part of the trip itself. Flokk is designed to make the planning phase something families look forward to, not dread.",
   },
   {
-    title: "Your saves are an intention, not a to-do list",
-    body: "When you save something, you mean it. We take that seriously and make sure your saves become real experiences, not forgotten screenshots.",
+    title: "Your saves are an intention, not a to-do list.",
+    body: "When you save something, you mean it. We take that seriously and make sure your saves become real experiences, not forgotten screenshots and abandoned tabs.",
   },
   {
-    title: "Family travel is its own category",
-    body: "Traveling with kids is fundamentally different from traveling solo or as a couple. The tools that serve one don\u2019t serve the other. Flokk was built exclusively for families.",
+    title: "Family travel is its own category.",
+    body: "Travelling with kids is fundamentally different from travelling solo or as a couple. The tools that serve one don\u2019t serve the other. Flokk was built exclusively for families \u2014 but we welcome everyone.",
   },
   {
-    title: "Bootstrapped means honest",
-    body: "We\u2019re independently funded. That means we build what\u2019s good for families, not what\u2019s good for advertisers. We will never sell your data or show you ads.",
+    title: "The best tip you\u2019ll ever get is from a family who just got back.",
+    body: "Generic recommendations don\u2019t know your kids. Real ones come from families like yours who\u2019ve been there, done it, and want to help you do it better.",
   },
 ];
 
