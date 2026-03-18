@@ -17,7 +17,8 @@ const inputStyle: React.CSSProperties = {
 };
 
 export default function ContactPage() {
-  const [name, setName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
@@ -25,6 +26,8 @@ export default function ContactPage() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    // TODO: wire to Resend — send to hello@flokktravel.com
+    // formData: { firstName, lastName, fullName: `${firstName} ${lastName}`.trim(), email, subject, message }
     setSubmitted(true);
   }
 
@@ -93,26 +96,34 @@ export default function ContactPage() {
                   <span style={{ fontSize: "28px", color: "#C4664A" }}>&#10003;</span>
                 </div>
                 <h2 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: "28px", fontWeight: 600, color: "#1B3A5C", margin: "0 0 12px" }}>Message sent</h2>
-                <p style={{ fontSize: "16px", color: "#717171", lineHeight: 1.6 }}>Thanks for reaching out. We'll get back to you within 24 hours.</p>
+                <p style={{ fontSize: "16px", color: "#717171", lineHeight: 1.6 }}>Got it, {firstName || "friend"}. We'll be in touch within 24 hours.</p>
               </div>
             ) : (
               <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+                {/* First name + Last name */}
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
                   <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                    <label style={{ fontSize: "13px", fontWeight: 600, color: "#555" }}>Name</label>
-                    <input type="text" value={name} onChange={(e) => setName(e.target.value)} required placeholder="Your name" style={inputStyle} />
+                    <label style={{ fontSize: "13px", fontWeight: 600, color: "#1B3A5C" }}>First name</label>
+                    <input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} required placeholder="Matt" autoComplete="given-name" style={inputStyle} />
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                    <label style={{ fontSize: "13px", fontWeight: 600, color: "#555" }}>Email</label>
-                    <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="you@example.com" style={inputStyle} />
+                    <label style={{ fontSize: "13px", fontWeight: 600, color: "#1B3A5C" }}>Last name</label>
+                    <input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} required placeholder="Greene" autoComplete="family-name" style={inputStyle} />
                   </div>
                 </div>
+                {/* Email */}
                 <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                  <label style={{ fontSize: "13px", fontWeight: 600, color: "#555" }}>Subject</label>
+                  <label style={{ fontSize: "13px", fontWeight: 600, color: "#1B3A5C" }}>Email address</label>
+                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="you@example.com" autoComplete="email" style={inputStyle} />
+                </div>
+                {/* Subject */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                  <label style={{ fontSize: "13px", fontWeight: 600, color: "#1B3A5C" }}>Subject</label>
                   <input type="text" value={subject} onChange={(e) => setSubject(e.target.value)} required placeholder="How can we help?" style={inputStyle} />
                 </div>
+                {/* Message */}
                 <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                  <label style={{ fontSize: "13px", fontWeight: 600, color: "#555" }}>Message</label>
+                  <label style={{ fontSize: "13px", fontWeight: 600, color: "#1B3A5C" }}>Message</label>
                   <textarea value={message} onChange={(e) => setMessage(e.target.value)} required rows={6} placeholder="Tell us more..." style={{ ...inputStyle, resize: "vertical" }} />
                 </div>
                 <button
