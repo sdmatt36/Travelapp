@@ -58,7 +58,7 @@ export default function PricingPage() {
             Simple pricing, no surprises.
           </h1>
           <p style={{ fontSize: "18px", color: "rgba(255,255,255,0.7)", maxWidth: "500px", margin: "0 auto", lineHeight: 1.6 }}>
-            Start free. Upgrade when you're ready. One plan for your whole household.
+            Start free. Upgrade when you're ready.<br />One plan for your whole household.
           </p>
         </div>
       </section>
