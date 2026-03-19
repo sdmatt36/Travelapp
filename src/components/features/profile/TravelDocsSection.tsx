@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { COUNTRIES } from "@/lib/countries";
 
 interface Member {
   id: string;
@@ -169,6 +170,99 @@ function InlineField({
   );
 }
 
+function InlineSelectField({
+  memberId,
+  fieldKey,
+  label,
+  displayValue,
+  inputValue,
+  openField,
+  setOpenField,
+  onSaved,
+}: {
+  memberId: string;
+  fieldKey: string;
+  label: string;
+  displayValue: string;
+  inputValue: string;
+  openField: string | null;
+  setOpenField: (f: string | null) => void;
+  onSaved: (field: string, value: string) => void;
+}) {
+  const [localVal, setLocalVal] = useState(inputValue);
+  const [saving, setSaving] = useState(false);
+  const isOpen = openField === fieldKey;
+
+  useEffect(() => {
+    if (!isOpen) setLocalVal(inputValue);
+  }, [inputValue, isOpen]);
+
+  async function save() {
+    setSaving(true);
+    const res = await fetch("/api/profile/travel-docs", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ memberId, field: fieldKey, value: localVal }),
+    });
+    setSaving(false);
+    if (res.ok) {
+      onSaved(fieldKey, localVal);
+      setOpenField(null);
+    }
+  }
+
+  return (
+    <div>
+      <p style={labelSt}>{label}</p>
+      {isOpen ? (
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "4px" }}>
+          <select
+            style={{ ...inputSt, flex: 1 }}
+            value={localVal}
+            onChange={(e) => setLocalVal(e.target.value)}
+            autoFocus
+          >
+            <option value="">Select country...</option>
+            {COUNTRIES.map((c) => (
+              <option key={c.code} value={c.name}>{c.name}</option>
+            ))}
+          </select>
+          <button
+            onClick={save}
+            disabled={saving}
+            style={{
+              backgroundColor: "#1B3A5C", color: "#fff", border: "none",
+              borderRadius: "6px", padding: "6px 14px", fontSize: "13px",
+              fontWeight: 500, cursor: saving ? "not-allowed" : "pointer",
+              opacity: saving ? 0.7 : 1, flexShrink: 0,
+            }}
+          >
+            {saving ? "…" : "Save"}
+          </button>
+          <button
+            onClick={() => { setLocalVal(inputValue); setOpenField(null); }}
+            style={{ background: "none", border: "none", cursor: "pointer", fontSize: "13px", color: "#717171", padding: 0, flexShrink: 0 }}
+          >
+            Cancel
+          </button>
+        </div>
+      ) : (
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "3px" }}>
+          <span style={{ fontSize: "14px", color: displayValue ? "#1a1a1a" : "#CCCCCC" }}>
+            {displayValue || "—"}
+          </span>
+          <button
+            onClick={() => { setLocalVal(inputValue); setOpenField(fieldKey); }}
+            style={{ background: "none", border: "none", cursor: "pointer", fontSize: "12px", color: "#C4664A", fontWeight: 500, padding: 0 }}
+          >
+            {displayValue ? "Edit" : "+ Add"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function InlineTextareaField({
   memberId,
   fieldKey,
@@ -307,7 +401,7 @@ function DocCard({ member: initialMember }: { member: Member }) {
       <div style={{ borderTop: "1px solid #E8E8E8", paddingTop: "16px", marginTop: "4px" }}>
         <p style={sectionHeading}>Passport</p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4">
-          <InlineField
+          <InlineSelectField
             fieldKey="passportCountry"
             label="Issuing country"
             displayValue={member.passportCountry || ""}
@@ -322,7 +416,7 @@ function DocCard({ member: initialMember }: { member: Member }) {
             masked
             {...sharedProps}
           />
-          <InlineField
+          <InlineSelectField
             fieldKey="citizenshipCountry"
             label="Citizenship"
             displayValue={member.citizenshipCountry || ""}
