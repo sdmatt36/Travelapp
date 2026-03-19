@@ -211,7 +211,7 @@ export function LoyaltySection() {
 
       {/* Member number + Add button — shown when a program is selected */}
       {selectedProgram && (
-        <div style={{ display: "flex", gap: "8px", alignItems: "center", marginTop: "4px" }}>
+        <div style={{ display: "flex", gap: "8px", alignItems: "flex-end", marginTop: "4px" }}>
           <div style={{ flex: 1, position: "relative" }}>
             <p style={{ fontSize: "12px", color: "#717171", marginBottom: "4px" }}>
               Member number for <strong>{selectedProgram}</strong>
@@ -242,7 +242,7 @@ export function LoyaltySection() {
               fontWeight: 500,
               cursor: memberNumber.trim() && !isSaving ? "pointer" : "not-allowed",
               flexShrink: 0,
-              marginTop: "20px",
+              marginBottom: "0px",
             }}
           >
             {isSaving ? "Saving..." : "+ Add"}
