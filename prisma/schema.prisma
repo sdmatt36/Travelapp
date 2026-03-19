@@ -210,6 +210,7 @@ model Trip {
   questions        Question[]
   flights          Flight[]
   manualActivities ManualActivity[]
+  tripNotes        TripNote[]
 }
 
 enum TripStatus {
@@ -579,6 +580,20 @@ model ManualActivity {
   confirmationCode String?
   dayIndex         Int?
   createdAt        DateTime @default(now())
+}
+
+// =============================================================================
+// TRIP NOTES
+// =============================================================================
+
+model TripNote {
+  id        String   @id @default(cuid())
+  tripId    String
+  trip      Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  content   String
+  checked   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // =============================================================================
