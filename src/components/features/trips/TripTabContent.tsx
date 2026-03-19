@@ -476,11 +476,13 @@ const TRIP_DAYS = [
   { dayIndex: 4, label: "Day 5", date: "Thu May 8" },
 ];
 
-function parseDateLocal(iso: string): Date {
-  // Extract YYYY-MM-DD and construct as local midnight to avoid UTC offset shifting the day
-  const datePart = iso.split("T")[0];
-  const [y, m, d] = datePart.split("-").map(Number);
-  return new Date(y, m - 1, d);
+function parseDateForDisplay(iso: string): Date {
+  // Dates are stored as midnight local time (JST = T15:00:00.000Z).
+  // Adding 12h before reading UTC fields gives the correct calendar day
+  // regardless of the server's timezone (works for any UTC offset within ±12h).
+  const d = new Date(iso);
+  const shifted = new Date(d.getTime() + 12 * 60 * 60 * 1000);
+  return new Date(shifted.getUTCFullYear(), shifted.getUTCMonth(), shifted.getUTCDate());
 }
 
 function generateTripDays(
@@ -488,9 +490,9 @@ function generateTripDays(
   endDate: string | null
 ): { dayIndex: number; label: string; date: string }[] {
   if (!startDate) return TRIP_DAYS;
-  const start = parseDateLocal(startDate);
+  const start = parseDateForDisplay(startDate);
   if (isNaN(start.getTime())) return TRIP_DAYS;
-  const end = endDate ? parseDateLocal(endDate) : start;
+  const end = endDate ? parseDateForDisplay(endDate) : start;
   if (isNaN(end.getTime())) return TRIP_DAYS;
   const diff = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
   const n = Math.max(1, diff + 1);
