@@ -61,8 +61,30 @@ import {
 import { TripMap } from "@/components/features/trips/TripMap";
 import { DropLinkModal } from "@/components/features/home/DropLinkModal";
 import { RecommendationDrawer, type DrawerRec } from "@/components/features/trips/RecommendationDrawer";
+import { AddFlightModal } from "@/components/flights/AddFlightModal";
 
 type Tab = "saved" | "itinerary" | "recommended" | "packing";
+
+type Flight = {
+  id: string;
+  type: string;
+  airline: string;
+  flightNumber: string;
+  fromAirport: string;
+  fromCity: string;
+  toAirport: string;
+  toCity: string;
+  departureDate: string;
+  departureTime: string;
+  arrivalDate: string;
+  arrivalTime: string;
+  duration?: string | null;
+  cabinClass: string;
+  confirmationCode?: string | null;
+  seatNumbers?: string | null;
+  notes?: string | null;
+  dayIndex?: number | null;
+};
 
 // ── Shared sub-components ────────────────────────────────────────────────────
 
@@ -1197,7 +1219,7 @@ function BudgetPromptBanner({ tripId }: { tripId?: string }) {
   );
 }
 
-function ItineraryContent({ flyTarget, onFlyTargetConsumed, tripId, tripStartDate, tripEndDate, onSwitchToRecommended, destinationCity, destinationCountry }: {
+function ItineraryContent({ flyTarget, onFlyTargetConsumed, tripId, tripStartDate, tripEndDate, onSwitchToRecommended, destinationCity, destinationCountry, flights = [] }: {
   flyTarget: { lat: number; lng: number } | null;
   onFlyTargetConsumed: () => void;
   tripId?: string;
@@ -1206,6 +1228,7 @@ function ItineraryContent({ flyTarget, onFlyTargetConsumed, tripId, tripStartDat
   onSwitchToRecommended?: () => void;
   destinationCity?: string | null;
   destinationCountry?: string | null;
+  flights?: Flight[];
 }) {
   const isDesktop = useIsDesktop();
   const [openDay, setOpenDay] = useState(0); // -1 = all collapsed
@@ -1302,6 +1325,7 @@ function ItineraryContent({ flyTarget, onFlyTargetConsumed, tripId, tripStartDat
                 {tripDays.map(({ dayIndex, label, date }, i) => {
                   const isOpen = openDay === i;
                   const dayItems = recAdditions.filter(a => a.dayIndex === dayIndex);
+                  const dayFlights = flights.filter(f => f.dayIndex === dayIndex);
                   return (
                     <div key={i} style={{ borderBottom: i < tripDays.length - 1 ? "1px solid rgba(0,0,0,0.06)" : "none" }}>
 
@@ -1314,14 +1338,19 @@ function ItineraryContent({ flyTarget, onFlyTargetConsumed, tripId, tripStartDat
                         <div style={{ display: "flex", alignItems: "center", gap: "8px", flex: 1, minWidth: 0, overflow: "hidden" }}>
                           <span style={{ fontSize: "14px", fontWeight: 700, color: "#1a1a1a", whiteSpace: "nowrap" }}>{label}</span>
                           <span style={{ fontSize: "13px", color: "#717171", whiteSpace: "nowrap" }}>{date}</span>
-                          {!isOpen && dayItems.length > 0 && (
+                          {!isOpen && (dayItems.length > 0 || dayFlights.length > 0) && (
                             <div style={{ display: "flex", gap: "4px", overflow: "hidden", minWidth: 0 }}>
-                              {dayItems.slice(0, 3).map((a) => (
+                              {dayFlights.slice(0, 1).map((f) => (
+                                <span key={f.id} style={{ fontSize: "11px", background: "rgba(27,58,92,0.1)", color: "#1B3A5C", borderRadius: "999px", padding: "2px 8px", whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: "3px" }}>
+                                  <Plane size={10} />{f.fromAirport}→{f.toAirport}
+                                </span>
+                              ))}
+                              {dayItems.slice(0, 2).map((a) => (
                                 <span key={a.title} style={{ fontSize: "11px", background: "rgba(0,0,0,0.06)", color: "#666", borderRadius: "999px", padding: "2px 8px", whiteSpace: "nowrap" }}>{a.title}</span>
                               ))}
                             </div>
                           )}
-                          {!isOpen && dayItems.length === 0 && (
+                          {!isOpen && dayItems.length === 0 && dayFlights.length === 0 && (
                             <span style={{ fontSize: "12px", color: "#bbb", fontStyle: "italic" }}>No activities</span>
                           )}
                         </div>
@@ -1331,6 +1360,20 @@ function ItineraryContent({ flyTarget, onFlyTargetConsumed, tripId, tripStartDat
                       {/* Expandable body */}
                       <div style={{ maxHeight: isOpen ? "2000px" : "0", overflow: "hidden", transition: "max-height 0.3s ease" }}>
                         <div style={{ padding: "4px 16px 16px" }}>
+
+                          {/* Flights for this day */}
+                          {dayFlights.map(f => (
+                            <div key={f.id} style={{ backgroundColor: "#F5F8FC", border: "1.5px solid #D8E4F0", borderRadius: "10px", padding: "10px 12px", marginBottom: "8px", display: "flex", alignItems: "center", gap: "10px" }}>
+                              <Plane size={14} style={{ color: "#1B3A5C", flexShrink: 0 }} />
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <p style={{ fontSize: "13px", fontWeight: 700, color: "#1a1a1a" }}>{f.fromAirport} → {f.toAirport} · {f.airline} {f.flightNumber}</p>
+                                <p style={{ fontSize: "12px", color: "#717171" }}>{f.departureTime} → {f.arrivalTime}{f.duration ? ` · ${f.duration}` : ""}</p>
+                              </div>
+                              {f.confirmationCode && (
+                                <span style={{ fontSize: "11px", color: "#1B3A5C", fontWeight: 600, backgroundColor: "rgba(27,58,92,0.08)", borderRadius: "999px", padding: "2px 8px", whiteSpace: "nowrap" }}>{f.confirmationCode}</span>
+                              )}
+                            </div>
+                          ))}
 
                           {/* User-added items for this day */}
                           {dayItems.map((a, idx) => {
@@ -2229,6 +2272,66 @@ function RecCard({ rec, isSaved, onToggle, onOpenDetail }: { rec: RecItem; isSav
   );
 }
 
+// ── Flight card ───────────────────────────────────────────────────────────────
+
+function FlightCard({ flight, onDelete }: { flight: Flight; onDelete: () => void }) {
+  const cabinLabel: Record<string, string> = { economy: "Economy", premium_economy: "Prem. Economy", business: "Business", first: "First" };
+  const typeLabel: Record<string, string> = { outbound: "Outbound", return: "Return", connection: "Connection" };
+  return (
+    <div style={{ backgroundColor: "#fff", border: "1.5px solid #EEEEEE", borderRadius: "14px", padding: "14px 16px", marginBottom: "10px" }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "8px" }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {/* Route row */}
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px", flexWrap: "wrap" }}>
+            <span style={{ fontSize: "16px", fontWeight: 800, color: "#1a1a1a" }}>{flight.fromAirport}</span>
+            <Plane size={14} style={{ color: "#C4664A", flexShrink: 0 }} />
+            <span style={{ fontSize: "16px", fontWeight: 800, color: "#1a1a1a" }}>{flight.toAirport}</span>
+            <span style={{ fontSize: "11px", backgroundColor: "rgba(196,102,74,0.1)", color: "#C4664A", borderRadius: "999px", padding: "2px 8px", fontWeight: 600 }}>
+              {typeLabel[flight.type] ?? flight.type}
+            </span>
+          </div>
+          {/* Cities */}
+          <p style={{ fontSize: "12px", color: "#717171", marginBottom: "6px" }}>{flight.fromCity} → {flight.toCity}</p>
+          {/* Times */}
+          <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", marginBottom: "6px" }}>
+            <div>
+              <p style={{ fontSize: "11px", color: "#aaa", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>Departs</p>
+              <p style={{ fontSize: "13px", fontWeight: 700, color: "#1a1a1a" }}>{flight.departureDate} · {flight.departureTime}</p>
+            </div>
+            <div>
+              <p style={{ fontSize: "11px", color: "#aaa", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>Arrives</p>
+              <p style={{ fontSize: "13px", fontWeight: 700, color: "#1a1a1a" }}>{flight.arrivalDate} · {flight.arrivalTime}</p>
+            </div>
+            {flight.duration && (
+              <div>
+                <p style={{ fontSize: "11px", color: "#aaa", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>Duration</p>
+                <p style={{ fontSize: "13px", fontWeight: 700, color: "#1a1a1a" }}>{flight.duration}</p>
+              </div>
+            )}
+          </div>
+          {/* Meta */}
+          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+            <span style={{ fontSize: "12px", color: "#555" }}>{flight.airline} · {flight.flightNumber}</span>
+            <span style={{ fontSize: "12px", color: "#555" }}>· {cabinLabel[flight.cabinClass] ?? flight.cabinClass}</span>
+            {flight.confirmationCode && <span style={{ fontSize: "12px", color: "#555" }}>· {flight.confirmationCode}</span>}
+            {flight.seatNumbers && <span style={{ fontSize: "12px", color: "#555" }}>· Seats: {flight.seatNumbers}</span>}
+          </div>
+          {flight.notes && (
+            <p style={{ fontSize: "12px", color: "#888", marginTop: "6px", fontStyle: "italic" }}>{flight.notes}</p>
+          )}
+        </div>
+        <button
+          onClick={onDelete}
+          style={{ flexShrink: 0, background: "none", border: "none", cursor: "pointer", color: "#ccc", padding: "2px", lineHeight: 1 }}
+          title="Remove flight"
+        >
+          <Trash2 size={16} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ── Main export ───────────────────────────────────────────────────────────────
 
 type SavedRec = {
@@ -2243,6 +2346,29 @@ export function TripTabContent({ initialTab = "saved", tripId, tripTitle, tripSt
   const [flyTarget, setFlyTarget] = useState<{ lat: number; lng: number } | null>(null);
   const [itineraryVersion, setItineraryVersion] = useState(0);
   const [dropLinkOpen, setDropLinkOpen] = useState(false);
+  const [showFlightModal, setShowFlightModal] = useState(false);
+  const [flights, setFlights] = useState<Flight[]>([]);
+
+  const fetchFlights = useCallback(() => {
+    if (!tripId) return;
+    fetch(`/api/trips/${tripId}/flights`)
+      .then(r => r.json())
+      .then((data: Flight[]) => setFlights(Array.isArray(data) ? data : []))
+      .catch(e => console.error("[fetchFlights]", e));
+  }, [tripId]);
+
+  useEffect(() => {
+    fetchFlights();
+    window.addEventListener("flokk:refresh", fetchFlights);
+    return () => window.removeEventListener("flokk:refresh", fetchFlights);
+  }, [fetchFlights]);
+
+  function handleDeleteFlight(flightId: string) {
+    if (!tripId) return;
+    fetch(`/api/trips/${tripId}/flights/${flightId}`, { method: "DELETE" })
+      .then(() => fetchFlights())
+      .catch(e => console.error("[deleteFlight]", e));
+  }
 
   const tripAsModalEntry = tripId
     ? [{ id: tripId, title: tripTitle ?? "This trip", startDate: tripStartDate ?? null, endDate: tripEndDate ?? null }]
@@ -2298,23 +2424,36 @@ export function TripTabContent({ initialTab = "saved", tripId, tripTitle, tripSt
             );
           })}
         </div>
-        {/* Add to trip button */}
+        {/* Action buttons */}
         {tripId && (
-          <button
-            onClick={() => setDropLinkOpen(true)}
-            style={{
-              flexShrink: 0,
-              display: "flex", alignItems: "center", gap: "4px",
-              padding: "6px 14px",
-              backgroundColor: "#C4664A", color: "#fff",
-              border: "none", borderRadius: "20px",
-              fontSize: "12px", fontWeight: 700, cursor: "pointer",
-              marginLeft: "12px",
-              whiteSpace: "nowrap",
-            }}
-          >
-            <Plus size={13} /> Add
-          </button>
+          <div style={{ display: "flex", gap: "6px", marginLeft: "12px", flexShrink: 0 }}>
+            <button
+              onClick={() => setShowFlightModal(true)}
+              style={{
+                display: "flex", alignItems: "center", gap: "4px",
+                padding: "6px 12px",
+                backgroundColor: "transparent", color: "#1B3A5C",
+                border: "1.5px solid #1B3A5C", borderRadius: "20px",
+                fontSize: "12px", fontWeight: 700, cursor: "pointer",
+                whiteSpace: "nowrap",
+              }}
+            >
+              <Plane size={12} /> Flight
+            </button>
+            <button
+              onClick={() => setDropLinkOpen(true)}
+              style={{
+                display: "flex", alignItems: "center", gap: "4px",
+                padding: "6px 14px",
+                backgroundColor: "#C4664A", color: "#fff",
+                border: "none", borderRadius: "20px",
+                fontSize: "12px", fontWeight: 700, cursor: "pointer",
+                whiteSpace: "nowrap",
+              }}
+            >
+              <Plus size={13} /> Add
+            </button>
+          </div>
         )}
       </div>
 
@@ -2331,8 +2470,31 @@ export function TripTabContent({ initialTab = "saved", tripId, tripTitle, tripSt
         />
       )}
 
-      {tab === "saved" && <SavedContent tripId={tripId} tripStartDate={tripStartDate} tripEndDate={tripEndDate} tripTitle={tripTitle} />}
-      {tab === "itinerary" && <ItineraryContent key={itineraryVersion} flyTarget={flyTarget} onFlyTargetConsumed={() => setFlyTarget(null)} tripId={tripId} tripStartDate={tripStartDate} tripEndDate={tripEndDate} onSwitchToRecommended={() => setTab("recommended")} destinationCity={destinationCity} destinationCountry={destinationCountry} />}
+      {showFlightModal && tripId && (
+        <AddFlightModal
+          tripId={tripId}
+          onClose={() => setShowFlightModal(false)}
+          onSaved={() => { setShowFlightModal(false); fetchFlights(); }}
+        />
+      )}
+
+      {tab === "saved" && (
+        <>
+          {flights.length > 0 && (
+            <div style={{ marginBottom: "20px" }}>
+              <div style={{ fontSize: "11px", fontWeight: 700, color: "#717171", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "10px", paddingBottom: "8px", borderBottom: "1px solid #EEEEEE", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span>Flights</span>
+                <span style={{ fontSize: "11px", color: "#bbb", fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>{flights.length}</span>
+              </div>
+              {flights.map(f => (
+                <FlightCard key={f.id} flight={f} onDelete={() => handleDeleteFlight(f.id)} />
+              ))}
+            </div>
+          )}
+          <SavedContent tripId={tripId} tripStartDate={tripStartDate} tripEndDate={tripEndDate} tripTitle={tripTitle} />
+        </>
+      )}
+      {tab === "itinerary" && <ItineraryContent key={itineraryVersion} flyTarget={flyTarget} onFlyTargetConsumed={() => setFlyTarget(null)} tripId={tripId} tripStartDate={tripStartDate} tripEndDate={tripEndDate} onSwitchToRecommended={() => setTab("recommended")} destinationCity={destinationCity} destinationCountry={destinationCountry} flights={flights} />}
       {tab === "packing" && <PackingContent tripId={tripId} />}
       {tab === "recommended" && (
         <RecommendedContent
