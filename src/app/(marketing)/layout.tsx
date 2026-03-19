@@ -1,7 +1,9 @@
 import Link from "next/link";
+import { auth } from "@clerk/nextjs/server";
 import { MarketingFooter } from "@/components/ui/MarketingFooter";
 
-export default function MarketingLayout({ children }: { children: React.ReactNode }) {
+export default async function MarketingLayout({ children }: { children: React.ReactNode }) {
+  const { userId } = await auth();
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
       {/* Simple public nav */}
@@ -13,8 +15,14 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
           <div style={{ display: "flex", gap: "24px", alignItems: "center" }}>
             <Link href="/how-it-works" style={{ fontSize: "14px", color: "#555", textDecoration: "none" }}>How it works</Link>
             <Link href="/pricing" style={{ fontSize: "14px", color: "#555", textDecoration: "none" }}>Pricing</Link>
-            <Link href="/sign-in" style={{ fontSize: "14px", color: "#555", textDecoration: "none" }}>Sign in</Link>
-            <Link href="/sign-up" style={{ fontSize: "14px", fontWeight: 700, backgroundColor: "#C4664A", color: "#fff", padding: "8px 16px", borderRadius: "20px", textDecoration: "none" }}>Get started</Link>
+            {userId ? (
+              <Link href="/home" style={{ fontSize: "14px", fontWeight: 700, backgroundColor: "#C4664A", color: "#fff", padding: "8px 16px", borderRadius: "20px", textDecoration: "none" }}>Go to app</Link>
+            ) : (
+              <>
+                <Link href="/sign-in" style={{ fontSize: "14px", color: "#555", textDecoration: "none" }}>Sign in</Link>
+                <Link href="/sign-up" style={{ fontSize: "14px", fontWeight: 700, backgroundColor: "#C4664A", color: "#fff", padding: "8px 16px", borderRadius: "20px", textDecoration: "none" }}>Get started</Link>
+              </>
+            )}
           </div>
         </div>
       </header>

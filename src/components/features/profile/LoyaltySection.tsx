@@ -234,15 +234,16 @@ export function LoyaltySection() {
             disabled={isSaving || !memberNumber.trim()}
             style={{
               padding: "8px 16px",
-              backgroundColor: memberNumber.trim() ? "#1B3A5C" : "#E8E8E8",
-              color: memberNumber.trim() ? "#fff" : "#aaa",
+              backgroundColor: "#1B3A5C",
+              color: "#fff",
               border: "none",
               borderRadius: "8px",
               fontSize: "13px",
-              fontWeight: 500,
+              fontWeight: 600,
               cursor: memberNumber.trim() && !isSaving ? "pointer" : "not-allowed",
               flexShrink: 0,
-              marginBottom: "0px",
+              opacity: memberNumber.trim() && !isSaving ? 1 : 0.4,
+              transition: "opacity 0.15s",
             }}
           >
             {isSaving ? "Saving..." : "+ Add"}
