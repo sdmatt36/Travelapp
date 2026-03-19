@@ -71,11 +71,55 @@ export function DropLinkModal({
     requestAnimationFrame(() => setVisible(true));
   }, []);
 
-  // Auto-trigger extraction 700ms after user stops typing/pasting a valid URL
+  // Auto-trigger extraction 700ms after URL is pasted/typed
   useEffect(() => {
     const trimmed = url.trim();
     if (!trimmed || !/^https?:\/\//.test(trimmed) || step !== "input") return;
-    const timer = setTimeout(() => handleSubmitUrl(), 700);
+    // Capture trimmed in this closure — do NOT re-read url inside setTimeout
+    const timer = setTimeout(async () => {
+      console.log("[modal] calling /api/extract for:", trimmed);
+      setUrl(trimmed);
+      setUrlError("");
+      setStep("loading");
+      try {
+        const res = await fetch("/api/extract", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: trimmed }),
+        });
+        const data = res.ok ? await res.json() : {};
+        console.log("[modal] extraction result:", data);
+        const safeImage = data.image && typeof data.image === "string" && data.image.startsWith("http") && !data.image.includes("{") ? data.image : "";
+        const card: ExtractedCard = {
+          title: data.title ?? "Saved link",
+          location: "",
+          tags: data.category ? [data.category] : [],
+          img: safeImage,
+          source: data.platformLabel ?? "Web",
+          description: data.description ?? "",
+        };
+        setExtracted(card);
+        setEditedTitle(card.title);
+        setSelectedCategory(data.category ?? "");
+        if (data.checkin) setCheckinDate(data.checkin);
+        if (data.checkout) setCheckoutDate(data.checkout);
+        if (!data.checkin && !data.checkout) {
+          try {
+            const parsed = new URL(trimmed);
+            const ci = parsed.searchParams.get("check_in") ?? parsed.searchParams.get("checkin") ?? parsed.searchParams.get("arrival") ?? "";
+            const co = parsed.searchParams.get("check_out") ?? parsed.searchParams.get("checkout") ?? parsed.searchParams.get("departure") ?? "";
+            if (ci) setCheckinDate(ci);
+            if (co) setCheckoutDate(co);
+          } catch { /* ignore */ }
+        }
+        setStep("preview");
+      } catch (err) {
+        console.error("[modal] extraction failed:", err);
+        setExtracted({ title: "Saved link", location: "", tags: [], img: "", source: "Web", description: "" });
+        setEditedTitle("Saved link");
+        setStep("preview");
+      }
+    }, 700);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [url]);
@@ -109,11 +153,12 @@ export function DropLinkModal({
 
       const data = res.ok ? await res.json() : {};
 
+      const safeImg = data.image && typeof data.image === "string" && data.image.startsWith("http") && !data.image.includes("{") ? data.image : "";
       const card: ExtractedCard = {
         title: data.title ?? "Saved link",
         location: "",
         tags: data.category ? [data.category] : [],
-        img: data.image ?? "",
+        img: safeImg,
         source: data.platformLabel ?? "Web",
         description: data.description ?? "",
       };

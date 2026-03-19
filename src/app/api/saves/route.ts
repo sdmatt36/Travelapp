@@ -56,15 +56,23 @@ export async function POST(request: Request) {
 
     const sourceType = detectSourceType(url);
 
+    // Reject template placeholders and non-http image values
+    function sanitizeImageUrl(img: string | undefined | null): string | null {
+      if (!img) return null;
+      if (!img.startsWith("http")) return null;
+      if (img.includes("{") || img.includes("}")) return null;
+      return img;
+    }
+
     // If preview data was passed from the UI, use it directly (skip live OG fetch)
     let rawTitle = title ?? null;
     let rawDescription = description ?? null;
-    let mediaThumbnailUrl = thumbnailUrl ?? null;
+    let mediaThumbnailUrl = sanitizeImageUrl(thumbnailUrl);
     if (!title) {
       const meta = await extractOgMetadata(url);
       rawTitle = meta.title ?? null;
       rawDescription = meta.description ?? null;
-      mediaThumbnailUrl = meta.image ?? null;
+      mediaThumbnailUrl = sanitizeImageUrl(meta.image);
     }
 
     // Duplicate detection — skip if title couldn't be resolved

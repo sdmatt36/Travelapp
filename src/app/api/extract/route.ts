@@ -58,11 +58,15 @@ export async function POST(request: Request) {
     const og = await extractOgMetadata(url);
     console.log("[extract] OG result:", JSON.stringify(og));
 
+    // Sanitize image: reject template placeholders and non-http values
+    const rawImage = og.image ?? null;
+    const safeImage = rawImage && rawImage.startsWith("http") && !rawImage.includes("{") ? rawImage : null;
+
     // Merge: OG wins for title/image quality; platform fills dates/category
     const result = {
       title: og.title ?? platformData.title ?? null,
       description: og.description ?? null,
-      image: og.image ?? null,
+      image: safeImage,
       checkin: platformData.checkin ?? null,
       checkout: platformData.checkout ?? null,
       category: platformData.category ?? null,
