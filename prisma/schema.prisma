@@ -209,6 +209,7 @@ model Trip {
   collaborators    TripCollaborator[]
   questions        Question[]
   flights          Flight[]
+  manualActivities ManualActivity[]
 }
 
 enum TripStatus {
@@ -552,6 +553,32 @@ model Flight {
   dayIndex          Int?
   status            String   @default("saved")
   createdAt         DateTime @default(now())
+}
+
+// =============================================================================
+// MANUAL ACTIVITIES
+// =============================================================================
+
+model ManualActivity {
+  id               String   @id @default(cuid())
+  tripId           String
+  trip             Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  title            String
+  date             String
+  time             String?
+  endTime          String?
+  venueName        String?
+  address          String?
+  lat              Float?
+  lng              Float?
+  website          String?
+  price            Float?
+  currency         String?  @default("USD")
+  notes            String?
+  status           String   @default("interested")
+  confirmationCode String?
+  dayIndex         Int?
+  createdAt        DateTime @default(now())
 }
 
 // =============================================================================
