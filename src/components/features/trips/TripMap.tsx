@@ -4,37 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Share2, Map as MapIcon, ChevronLeft } from "lucide-react";
 import "mapbox-gl/dist/mapbox-gl.css";
+import { getDestinationCoords } from "@/lib/destination-coords";
 
 type MarkerDef = { num: number; label: string; lng: number; lat: number };
-type DayDef = { markers: MarkerDef[] };
 
-// Corrected Okinawa trip pin data — replace with dynamic trip data in Phase 2
-const DAY_DATA: DayDef[] = [
-  {
-    markers: [
-      { num: 1, label: "Naha Airport",   lng: 127.6461, lat: 26.1958 },
-      { num: 2, label: "Halekulani",     lng: 127.8574, lat: 26.4969 },
-      { num: 3, label: "Kokusai-dori",   lng: 127.6809, lat: 26.2124 },
-    ],
-  },
-  {
-    markers: [
-      { num: 1, label: "Katsuren Castle", lng: 127.8611, lat: 26.3267 },
-    ],
-  },
-  { markers: [] },
-  { markers: [] },
-  {
-    markers: [
-      { num: 1, label: "Halekulani", lng: 127.8574, lat: 26.4969 },
-    ],
-  },
-];
-
-const OKINAWA_CENTER: [number, number] = [127.6809, 26.2124];
-
-function buildAppleMapsUrl(markers: MarkerDef[]): string {
-  if (markers.length === 0) return `https://maps.apple.com/?q=${OKINAWA_CENTER[1]},${OKINAWA_CENTER[0]}`;
+function buildAppleMapsUrl(markers: MarkerDef[], center: [number, number]): string {
+  if (markers.length === 0) return `https://maps.apple.com/?q=${center[1]},${center[0]}`;
   if (markers.length === 1) {
     return `https://maps.apple.com/?q=${markers[0].lat},${markers[0].lng}`;
   }
@@ -43,8 +18,8 @@ function buildAppleMapsUrl(markers: MarkerDef[]): string {
   return `https://maps.apple.com/?saddr=${first.lat},${first.lng}&daddr=${last.lat},${last.lng}`;
 }
 
-function buildGoogleMapsUrl(markers: MarkerDef[]): string {
-  if (markers.length === 0) return `https://www.google.com/maps/search/?api=1&query=${OKINAWA_CENTER[1]},${OKINAWA_CENTER[0]}`;
+function buildGoogleMapsUrl(markers: MarkerDef[], center: [number, number]): string {
+  if (markers.length === 0) return `https://www.google.com/maps/search/?api=1&query=${center[1]},${center[0]}`;
   if (markers.length === 1) {
     return `https://www.google.com/maps/search/?api=1&query=${markers[0].lat},${markers[0].lng}`;
   }
@@ -79,7 +54,7 @@ function createMarkerEl(m: MarkerDef): HTMLElement {
   return wrap;
 }
 
-function flyToDay(map: any, mapboxgl: any, markers: MarkerDef[]) {
+function flyToDay(map: any, mapboxgl: any, markers: MarkerDef[], center: [number, number]) {
   if (markers.length >= 2) {
     const bounds = new mapboxgl.LngLatBounds();
     markers.forEach((m) => bounds.extend([m.lng, m.lat]));
@@ -87,11 +62,11 @@ function flyToDay(map: any, mapboxgl: any, markers: MarkerDef[]) {
   } else if (markers.length === 1) {
     map.flyTo({ center: [markers[0].lng, markers[0].lat], zoom: 13, duration: 800 });
   } else {
-    map.flyTo({ center: OKINAWA_CENTER, zoom: 10, duration: 800 });
+    map.flyTo({ center, zoom: 10, duration: 800 });
   }
 }
 
-export function TripMap({ activeDay, flyTarget, onFlyTargetConsumed, tripId }: { activeDay: number; flyTarget?: { lat: number; lng: number } | null; onFlyTargetConsumed?: () => void; tripId?: string }) {
+export function TripMap({ activeDay, flyTarget, onFlyTargetConsumed, tripId, destinationCity, destinationCountry }: { activeDay: number; flyTarget?: { lat: number; lng: number } | null; onFlyTargetConsumed?: () => void; tripId?: string; destinationCity?: string | null; destinationCountry?: string | null }) {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
@@ -99,6 +74,8 @@ export function TripMap({ activeDay, flyTarget, onFlyTargetConsumed, tripId }: {
   const mapboxRef = useRef<any>(null);
   const initializedRef = useRef(false);
   const [toast, setToast] = useState(false);
+
+  const destCoords = getDestinationCoords(destinationCity, destinationCountry);
 
   // Initialize map once
   useEffect(() => {
@@ -117,25 +94,14 @@ export function TripMap({ activeDay, flyTarget, onFlyTargetConsumed, tripId }: {
       const map = new mapboxgl.Map({
         container: containerRef.current,
         style: "mapbox://styles/mapbox/outdoors-v12",
-        center: OKINAWA_CENTER,
+        center: destCoords,
         zoom: 10,
       });
       mapRef.current = map;
 
       map.on("load", () => {
         if (!destroyed) {
-          const day = DAY_DATA[0];
-          addMarkersInternal(day.markers);
-          // Use fitBounds with duration:0 so no slow zoom-out animation on first render
-          if (day.markers.length >= 2) {
-            const bounds = new mapboxgl.LngLatBounds();
-            day.markers.forEach((m) => bounds.extend([m.lng, m.lat]));
-            map.fitBounds(bounds, { padding: { top: 60, bottom: 60, left: 60, right: 60 }, maxZoom: 14, duration: 0 });
-          } else if (day.markers.length === 1) {
-            map.flyTo({ center: [day.markers[0].lng, day.markers[0].lat], zoom: 13, duration: 0 });
-          } else {
-            map.flyTo({ center: OKINAWA_CENTER, zoom: 10, duration: 0 });
-          }
+          map.flyTo({ center: destCoords, zoom: 10, duration: 0 });
           initializedRef.current = true;
           map.resize();
         }
@@ -168,9 +134,9 @@ export function TripMap({ activeDay, flyTarget, onFlyTargetConsumed, tripId }: {
   // Respond to day changes driven by parent
   useEffect(() => {
     if (!initializedRef.current || !mapRef.current) return;
-    const day = DAY_DATA[activeDay];
-    addMarkersInternal(day.markers);
-    flyToDay(mapRef.current, mapboxRef.current, day.markers);
+    // No hardcoded markers — fly to destination center when day changes
+    addMarkersInternal([]);
+    flyToDay(mapRef.current, mapboxRef.current, [], destCoords);
   }, [activeDay]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Fly to a specific coordinate when flyTarget is set
@@ -197,15 +163,15 @@ export function TripMap({ activeDay, flyTarget, onFlyTargetConsumed, tripId }: {
   }
 
   function handleOpenAppleMaps() {
-    window.open(buildAppleMapsUrl(DAY_DATA[activeDay].markers), "_blank", "noopener");
+    window.open(buildAppleMapsUrl([], destCoords), "_blank", "noopener");
   }
 
   function handleOpenGoogleMaps() {
-    window.open(buildGoogleMapsUrl(DAY_DATA[activeDay].markers), "_blank", "noopener");
+    window.open(buildGoogleMapsUrl([], destCoords), "_blank", "noopener");
   }
 
   async function handleShare() {
-    const url = buildGoogleMapsUrl(DAY_DATA[activeDay].markers);
+    const url = buildGoogleMapsUrl([], destCoords);
     try {
       await navigator.clipboard.writeText(url);
     } catch {
