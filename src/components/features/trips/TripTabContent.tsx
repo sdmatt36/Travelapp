@@ -65,7 +65,7 @@ import { AddFlightModal } from "@/components/flights/AddFlightModal";
 import { AddActivityModal } from "@/components/activities/AddActivityModal";
 import { parseDateForDisplay } from "@/lib/dates";
 
-type Tab = "saved" | "itinerary" | "recommended" | "packing" | "notes";
+type Tab = "saved" | "itinerary" | "recommended" | "packing" | "notes" | "vault";
 
 type Flight = {
   id: string;
@@ -2588,6 +2588,34 @@ export function TripTabContent({ initialTab = "saved", tripId, tripTitle, tripSt
     setTripNotes(prev => prev.filter(n => n.id !== id));
   }
 
+  // ── Vault state ──────────────────────────────────────────────────────────
+  type VaultContact = { id: string; name: string; role?: string | null; phone?: string | null; whatsapp?: string | null; email?: string | null; notes?: string | null };
+  type VaultDocument = { id: string; label: string; type: string; url?: string | null; content?: string | null };
+  type VaultKeyInfo = { id: string; label: string; value: string };
+
+  const [contacts, setContacts] = useState<VaultContact[]>([]);
+  const [documents, setDocuments] = useState<VaultDocument[]>([]);
+  const [keyInfo, setKeyInfo] = useState<VaultKeyInfo[]>([]);
+  const [showAddContact, setShowAddContact] = useState(false);
+  const [showAddDoc, setShowAddDoc] = useState(false);
+  const [showAddKeyInfo, setShowAddKeyInfo] = useState(false);
+  const [newContact, setNewContact] = useState({ name: "", role: "", phone: "", whatsapp: "", email: "" });
+  const [newDoc, setNewDoc] = useState({ label: "", type: "link", url: "", content: "" });
+  const [newKeyInfo, setNewKeyInfo] = useState({ label: "", value: "" });
+
+  useEffect(() => {
+    if (tab !== "vault" || !tripId) return;
+    Promise.all([
+      fetch(`/api/trips/${tripId}/vault/contacts`).then(r => r.json()),
+      fetch(`/api/trips/${tripId}/vault/documents`).then(r => r.json()),
+      fetch(`/api/trips/${tripId}/vault/keyinfo`).then(r => r.json()),
+    ]).then(([c, d, k]) => {
+      setContacts(Array.isArray(c) ? c : []);
+      setDocuments(Array.isArray(d) ? d : []);
+      setKeyInfo(Array.isArray(k) ? k : []);
+    }).catch(console.error);
+  }, [tripId, tab]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const tripAsModalEntry = tripId
     ? [{ id: tripId, title: tripTitle ?? "This trip", startDate: tripStartDate ?? null, endDate: tripEndDate ?? null }]
     : [];
@@ -2613,7 +2641,7 @@ export function TripTabContent({ initialTab = "saved", tripId, tripTitle, tripSt
             msOverflowStyle: "none" as const,
           }}
         >
-          {(["Saved", "Itinerary", "Recommended", "Packing", "Notes"] as const).map((label) => {
+          {(["Saved", "Itinerary", "Recommended", "Packing", "Notes", "Vault"] as const).map((label) => {
             const key = label.toLowerCase() as Tab;
             const active = tab === key;
             return (
@@ -2895,6 +2923,231 @@ export function TripTabContent({ initialTab = "saved", tripId, tripTitle, tripSt
           )}
         </div>
       )}
+
+      {tab === "vault" && (
+        <div style={{ maxWidth: "640px", display: "flex", flexDirection: "column", gap: "32px" }}>
+
+          {/* ── CONTACTS ── */}
+          <div>
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "14px" }}>
+              <div>
+                <p style={{ fontSize: "16px", fontWeight: 800, color: "#1a1a1a", marginBottom: "2px" }}>Contacts</p>
+                <p style={{ fontSize: "12px", color: "#717171" }}>Hotel, driver, guide — everyone on this trip</p>
+              </div>
+              <button onClick={() => setShowAddContact(v => !v)} style={{ fontSize: "13px", color: "#C4664A", fontWeight: 700, background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "inherit", whiteSpace: "nowrap" }}>
+                {showAddContact ? "Cancel" : "+ Add"}
+              </button>
+            </div>
+
+            {showAddContact && (
+              <div style={{ backgroundColor: "#FAFAFA", border: "1px solid #E8E8E8", borderRadius: "14px", padding: "16px", marginBottom: "12px", display: "flex", flexDirection: "column", gap: "10px" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                  <input type="text" value={newContact.name} onChange={e => setNewContact(p => ({ ...p, name: e.target.value }))} placeholder="Name *" style={{ border: "1.5px solid #E8E8E8", borderRadius: "10px", padding: "9px 12px", fontSize: "13px", outline: "none", fontFamily: "inherit" }} />
+                  <input type="text" value={newContact.role} onChange={e => setNewContact(p => ({ ...p, role: e.target.value }))} placeholder="Role (e.g. Driver)" style={{ border: "1.5px solid #E8E8E8", borderRadius: "10px", padding: "9px 12px", fontSize: "13px", outline: "none", fontFamily: "inherit" }} />
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                  <input type="tel" value={newContact.phone} onChange={e => setNewContact(p => ({ ...p, phone: e.target.value }))} placeholder="Phone" style={{ border: "1.5px solid #E8E8E8", borderRadius: "10px", padding: "9px 12px", fontSize: "13px", outline: "none", fontFamily: "inherit" }} />
+                  <input type="tel" value={newContact.whatsapp} onChange={e => setNewContact(p => ({ ...p, whatsapp: e.target.value }))} placeholder="WhatsApp number" style={{ border: "1.5px solid #E8E8E8", borderRadius: "10px", padding: "9px 12px", fontSize: "13px", outline: "none", fontFamily: "inherit" }} />
+                </div>
+                <input type="email" value={newContact.email} onChange={e => setNewContact(p => ({ ...p, email: e.target.value }))} placeholder="Email" style={{ border: "1.5px solid #E8E8E8", borderRadius: "10px", padding: "9px 12px", fontSize: "13px", outline: "none", fontFamily: "inherit", width: "100%", boxSizing: "border-box" }} />
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <button
+                    disabled={!newContact.name.trim()}
+                    onClick={async () => {
+                      if (!newContact.name.trim() || !tripId) return;
+                      const res = await fetch(`/api/trips/${tripId}/vault/contacts`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(newContact) });
+                      if (!res.ok) return;
+                      const saved = await res.json();
+                      setContacts(p => [...p, saved]);
+                      setShowAddContact(false);
+                      setNewContact({ name: "", role: "", phone: "", whatsapp: "", email: "" });
+                    }}
+                    style={{ flex: 1, padding: "10px", borderRadius: "10px", border: "none", backgroundColor: newContact.name.trim() ? "#1B3A5C" : "#E0E0E0", color: newContact.name.trim() ? "#fff" : "#aaa", fontSize: "13px", fontWeight: 700, cursor: newContact.name.trim() ? "pointer" : "default", fontFamily: "inherit" }}
+                  >
+                    Save contact
+                  </button>
+                  <button onClick={() => { setShowAddContact(false); setNewContact({ name: "", role: "", phone: "", whatsapp: "", email: "" }); }} style={{ padding: "10px 16px", borderRadius: "10px", border: "1px solid #E8E8E8", backgroundColor: "#fff", color: "#717171", fontSize: "13px", cursor: "pointer", fontFamily: "inherit" }}>
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {contacts.length === 0 && !showAddContact ? (
+              <p style={{ fontSize: "13px", color: "#bbb", fontStyle: "italic" }}>Add your hotel, driver, or tour guide</p>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                {contacts.map(c => (
+                  <div key={c.id} style={{ backgroundColor: "#fff", border: "1px solid #EEEEEE", borderRadius: "12px", padding: "14px 16px", display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px" }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
+                        <span style={{ fontSize: "14px", fontWeight: 700, color: "#1a1a1a" }}>{c.name}</span>
+                        {c.role && <span style={{ fontSize: "11px", color: "#717171", backgroundColor: "#F5F5F5", borderRadius: "999px", padding: "2px 8px" }}>{c.role}</span>}
+                      </div>
+                      <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+                        {c.phone && <span style={{ fontSize: "13px", color: "#555" }}>📞 {c.phone}</span>}
+                        {c.whatsapp && <a href={`https://wa.me/${c.whatsapp.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: "13px", color: "#25D366", fontWeight: 600 }}>WhatsApp →</a>}
+                        {c.email && <a href={`mailto:${c.email}`} style={{ fontSize: "13px", color: "#1B3A5C" }}>{c.email}</a>}
+                      </div>
+                    </div>
+                    <button onClick={async () => { await fetch(`/api/trips/${tripId}/vault/contacts/${c.id}`, { method: "DELETE" }); setContacts(p => p.filter(x => x.id !== c.id)); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#D0D0D0", padding: "2px", flexShrink: 0 }} title="Delete">
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* ── DOCUMENTS & LINKS ── */}
+          <div>
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "14px" }}>
+              <div>
+                <p style={{ fontSize: "16px", fontWeight: 800, color: "#1a1a1a", marginBottom: "2px" }}>Documents & Links</p>
+                <p style={{ fontSize: "12px", color: "#717171" }}>Booking confirmations, tickets, spreadsheets</p>
+              </div>
+              <button onClick={() => setShowAddDoc(v => !v)} style={{ fontSize: "13px", color: "#C4664A", fontWeight: 700, background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "inherit", whiteSpace: "nowrap" }}>
+                {showAddDoc ? "Cancel" : "+ Add"}
+              </button>
+            </div>
+
+            {showAddDoc && (
+              <div style={{ backgroundColor: "#FAFAFA", border: "1px solid #E8E8E8", borderRadius: "14px", padding: "16px", marginBottom: "12px", display: "flex", flexDirection: "column", gap: "10px" }}>
+                {/* Quick suggestion pills */}
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                  {["Booking confirmation", "Travel insurance", "Visa copy", "Budget spreadsheet", "Packing list", "Flight itinerary"].map(s => (
+                    <button key={s} onClick={() => setNewDoc(p => ({ ...p, label: s }))} style={{ fontSize: "11px", padding: "4px 10px", borderRadius: "999px", border: `1px solid ${newDoc.label === s ? "#1B3A5C" : "#E0E0E0"}`, backgroundColor: newDoc.label === s ? "rgba(27,58,92,0.08)" : "#fff", color: newDoc.label === s ? "#1B3A5C" : "#717171", cursor: "pointer", fontFamily: "inherit" }}>{s}</button>
+                  ))}
+                </div>
+                <input type="text" value={newDoc.label} onChange={e => setNewDoc(p => ({ ...p, label: e.target.value }))} placeholder="Label *" style={{ border: "1.5px solid #E8E8E8", borderRadius: "10px", padding: "9px 12px", fontSize: "13px", outline: "none", fontFamily: "inherit", width: "100%", boxSizing: "border-box" }} />
+                {/* Type toggle */}
+                <div style={{ display: "flex", gap: "8px" }}>
+                  {(["link", "note"] as const).map(t => (
+                    <button key={t} onClick={() => setNewDoc(p => ({ ...p, type: t }))} style={{ flex: 1, padding: "8px", borderRadius: "10px", border: `1.5px solid ${newDoc.type === t ? "#1B3A5C" : "#E8E8E8"}`, backgroundColor: newDoc.type === t ? "#1B3A5C" : "#fff", color: newDoc.type === t ? "#fff" : "#717171", fontSize: "12px", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                      {t === "link" ? "🔗 Link / URL" : "📝 Note"}
+                    </button>
+                  ))}
+                </div>
+                {newDoc.type === "link" ? (
+                  <input type="url" value={newDoc.url} onChange={e => setNewDoc(p => ({ ...p, url: e.target.value }))} placeholder="https://..." style={{ border: "1.5px solid #E8E8E8", borderRadius: "10px", padding: "9px 12px", fontSize: "13px", outline: "none", fontFamily: "inherit", width: "100%", boxSizing: "border-box" }} />
+                ) : (
+                  <textarea value={newDoc.content} onChange={e => setNewDoc(p => ({ ...p, content: e.target.value }))} placeholder="Paste your note, confirmation number, or details here..." rows={4} style={{ border: "1.5px solid #E8E8E8", borderRadius: "10px", padding: "9px 12px", fontSize: "13px", outline: "none", fontFamily: "inherit", width: "100%", boxSizing: "border-box", resize: "vertical" }} />
+                )}
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <button
+                    disabled={!newDoc.label.trim()}
+                    onClick={async () => {
+                      if (!newDoc.label.trim() || !tripId) return;
+                      const res = await fetch(`/api/trips/${tripId}/vault/documents`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(newDoc) });
+                      if (!res.ok) return;
+                      const saved = await res.json();
+                      setDocuments(p => [...p, saved]);
+                      setShowAddDoc(false);
+                      setNewDoc({ label: "", type: "link", url: "", content: "" });
+                    }}
+                    style={{ flex: 1, padding: "10px", borderRadius: "10px", border: "none", backgroundColor: newDoc.label.trim() ? "#1B3A5C" : "#E0E0E0", color: newDoc.label.trim() ? "#fff" : "#aaa", fontSize: "13px", fontWeight: 700, cursor: newDoc.label.trim() ? "pointer" : "default", fontFamily: "inherit" }}
+                  >
+                    Save document
+                  </button>
+                  <button onClick={() => { setShowAddDoc(false); setNewDoc({ label: "", type: "link", url: "", content: "" }); }} style={{ padding: "10px 16px", borderRadius: "10px", border: "1px solid #E8E8E8", backgroundColor: "#fff", color: "#717171", fontSize: "13px", cursor: "pointer", fontFamily: "inherit" }}>
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {documents.length === 0 && !showAddDoc ? (
+              <p style={{ fontSize: "13px", color: "#bbb", fontStyle: "italic" }}>Save booking confirmations, visa copies, tickets…</p>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                {documents.map(d => (
+                  <div key={d.id} style={{ backgroundColor: "#fff", border: "1px solid #EEEEEE", borderRadius: "12px", padding: "14px 16px", display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px" }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
+                        <span style={{ fontSize: "13px" }}>{d.type === "link" ? "🔗" : "📝"}</span>
+                        <span style={{ fontSize: "14px", fontWeight: 700, color: "#1a1a1a" }}>{d.label}</span>
+                      </div>
+                      {d.url && <a href={d.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: "12px", color: "#1B3A5C", wordBreak: "break-all" }}>{d.url}</a>}
+                      {d.content && <p style={{ fontSize: "12px", color: "#555", marginTop: "4px", whiteSpace: "pre-wrap" }}>{d.content}</p>}
+                    </div>
+                    <button onClick={async () => { await fetch(`/api/trips/${tripId}/vault/documents/${d.id}`, { method: "DELETE" }); setDocuments(p => p.filter(x => x.id !== d.id)); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#D0D0D0", padding: "2px", flexShrink: 0 }} title="Delete">
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* ── KEY INFO ── */}
+          <div>
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "14px" }}>
+              <div>
+                <p style={{ fontSize: "16px", fontWeight: 800, color: "#1a1a1a", marginBottom: "2px" }}>Key Info</p>
+                <p style={{ fontSize: "12px", color: "#717171" }}>WiFi passwords, check-in times, PIN codes, addresses</p>
+              </div>
+              <button onClick={() => setShowAddKeyInfo(v => !v)} style={{ fontSize: "13px", color: "#C4664A", fontWeight: 700, background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "inherit", whiteSpace: "nowrap" }}>
+                {showAddKeyInfo ? "Cancel" : "+ Add"}
+              </button>
+            </div>
+
+            {showAddKeyInfo && (
+              <div style={{ backgroundColor: "#FAFAFA", border: "1px solid #E8E8E8", borderRadius: "14px", padding: "16px", marginBottom: "12px", display: "flex", flexDirection: "column", gap: "10px" }}>
+                {/* Quick suggestion pills */}
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                  {["WiFi password", "Check-in time", "Check-out time", "Hotel address", "Emergency contact", "Insurance policy #"].map(s => (
+                    <button key={s} onClick={() => setNewKeyInfo(p => ({ ...p, label: s }))} style={{ fontSize: "11px", padding: "4px 10px", borderRadius: "999px", border: `1px solid ${newKeyInfo.label === s ? "#1B3A5C" : "#E0E0E0"}`, backgroundColor: newKeyInfo.label === s ? "rgba(27,58,92,0.08)" : "#fff", color: newKeyInfo.label === s ? "#1B3A5C" : "#717171", cursor: "pointer", fontFamily: "inherit" }}>{s}</button>
+                  ))}
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                  <input type="text" value={newKeyInfo.label} onChange={e => setNewKeyInfo(p => ({ ...p, label: e.target.value }))} placeholder="Label *  (e.g. WiFi password)" style={{ border: "1.5px solid #E8E8E8", borderRadius: "10px", padding: "9px 12px", fontSize: "13px", outline: "none", fontFamily: "inherit" }} />
+                  <input type="text" value={newKeyInfo.value} onChange={e => setNewKeyInfo(p => ({ ...p, value: e.target.value }))} placeholder="Value *" style={{ border: "1.5px solid #E8E8E8", borderRadius: "10px", padding: "9px 12px", fontSize: "13px", outline: "none", fontFamily: "inherit" }} />
+                </div>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <button
+                    disabled={!newKeyInfo.label.trim() || !newKeyInfo.value.trim()}
+                    onClick={async () => {
+                      if (!newKeyInfo.label.trim() || !newKeyInfo.value.trim() || !tripId) return;
+                      const res = await fetch(`/api/trips/${tripId}/vault/keyinfo`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(newKeyInfo) });
+                      if (!res.ok) return;
+                      const saved = await res.json();
+                      setKeyInfo(p => [...p, saved]);
+                      setShowAddKeyInfo(false);
+                      setNewKeyInfo({ label: "", value: "" });
+                    }}
+                    style={{ flex: 1, padding: "10px", borderRadius: "10px", border: "none", backgroundColor: newKeyInfo.label.trim() && newKeyInfo.value.trim() ? "#1B3A5C" : "#E0E0E0", color: newKeyInfo.label.trim() && newKeyInfo.value.trim() ? "#fff" : "#aaa", fontSize: "13px", fontWeight: 700, cursor: newKeyInfo.label.trim() && newKeyInfo.value.trim() ? "pointer" : "default", fontFamily: "inherit" }}
+                  >
+                    Save
+                  </button>
+                  <button onClick={() => { setShowAddKeyInfo(false); setNewKeyInfo({ label: "", value: "" }); }} style={{ padding: "10px 16px", borderRadius: "10px", border: "1px solid #E8E8E8", backgroundColor: "#fff", color: "#717171", fontSize: "13px", cursor: "pointer", fontFamily: "inherit" }}>
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {keyInfo.length === 0 && !showAddKeyInfo ? (
+              <p style={{ fontSize: "13px", color: "#bbb", fontStyle: "italic" }}>WiFi passwords, check-in times, PINs, addresses…</p>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                {keyInfo.map(k => (
+                  <div key={k.id} style={{ backgroundColor: "#fff", border: "1px solid #EEEEEE", borderRadius: "12px", padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px" }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{ fontSize: "12px", color: "#717171", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>{k.label}</span>
+                      <p style={{ fontSize: "14px", fontWeight: 700, color: "#1a1a1a", marginTop: "2px", wordBreak: "break-all" }}>{k.value}</p>
+                    </div>
+                    <button onClick={async () => { await fetch(`/api/trips/${tripId}/vault/keyinfo/${k.id}`, { method: "DELETE" }); setKeyInfo(p => p.filter(x => x.id !== k.id)); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#D0D0D0", padding: "2px", flexShrink: 0 }} title="Delete">
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+        </div>
+      )}
+
       {tab === "recommended" && (
         <RecommendedContent
           tripId={tripId}
