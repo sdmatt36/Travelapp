@@ -62,6 +62,7 @@ import { TripMap } from "@/components/features/trips/TripMap";
 import { DropLinkModal } from "@/components/features/home/DropLinkModal";
 import { RecommendationDrawer, type DrawerRec } from "@/components/features/trips/RecommendationDrawer";
 import { AddFlightModal } from "@/components/flights/AddFlightModal";
+import { AddActivityModal } from "@/components/activities/AddActivityModal";
 import { parseDateForDisplay } from "@/lib/dates";
 
 type Tab = "saved" | "itinerary" | "recommended" | "packing";
@@ -86,6 +87,22 @@ type Flight = {
   notes?: string | null;
   dayIndex?: number | null;
   status?: string;
+};
+
+type Activity = {
+  id: string;
+  title: string;
+  date: string;
+  time?: string | null;
+  endTime?: string | null;
+  venueName?: string | null;
+  website?: string | null;
+  price?: number | null;
+  currency?: string | null;
+  notes?: string | null;
+  status: string;
+  confirmationCode?: string | null;
+  dayIndex?: number | null;
 };
 
 // ── Shared sub-components ────────────────────────────────────────────────────
@@ -1221,7 +1238,7 @@ function BudgetPromptBanner({ tripId }: { tripId?: string }) {
   );
 }
 
-function ItineraryContent({ flyTarget, onFlyTargetConsumed, tripId, tripStartDate, tripEndDate, onSwitchToRecommended, destinationCity, destinationCountry, flights = [] }: {
+function ItineraryContent({ flyTarget, onFlyTargetConsumed, tripId, tripStartDate, tripEndDate, onSwitchToRecommended, destinationCity, destinationCountry, flights = [], activities = [] }: {
   flyTarget: { lat: number; lng: number } | null;
   onFlyTargetConsumed: () => void;
   tripId?: string;
@@ -1231,6 +1248,7 @@ function ItineraryContent({ flyTarget, onFlyTargetConsumed, tripId, tripStartDat
   destinationCity?: string | null;
   destinationCountry?: string | null;
   flights?: Flight[];
+  activities?: Activity[];
 }) {
   const isDesktop = useIsDesktop();
   const [openDay, setOpenDay] = useState(0); // -1 = all collapsed
@@ -1330,6 +1348,7 @@ function ItineraryContent({ flyTarget, onFlyTargetConsumed, tripId, tripStartDat
                   const isOpen = openDay === i;
                   const dayItems = recAdditions.filter(a => a.dayIndex === dayIndex);
                   const dayFlights = flights.filter(f => f.dayIndex === dayIndex && f.status === "booked");
+                  const dayActivities = activities.filter(a => a.dayIndex === dayIndex && (a.status === "confirmed" || a.status === "booked"));
                   return (
                     <div key={i} style={{ borderBottom: i < tripDays.length - 1 ? "1px solid rgba(0,0,0,0.06)" : "none" }}>
 
@@ -1342,19 +1361,22 @@ function ItineraryContent({ flyTarget, onFlyTargetConsumed, tripId, tripStartDat
                         <div style={{ display: "flex", alignItems: "center", gap: "8px", flex: 1, minWidth: 0, overflow: "hidden" }}>
                           <span style={{ fontSize: "14px", fontWeight: 700, color: "#1a1a1a", whiteSpace: "nowrap" }}>{label}</span>
                           <span style={{ fontSize: "13px", color: "#717171", whiteSpace: "nowrap" }}>{date}</span>
-                          {!isOpen && (dayItems.length > 0 || dayFlights.length > 0) && (
+                          {!isOpen && (dayItems.length > 0 || dayFlights.length > 0 || dayActivities.length > 0) && (
                             <div style={{ display: "flex", gap: "4px", overflow: "hidden", minWidth: 0 }}>
                               {dayFlights.slice(0, 1).map((f) => (
                                 <span key={f.id} style={{ fontSize: "11px", background: "rgba(27,58,92,0.1)", color: "#1B3A5C", borderRadius: "999px", padding: "2px 8px", whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: "3px" }}>
                                   <Plane size={10} />{f.fromAirport}→{f.toAirport}
                                 </span>
                               ))}
+                              {dayActivities.slice(0, 1).map((a) => (
+                                <span key={a.id} style={{ fontSize: "11px", background: "rgba(107,143,113,0.1)", color: "#4a7c59", borderRadius: "999px", padding: "2px 8px", whiteSpace: "nowrap" }}>{a.title}</span>
+                              ))}
                               {dayItems.slice(0, 2).map((a) => (
                                 <span key={a.title} style={{ fontSize: "11px", background: "rgba(0,0,0,0.06)", color: "#666", borderRadius: "999px", padding: "2px 8px", whiteSpace: "nowrap" }}>{a.title}</span>
                               ))}
                             </div>
                           )}
-                          {!isOpen && dayItems.length === 0 && dayFlights.length === 0 && (
+                          {!isOpen && dayItems.length === 0 && dayFlights.length === 0 && dayActivities.length === 0 && (
                             <span style={{ fontSize: "12px", color: "#bbb", fontStyle: "italic" }}>No activities</span>
                           )}
                         </div>
@@ -1375,6 +1397,22 @@ function ItineraryContent({ flyTarget, onFlyTargetConsumed, tripId, tripStartDat
                               </div>
                               {f.confirmationCode && (
                                 <span style={{ fontSize: "11px", color: "#1B3A5C", fontWeight: 600, backgroundColor: "rgba(27,58,92,0.08)", borderRadius: "999px", padding: "2px 8px", whiteSpace: "nowrap" }}>{f.confirmationCode}</span>
+                              )}
+                            </div>
+                          ))}
+
+                          {/* Activities (confirmed/booked) for this day */}
+                          {dayActivities.map(a => (
+                            <div key={a.id} style={{ backgroundColor: "#F5FBF5", border: "1.5px solid #C8E0CA", borderRadius: "10px", padding: "10px 12px", marginBottom: "8px", display: "flex", alignItems: "center", gap: "10px" }}>
+                              <Compass size={14} style={{ color: "#6B8F71", flexShrink: 0 }} />
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <p style={{ fontSize: "13px", fontWeight: 700, color: "#1a1a1a" }}>{a.title}</p>
+                                <p style={{ fontSize: "12px", color: "#717171" }}>
+                                  {a.time ?? ""}{a.endTime ? ` – ${a.endTime}` : ""}{a.venueName ? ` · ${a.venueName}` : ""}
+                                </p>
+                              </div>
+                              {a.confirmationCode && (
+                                <span style={{ fontSize: "11px", color: "#4a7c59", fontWeight: 600, backgroundColor: "rgba(107,143,113,0.12)", borderRadius: "999px", padding: "2px 8px", whiteSpace: "nowrap" }}>{a.confirmationCode}</span>
                               )}
                             </div>
                           ))}
@@ -2352,6 +2390,64 @@ function FlightCard({ flight, onDelete, onMarkBooked }: { flight: Flight; onDele
   );
 }
 
+// ── Activity card ─────────────────────────────────────────────────────────────
+
+function ActivityCard({ activity, onDelete, onMarkBooked }: { activity: Activity; onDelete: () => void; onMarkBooked?: () => void }) {
+  const isBooked = activity.status === "booked";
+  const isConfirmed = activity.status === "confirmed";
+  const statusColor = isBooked ? "#6B8F71" : isConfirmed ? "#1B3A5C" : "#717171";
+  const statusBg = isBooked ? "rgba(107,143,113,0.1)" : isConfirmed ? "rgba(27,58,92,0.1)" : "rgba(0,0,0,0.06)";
+  const statusLabel = isBooked ? "Booked" : isConfirmed ? "Confirmed" : "Interested";
+  return (
+    <div style={{ backgroundColor: "#fff", border: `1.5px solid ${isBooked || isConfirmed ? "#D8E4F0" : "#EEEEEE"}`, borderRadius: "14px", padding: "14px 16px", marginBottom: "10px" }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "8px" }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {/* Title + status badge */}
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px", flexWrap: "wrap" }}>
+            <span style={{ fontSize: "15px", fontWeight: 800, color: "#1a1a1a" }}>{activity.title}</span>
+            <span style={{ fontSize: "11px", backgroundColor: statusBg, color: statusColor, borderRadius: "999px", padding: "2px 8px", fontWeight: 600 }}>{statusLabel}</span>
+          </div>
+          {/* Date + time */}
+          <p style={{ fontSize: "13px", color: "#555", marginBottom: "4px" }}>
+            {activity.date}{activity.time ? ` · ${activity.time}` : ""}{activity.endTime ? ` – ${activity.endTime}` : ""}
+          </p>
+          {/* Venue */}
+          {activity.venueName && (
+            <p style={{ fontSize: "12px", color: "#717171", marginBottom: "4px" }}>{activity.venueName}</p>
+          )}
+          {/* Meta row */}
+          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
+            {activity.price != null && (
+              <span style={{ fontSize: "12px", color: "#555" }}>{activity.currency ?? "USD"} {activity.price.toFixed(2)}</span>
+            )}
+            {activity.confirmationCode && (
+              <span style={{ fontSize: "12px", color: "#555", fontFamily: "monospace" }}>{activity.confirmationCode}</span>
+            )}
+            {activity.website && (
+              <a href={activity.website} target="_blank" rel="noopener noreferrer" style={{ fontSize: "12px", color: "#C4664A", fontWeight: 600 }}>Book →</a>
+            )}
+            {!isBooked && !isConfirmed && onMarkBooked && (
+              <button onClick={onMarkBooked} style={{ fontSize: "12px", color: "#C4664A", fontWeight: 600, background: "none", border: "none", cursor: "pointer", padding: 0 }}>
+                Mark as booked →
+              </button>
+            )}
+          </div>
+          {activity.notes && (
+            <p style={{ fontSize: "12px", color: "#888", marginTop: "6px", fontStyle: "italic" }}>{activity.notes}</p>
+          )}
+        </div>
+        <button
+          onClick={onDelete}
+          style={{ flexShrink: 0, background: "none", border: "none", cursor: "pointer", color: "#ccc", padding: "2px", lineHeight: 1 }}
+          title="Remove activity"
+        >
+          <Trash2 size={16} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ── Main export ───────────────────────────────────────────────────────────────
 
 type SavedRec = {
@@ -2367,7 +2463,9 @@ export function TripTabContent({ initialTab = "saved", tripId, tripTitle, tripSt
   const [itineraryVersion, setItineraryVersion] = useState(0);
   const [dropLinkOpen, setDropLinkOpen] = useState(false);
   const [showFlightModal, setShowFlightModal] = useState(false);
+  const [showActivityModal, setShowActivityModal] = useState(false);
   const [flights, setFlights] = useState<Flight[]>([]);
+  const [activities, setActivities] = useState<Activity[]>([]);
 
   const fetchFlights = useCallback(() => {
     if (!tripId) return;
@@ -2377,11 +2475,24 @@ export function TripTabContent({ initialTab = "saved", tripId, tripTitle, tripSt
       .catch(e => console.error("[fetchFlights]", e));
   }, [tripId]);
 
+  const fetchActivities = useCallback(() => {
+    if (!tripId) return;
+    fetch(`/api/trips/${tripId}/activities`)
+      .then(r => r.json())
+      .then((data: Activity[]) => setActivities(Array.isArray(data) ? data : []))
+      .catch(e => console.error("[fetchActivities]", e));
+  }, [tripId]);
+
   useEffect(() => {
     fetchFlights();
+    fetchActivities();
     window.addEventListener("flokk:refresh", fetchFlights);
-    return () => window.removeEventListener("flokk:refresh", fetchFlights);
-  }, [fetchFlights]);
+    window.addEventListener("flokk:refresh", fetchActivities);
+    return () => {
+      window.removeEventListener("flokk:refresh", fetchFlights);
+      window.removeEventListener("flokk:refresh", fetchActivities);
+    };
+  }, [fetchFlights, fetchActivities]);
 
   function handleDeleteFlight(flightId: string) {
     if (!tripId) return;
@@ -2399,6 +2510,24 @@ export function TripTabContent({ initialTab = "saved", tripId, tripTitle, tripSt
     })
       .then(() => setFlights(prev => prev.map(f => f.id === flightId ? { ...f, status: "booked" } : f)))
       .catch(e => console.error("[markBooked]", e));
+  }
+
+  function handleDeleteActivity(activityId: string) {
+    if (!tripId) return;
+    fetch(`/api/trips/${tripId}/activities/${activityId}`, { method: "DELETE" })
+      .then(() => fetchActivities())
+      .catch(e => console.error("[deleteActivity]", e));
+  }
+
+  function handleMarkActivityBooked(activityId: string) {
+    if (!tripId) return;
+    fetch(`/api/trips/${tripId}/activities/${activityId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "booked" }),
+    })
+      .then(() => setActivities(prev => prev.map(a => a.id === activityId ? { ...a, status: "booked" } : a)))
+      .catch(e => console.error("[markActivityBooked]", e));
   }
 
   const tripAsModalEntry = tripId
@@ -2472,6 +2601,19 @@ export function TripTabContent({ initialTab = "saved", tripId, tripTitle, tripSt
               <Plane size={12} /> Flight
             </button>
             <button
+              onClick={() => setShowActivityModal(true)}
+              style={{
+                display: "flex", alignItems: "center", gap: "4px",
+                padding: "6px 12px",
+                backgroundColor: "transparent", color: "#1B3A5C",
+                border: "1.5px solid #1B3A5C", borderRadius: "20px",
+                fontSize: "12px", fontWeight: 700, cursor: "pointer",
+                whiteSpace: "nowrap",
+              }}
+            >
+              <Compass size={12} /> Activity
+            </button>
+            <button
               onClick={() => setDropLinkOpen(true)}
               style={{
                 display: "flex", alignItems: "center", gap: "4px",
@@ -2509,6 +2651,14 @@ export function TripTabContent({ initialTab = "saved", tripId, tripTitle, tripSt
         />
       )}
 
+      {showActivityModal && tripId && (
+        <AddActivityModal
+          tripId={tripId}
+          onClose={() => setShowActivityModal(false)}
+          onSaved={() => { setShowActivityModal(false); fetchActivities(); }}
+        />
+      )}
+
       {tab === "saved" && (
         <>
           {flights.length > 0 && (
@@ -2522,10 +2672,21 @@ export function TripTabContent({ initialTab = "saved", tripId, tripTitle, tripSt
               ))}
             </div>
           )}
+          {activities.length > 0 && (
+            <div style={{ marginBottom: "20px" }}>
+              <div style={{ fontSize: "11px", fontWeight: 700, color: "#717171", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "10px", paddingBottom: "8px", borderBottom: "1px solid #EEEEEE", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span>Activities</span>
+                <span style={{ fontSize: "11px", color: "#bbb", fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>{activities.length}</span>
+              </div>
+              {activities.map(a => (
+                <ActivityCard key={a.id} activity={a} onDelete={() => handleDeleteActivity(a.id)} onMarkBooked={() => handleMarkActivityBooked(a.id)} />
+              ))}
+            </div>
+          )}
           <SavedContent tripId={tripId} tripStartDate={tripStartDate} tripEndDate={tripEndDate} tripTitle={tripTitle} />
         </>
       )}
-      {tab === "itinerary" && <ItineraryContent key={itineraryVersion} flyTarget={flyTarget} onFlyTargetConsumed={() => setFlyTarget(null)} tripId={tripId} tripStartDate={tripStartDate} tripEndDate={tripEndDate} onSwitchToRecommended={() => setTab("recommended")} destinationCity={destinationCity} destinationCountry={destinationCountry} flights={flights} />}
+      {tab === "itinerary" && <ItineraryContent key={itineraryVersion} flyTarget={flyTarget} onFlyTargetConsumed={() => setFlyTarget(null)} tripId={tripId} tripStartDate={tripStartDate} tripEndDate={tripEndDate} onSwitchToRecommended={() => setTab("recommended")} destinationCity={destinationCity} destinationCountry={destinationCountry} flights={flights} activities={activities} />}
       {tab === "packing" && <PackingContent tripId={tripId} />}
       {tab === "recommended" && (
         <RecommendedContent
