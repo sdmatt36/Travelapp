@@ -476,22 +476,29 @@ const TRIP_DAYS = [
   { dayIndex: 4, label: "Day 5", date: "Thu May 8" },
 ];
 
+function parseDateLocal(iso: string): Date {
+  // Extract YYYY-MM-DD and construct as local midnight to avoid UTC offset shifting the day
+  const datePart = iso.split("T")[0];
+  const [y, m, d] = datePart.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
 function generateTripDays(
   startDate: string | null,
   endDate: string | null
 ): { dayIndex: number; label: string; date: string }[] {
   if (!startDate) return TRIP_DAYS;
-  const start = new Date(startDate);
+  const start = parseDateLocal(startDate);
   if (isNaN(start.getTime())) return TRIP_DAYS;
-  const end = endDate ? new Date(endDate) : start;
+  const end = endDate ? parseDateLocal(endDate) : start;
   if (isNaN(end.getTime())) return TRIP_DAYS;
   const diff = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
   const n = Math.max(1, diff + 1);
   const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   return Array.from({ length: n }, (_, i) => {
-    const d = new Date(start.getTime() + i * 86400000);
-    const dateStr = `${DAY_NAMES[d.getDay()]} ${MONTH_NAMES[d.getMonth()]} ${d.getDate()}`;
+    const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
+    const dateStr = `${DAY_NAMES[d.getDay()]} ${MONTH_NAMES[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
     return { dayIndex: i, label: `Day ${i + 1}`, date: dateStr };
   });
 }
