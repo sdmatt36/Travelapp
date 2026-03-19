@@ -14,7 +14,7 @@ export async function GET(
 
   const user = await db.user.findUnique({
     where: { clerkId: userId },
-    include: { familyProfile: { include: { interestKeys: true } } },
+    include: { familyProfile: true },
   });
   if (!user?.familyProfile) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
@@ -26,9 +26,7 @@ export async function GET(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  const interestKeys = (user.familyProfile as { interestKeys?: { key: string }[] }).interestKeys?.map((k: { key: string }) => k.key) ?? [];
-
-  return NextResponse.json({ item, interestKeys });
+  return NextResponse.json({ item, interestKeys: item.interestKeys ?? [] });
 }
 
 export async function PATCH(
