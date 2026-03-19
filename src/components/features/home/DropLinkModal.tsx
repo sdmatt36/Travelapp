@@ -71,6 +71,15 @@ export function DropLinkModal({
     requestAnimationFrame(() => setVisible(true));
   }, []);
 
+  // Auto-trigger extraction 700ms after user stops typing/pasting a valid URL
+  useEffect(() => {
+    const trimmed = url.trim();
+    if (!trimmed || !/^https?:\/\//.test(trimmed) || step !== "input") return;
+    const timer = setTimeout(() => handleSubmitUrl(), 700);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [url]);
+
   function animateClose(cb?: () => void) {
     setVisible(false);
     setTimeout(() => {
