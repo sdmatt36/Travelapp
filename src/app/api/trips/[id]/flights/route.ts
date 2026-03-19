@@ -65,7 +65,7 @@ export async function POST(
     const [dy, dm, dd] = departureDate.split("-").map(Number);
     const dep = new Date(dy, dm - 1, dd);
     const diff = Math.round((dep.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-    dayIndex = diff + 1; // Day 1 = trip start date
+    dayIndex = diff; // 0-indexed: Day 1 = dayIndex 0, matches generateTripDays
   }
 
   const flight = await db.flight.create({
