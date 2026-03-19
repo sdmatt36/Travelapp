@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { CreditCard, X, Trash2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { X, Trash2 } from "lucide-react";
 
 const CARD_SUGGESTIONS = [
   "Chase Sapphire Reserve",
@@ -23,7 +23,7 @@ interface CardEntry {
   cardType: "personal" | "travel";
   cardName: string;
   network: string;
-  last4: string;
+  lastFour: string | null;
 }
 
 const inputSt: React.CSSProperties = {
@@ -37,20 +37,22 @@ const labelSt: React.CSSProperties = {
   textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "6px",
 };
 
-function CardModal({ onClose, onAdd }: { onClose: () => void; onAdd: (card: CardEntry) => void }) {
+function CardModal({ onClose, onAdd }: { onClose: () => void; onAdd: (card: Omit<CardEntry, "id">) => Promise<void> }) {
   const [cardType, setCardType] = useState<"personal" | "travel">("travel");
   const [cardName, setCardName] = useState("");
   const [network, setNetwork] = useState("");
   const [last4, setLast4] = useState("");
+  const [saving, setSaving] = useState(false);
 
-  function handleAdd() {
-    onAdd({
-      id: `${Date.now()}`,
+  async function handleAdd() {
+    setSaving(true);
+    await onAdd({
       cardType,
       cardName: cardName.trim() || "Card",
       network: network || "Other",
-      last4,
+      lastFour: last4 || null,
     });
+    setSaving(false);
     onClose();
   }
 
@@ -172,13 +174,15 @@ function CardModal({ onClose, onAdd }: { onClose: () => void; onAdd: (card: Card
           </button>
           <button
             onClick={handleAdd}
+            disabled={saving}
             style={{
               backgroundColor: "#1B3A5C", color: "#fff", border: "none",
               borderRadius: "8px", padding: "10px 24px", fontSize: "14px",
-              fontWeight: 500, cursor: "pointer",
+              fontWeight: 500, cursor: saving ? "not-allowed" : "pointer",
+              opacity: saving ? 0.7 : 1,
             }}
           >
-            Add card
+            {saving ? "Saving..." : "Add card"}
           </button>
         </div>
       </div>
@@ -202,17 +206,60 @@ function NetworkInitial({ network }: { network: string }) {
 export function PaymentSection() {
   const [cards, setCards] = useState<CardEntry[]>([]);
   const [showModal, setShowModal] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  function removeCard(id: string) {
+  useEffect(() => {
+    fetch("/api/profile/payment")
+      .then((r) => r.json())
+      .then((data: Array<{ id: string; cardName: string; cardType: string; network: string; lastFour: string | null }>) => {
+        if (!Array.isArray(data)) return;
+        setCards(data.map((c) => ({
+          id: c.id,
+          cardName: c.cardName,
+          cardType: c.cardType as "personal" | "travel",
+          network: c.network,
+          lastFour: c.lastFour,
+        })));
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  async function handleAdd(card: Omit<CardEntry, "id">) {
+    const res = await fetch("/api/profile/payment", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        cardName: card.cardName,
+        cardType: card.cardType,
+        network: card.network,
+        lastFour: card.lastFour,
+      }),
+    });
+    if (!res.ok) return;
+    const saved = await res.json();
+    setCards((c) => [...c, {
+      id: saved.id,
+      cardName: saved.cardName,
+      cardType: saved.cardType,
+      network: saved.network,
+      lastFour: saved.lastFour,
+    }]);
+  }
+
+  async function removeCard(id: string) {
+    await fetch(`/api/profile/payment?id=${id}`, { method: "DELETE" });
     setCards((c) => c.filter((x) => x.id !== id));
   }
+
+  if (loading) return <p style={{ color: "#717171", fontSize: "14px" }}>Loading...</p>;
 
   return (
     <>
       {showModal && (
         <CardModal
           onClose={() => setShowModal(false)}
-          onAdd={(card) => setCards((c) => [...c, card])}
+          onAdd={handleAdd}
         />
       )}
 
@@ -223,8 +270,7 @@ export function PaymentSection() {
             border: "1px dashed #E8E8E8", padding: "48px 24px",
             display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center",
           }}>
-            <CreditCard size={32} style={{ color: "#C4664A" }} />
-            <p style={{ color: "#1B3A5C", fontWeight: 500, fontSize: "15px", marginTop: "12px", marginBottom: 0 }}>
+            <p style={{ color: "#1B3A5C", fontWeight: 500, fontSize: "15px", margin: "0 0 0" }}>
               No payment methods yet
             </p>
             <p style={{ color: "#717171", fontSize: "14px", maxWidth: "360px", marginTop: "8px", lineHeight: 1.5 }}>
@@ -255,7 +301,7 @@ export function PaymentSection() {
                       {card.cardName}
                     </p>
                     <p style={{ fontSize: "13px", color: "#717171", margin: "2px 0 0" }}>
-                      {card.last4 ? `•••• ${card.last4}` : card.network}
+                      {card.lastFour ? `•••• ${card.lastFour}` : card.network}
                     </p>
                   </div>
                 </div>

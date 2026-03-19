@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X } from "lucide-react";
 
 const AIRLINES = [
@@ -20,8 +20,10 @@ const CAR_RENTAL = [
 ];
 
 interface LoyaltyEntry {
+  id: string;
   program: string;
   memberNumber: string;
+  programType: string;
 }
 
 interface CategoryState {
@@ -32,37 +34,34 @@ interface CategoryState {
 function LoyaltyCategory({
   title,
   programs,
+  programType,
   state,
   onChange,
+  onAdd,
+  onRemove,
+  onUpdateNumber,
 }: {
   title: string;
   programs: string[];
+  programType: string;
   state: CategoryState;
   onChange: (s: CategoryState) => void;
+  onAdd: (name: string, memberNumber: string, programType: string) => Promise<void>;
+  onRemove: (id: string) => Promise<void>;
+  onUpdateNumber: (id: string, memberNumber: string) => void;
 }) {
   const addedNames = new Set(state.added.map((e) => e.program));
 
-  function addProgram(name: string) {
+  async function addProgram(name: string) {
     if (addedNames.has(name)) return;
-    onChange({ ...state, added: [...state.added, { program: name, memberNumber: "" }] });
+    await onAdd(name, "", programType);
   }
 
-  function removeProgram(name: string) {
-    onChange({ ...state, added: state.added.filter((e) => e.program !== name) });
-  }
-
-  function updateNumber(program: string, memberNumber: string) {
-    onChange({
-      ...state,
-      added: state.added.map((e) => (e.program === program ? { ...e, memberNumber } : e)),
-    });
-  }
-
-  function handleAdd() {
+  async function handleAdd() {
     const name = state.search.trim();
     if (!name) return;
-    addProgram(name);
-    onChange({ ...state, search: "", added: [...state.added, { program: name, memberNumber: "" }] });
+    onChange({ ...state, search: "" });
+    await onAdd(name, "", programType);
   }
 
   return (
@@ -72,7 +71,7 @@ function LoyaltyCategory({
       {state.added.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "16px" }}>
           {state.added.map((entry) => (
-            <div key={entry.program} style={{
+            <div key={entry.id} style={{
               display: "flex", alignItems: "center", gap: "12px",
               backgroundColor: "#fff", border: "1px solid #E8E8E8",
               borderRadius: "8px", padding: "10px 14px",
@@ -82,14 +81,22 @@ function LoyaltyCategory({
               </span>
               <input
                 value={entry.memberNumber}
-                onChange={(e) => updateNumber(entry.program, e.target.value)}
+                onChange={(e) => onUpdateNumber(entry.id, e.target.value)}
+                onBlur={async (e) => {
+                  // PATCH member number on blur
+                  await fetch(`/api/profile/loyalty?id=${entry.id}`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ memberNumber: e.target.value }),
+                  });
+                }}
                 placeholder="Member number (optional)"
                 style={{
                   flex: 1, border: "none", outline: "none", fontSize: "14px",
                   color: "#1a1a1a", backgroundColor: "transparent",
                 }}
               />
-              <button onClick={() => removeProgram(entry.program)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, flexShrink: 0 }}>
+              <button onClick={() => onRemove(entry.id)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, flexShrink: 0 }}>
                 <X size={15} style={{ color: "#717171" }} />
               </button>
             </div>
@@ -138,18 +145,84 @@ function LoyaltyCategory({
   );
 }
 
-const empty = (): CategoryState => ({ added: [], search: "" });
+const emptyState = (): CategoryState => ({ added: [], search: "" });
 
 export function LoyaltySection() {
-  const [airlines, setAirlines] = useState<CategoryState>(empty);
-  const [hotels, setHotels] = useState<CategoryState>(empty);
-  const [cars, setCars] = useState<CategoryState>(empty);
+  const [airlines, setAirlines] = useState<CategoryState>(emptyState);
+  const [hotels, setHotels] = useState<CategoryState>(emptyState);
+  const [cars, setCars] = useState<CategoryState>(emptyState);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/profile/loyalty")
+      .then((r) => r.json())
+      .then((data: Array<{ id: string; programName: string; memberNumber: string; programType: string }>) => {
+        if (!Array.isArray(data)) return;
+        const toEntry = (p: { id: string; programName: string; memberNumber: string; programType: string }): LoyaltyEntry => ({
+          id: p.id,
+          program: p.programName,
+          memberNumber: p.memberNumber,
+          programType: p.programType,
+        });
+        setAirlines((s) => ({ ...s, added: data.filter((p) => p.programType === "airline").map(toEntry) }));
+        setHotels((s) => ({ ...s, added: data.filter((p) => p.programType === "hotel").map(toEntry) }));
+        setCars((s) => ({ ...s, added: data.filter((p) => p.programType === "car").map(toEntry) }));
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  async function handleAdd(programName: string, memberNumber: string, programType: string) {
+    const res = await fetch("/api/profile/loyalty", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ programName, memberNumber, programType }),
+    });
+    if (!res.ok) return;
+    const saved = await res.json();
+    const entry: LoyaltyEntry = {
+      id: saved.id,
+      program: saved.programName,
+      memberNumber: saved.memberNumber,
+      programType: saved.programType,
+    };
+    if (programType === "airline") setAirlines((s) => ({ ...s, added: [...s.added, entry] }));
+    else if (programType === "hotel") setHotels((s) => ({ ...s, added: [...s.added, entry] }));
+    else setCars((s) => ({ ...s, added: [...s.added, entry] }));
+  }
+
+  async function handleRemove(id: string) {
+    await fetch(`/api/profile/loyalty?id=${id}`, { method: "DELETE" });
+    const removeById = (s: CategoryState): CategoryState => ({
+      ...s, added: s.added.filter((e) => e.id !== id),
+    });
+    setAirlines(removeById);
+    setHotels(removeById);
+    setCars(removeById);
+  }
+
+  function handleUpdateNumber(id: string, memberNumber: string) {
+    const update = (s: CategoryState): CategoryState => ({
+      ...s, added: s.added.map((e) => e.id === id ? { ...e, memberNumber } : e),
+    });
+    setAirlines(update);
+    setHotels(update);
+    setCars(update);
+  }
+
+  if (loading) return <p style={{ color: "#717171", fontSize: "14px" }}>Loading...</p>;
+
+  const sharedProps = {
+    onAdd: handleAdd,
+    onRemove: handleRemove,
+    onUpdateNumber: handleUpdateNumber,
+  };
 
   return (
     <div style={{ backgroundColor: "#fff", borderRadius: "12px", border: "1px solid #E8E8E8", padding: "24px" }}>
-      <LoyaltyCategory title="Airlines" programs={AIRLINES} state={airlines} onChange={setAirlines} />
-      <LoyaltyCategory title="Hotels" programs={HOTELS} state={hotels} onChange={setHotels} />
-      <LoyaltyCategory title="Car Rental" programs={CAR_RENTAL} state={cars} onChange={setCars} />
+      <LoyaltyCategory title="Airlines" programs={AIRLINES} programType="airline" state={airlines} onChange={setAirlines} {...sharedProps} />
+      <LoyaltyCategory title="Hotels" programs={HOTELS} programType="hotel" state={hotels} onChange={setHotels} {...sharedProps} />
+      <LoyaltyCategory title="Car Rental" programs={CAR_RENTAL} programType="car" state={cars} onChange={setCars} {...sharedProps} />
     </div>
   );
 }

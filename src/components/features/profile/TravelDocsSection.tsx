@@ -7,38 +7,17 @@ interface Member {
   name: string | null;
   role: "ADULT" | "CHILD";
   birthDate: string | null;
-}
-
-interface PassportData {
-  passportCountry: string;
-  passportNumber: string;
-  citizenshipCountry: string;
-  issueDate: string;
-  expiryDate: string;
-  globalEntry: string;
-  nexus: string;
-  redress: string;
-  ktn: string;
-  visaNotes: string;
-}
-
-function emptyPassport(): PassportData {
-  return {
-    passportCountry: "", passportNumber: "", citizenshipCountry: "",
-    issueDate: "", expiryDate: "", globalEntry: "", nexus: "", redress: "", ktn: "", visaNotes: "",
-  };
-}
-
-function loadPassport(id: string): PassportData | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = localStorage.getItem(`flokk_passport_${id}`);
-    return raw ? { ...emptyPassport(), ...JSON.parse(raw) } : null;
-  } catch { return null; }
-}
-
-function savePassport(id: string, data: PassportData) {
-  try { localStorage.setItem(`flokk_passport_${id}`, JSON.stringify(data)); } catch { /* ignore */ }
+  // travel doc fields (may be null when first loaded)
+  passportCountry?: string | null;
+  passportNumber?: string | null;
+  citizenshipCountry?: string | null;
+  passportIssueDate?: string | null;
+  passportExpiryDate?: string | null;
+  globalEntry?: string | null;
+  nexus?: string | null;
+  redress?: string | null;
+  ktn?: string | null;
+  visaNotes?: string | null;
 }
 
 function mask(num: string): string {
@@ -60,16 +39,17 @@ function isExpired(expiryDate: string): boolean {
   return new Date(expiryDate) < new Date();
 }
 
-function fmtDate(d: string): string {
+function fmtDate(d: string | null | undefined): string {
   if (!d) return "—";
-  try { return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }); }
-  catch { return d; }
+  try {
+    return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  } catch { return d; }
 }
 
 const inputSt: React.CSSProperties = {
-  width: "100%", padding: "8px 12px", border: "1px solid #E8E8E8",
-  borderRadius: "8px", fontSize: "14px", color: "#1a1a1a",
-  backgroundColor: "#fff", outline: "none", boxSizing: "border-box",
+  padding: "6px 10px", border: "1px solid #E8E8E8",
+  borderRadius: "6px", fontSize: "14px", color: "#1a1a1a",
+  backgroundColor: "#fff", outline: "none",
 };
 
 const labelSt: React.CSSProperties = {
@@ -82,19 +62,220 @@ const sectionHeading: React.CSSProperties = {
   textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "12px",
 };
 
-function ValueOrAdd({ value, onAdd }: { value: string; onAdd: () => void }) {
-  if (value) return <span style={{ fontSize: "14px", color: "#1B3A5C" }}>{value}</span>;
+// Converts ISO datetime string from DB to yyyy-MM-dd for date inputs
+function toDateInput(val: string | null | undefined): string {
+  if (!val) return "";
+  try { return new Date(val).toISOString().slice(0, 10); }
+  catch { return ""; }
+}
+
+function InlineField({
+  memberId,
+  fieldKey,
+  label,
+  displayValue,
+  inputType,
+  inputValue,
+  openField,
+  setOpenField,
+  onSaved,
+  masked,
+}: {
+  memberId: string;
+  fieldKey: string;
+  label: string;
+  displayValue: string;
+  inputType?: string;
+  inputValue: string;
+  openField: string | null;
+  setOpenField: (f: string | null) => void;
+  onSaved: (field: string, value: string) => void;
+  masked?: boolean;
+}) {
+  const [localVal, setLocalVal] = useState(inputValue);
+  const [saving, setSaving] = useState(false);
+  const isOpen = openField === fieldKey;
+
+  // Sync local val when inputValue changes from parent
+  useEffect(() => {
+    if (!isOpen) setLocalVal(inputValue);
+  }, [inputValue, isOpen]);
+
+  async function save() {
+    setSaving(true);
+    const res = await fetch("/api/profile/travel-docs", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ memberId, field: fieldKey, value: localVal }),
+    });
+    setSaving(false);
+    if (res.ok) {
+      onSaved(fieldKey, localVal);
+      setOpenField(null);
+    }
+  }
+
   return (
-    <button onClick={onAdd} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "13px", color: "#C4664A", fontWeight: 500, padding: 0 }}>
-      — Add
-    </button>
+    <div>
+      <p style={labelSt}>{label}</p>
+      {isOpen ? (
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "4px" }}>
+          <input
+            type={inputType ?? "text"}
+            style={{ ...inputSt, flex: 1 }}
+            value={localVal}
+            onChange={(e) => setLocalVal(e.target.value)}
+            autoFocus
+          />
+          <button
+            onClick={save}
+            disabled={saving}
+            style={{
+              backgroundColor: "#1B3A5C", color: "#fff", border: "none",
+              borderRadius: "6px", padding: "6px 14px", fontSize: "13px",
+              fontWeight: 500, cursor: saving ? "not-allowed" : "pointer",
+              opacity: saving ? 0.7 : 1, flexShrink: 0,
+            }}
+          >
+            {saving ? "…" : "Save"}
+          </button>
+          <button
+            onClick={() => { setLocalVal(inputValue); setOpenField(null); }}
+            style={{
+              background: "none", border: "none", cursor: "pointer",
+              fontSize: "13px", color: "#717171", padding: 0, flexShrink: 0,
+            }}
+          >
+            Cancel
+          </button>
+        </div>
+      ) : (
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "3px" }}>
+          <span style={{ fontSize: "14px", color: displayValue ? "#1a1a1a" : "#CCCCCC" }}>
+            {displayValue ? (masked ? mask(displayValue) : displayValue) : "—"}
+          </span>
+          <button
+            onClick={() => { setLocalVal(inputValue); setOpenField(fieldKey); }}
+            style={{
+              background: "none", border: "none", cursor: "pointer",
+              fontSize: "12px", color: "#C4664A", fontWeight: 500, padding: 0,
+            }}
+          >
+            {displayValue ? "Edit" : "+ Add"}
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
 
-function DocCard({ member }: { member: Member }) {
-  const [editing, setEditing] = useState(false);
-  const [passport, setPassport] = useState<PassportData | null>(() => loadPassport(member.id));
-  const [form, setForm] = useState<PassportData>(() => loadPassport(member.id) ?? emptyPassport());
+function InlineTextareaField({
+  memberId,
+  fieldKey,
+  label,
+  displayValue,
+  openField,
+  setOpenField,
+  onSaved,
+}: {
+  memberId: string;
+  fieldKey: string;
+  label: string;
+  displayValue: string;
+  openField: string | null;
+  setOpenField: (f: string | null) => void;
+  onSaved: (field: string, value: string) => void;
+}) {
+  const [localVal, setLocalVal] = useState(displayValue);
+  const [saving, setSaving] = useState(false);
+  const isOpen = openField === fieldKey;
+
+  useEffect(() => {
+    if (!isOpen) setLocalVal(displayValue);
+  }, [displayValue, isOpen]);
+
+  async function save() {
+    setSaving(true);
+    const res = await fetch("/api/profile/travel-docs", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ memberId, field: fieldKey, value: localVal }),
+    });
+    setSaving(false);
+    if (res.ok) {
+      onSaved(fieldKey, localVal);
+      setOpenField(null);
+    }
+  }
+
+  return (
+    <div>
+      <p style={labelSt}>{label}</p>
+      {isOpen ? (
+        <div style={{ marginTop: "4px" }}>
+          <textarea
+            style={{ ...inputSt, width: "100%", resize: "vertical", boxSizing: "border-box" }}
+            rows={3}
+            value={localVal}
+            onChange={(e) => setLocalVal(e.target.value)}
+            placeholder="e.g. US passport — visa on arrival for Japan."
+            autoFocus
+          />
+          <div style={{ display: "flex", gap: "8px", marginTop: "6px" }}>
+            <button
+              onClick={save}
+              disabled={saving}
+              style={{
+                backgroundColor: "#1B3A5C", color: "#fff", border: "none",
+                borderRadius: "6px", padding: "6px 14px", fontSize: "13px",
+                fontWeight: 500, cursor: saving ? "not-allowed" : "pointer",
+                opacity: saving ? 0.7 : 1,
+              }}
+            >
+              {saving ? "Saving…" : "Save"}
+            </button>
+            <button
+              onClick={() => { setLocalVal(displayValue); setOpenField(null); }}
+              style={{
+                background: "none", border: "none", cursor: "pointer",
+                fontSize: "13px", color: "#717171", padding: 0,
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div style={{ marginTop: "3px" }}>
+          {displayValue ? (
+            <p style={{ fontSize: "14px", color: "#717171", lineHeight: 1.5, margin: 0 }}>{displayValue}</p>
+          ) : (
+            <p style={{ fontSize: "13px", color: "#CCCCCC", margin: 0 }}>
+              e.g. US passport — visa on arrival for Japan.
+            </p>
+          )}
+          <button
+            onClick={() => { setLocalVal(displayValue); setOpenField(fieldKey); }}
+            style={{
+              background: "none", border: "none", cursor: "pointer",
+              fontSize: "12px", color: "#C4664A", fontWeight: 500, padding: "4px 0 0",
+            }}
+          >
+            {displayValue ? "Edit" : "+ Add"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DocCard({ member: initialMember }: { member: Member }) {
+  const [member, setMember] = useState<Member>(initialMember);
+  const [openField, setOpenField] = useState<string | null>(null);
+
+  function handleSaved(field: string, value: string) {
+    setMember((m) => ({ ...m, [field]: value }));
+  }
 
   const rolePill = (
     <span style={{
@@ -106,22 +287,11 @@ function DocCard({ member }: { member: Member }) {
     </span>
   );
 
-  function handleSave() {
-    savePassport(member.id, form);
-    setPassport(form);
-    setEditing(false);
-  }
+  const sharedProps = { memberId: member.id, openField, setOpenField, onSaved: handleSaved };
 
-  function f(key: keyof PassportData) {
-    return {
-      value: form[key],
-      onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-        setForm((p) => ({ ...p, [key]: e.target.value })),
-    };
-  }
-
-  const hasPassport = passport && (passport.passportNumber || passport.passportCountry);
-  const hasPrograms = passport && (passport.ktn || passport.globalEntry || passport.nexus || passport.redress);
+  const expiryForDisplay = member.passportExpiryDate
+    ? fmtDate(member.passportExpiryDate)
+    : "—";
 
   return (
     <div style={{ backgroundColor: "#fff", borderRadius: "12px", border: "1px solid #E8E8E8", padding: "24px" }}>
@@ -131,196 +301,184 @@ function DocCard({ member }: { member: Member }) {
           {member.name || "Unnamed traveler"}
         </span>
         {rolePill}
-        <button
-          onClick={() => setEditing(true)}
-          style={{ background: "none", border: "none", cursor: "pointer", fontSize: "13px", fontWeight: 500, color: "#C4664A", padding: 0 }}
-        >
-          Edit
-        </button>
       </div>
 
-      {!editing ? (
-        <>
-          {/* Passport subsection */}
-          <div style={{ borderTop: "1px solid #E8E8E8", paddingTop: "16px", marginTop: "4px" }}>
-            <p style={sectionHeading}>Passport</p>
-            {hasPassport ? (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4">
-                <div>
-                  <p style={labelSt}>Issuing country</p>
-                  <p style={{ fontSize: "14px", color: "#1a1a1a", margin: "3px 0 0" }}>{passport!.passportCountry || "—"}</p>
-                </div>
-                <div>
-                  <p style={labelSt}>Passport number</p>
-                  <p style={{ fontSize: "14px", color: "#1a1a1a", margin: "3px 0 0" }}>{mask(passport!.passportNumber)}</p>
-                </div>
-                <div>
-                  <p style={labelSt}>Citizenship</p>
-                  <p style={{ fontSize: "14px", color: "#1a1a1a", margin: "3px 0 0" }}>{passport!.citizenshipCountry || "—"}</p>
-                </div>
-                <div>
-                  <p style={labelSt}>Issue date</p>
-                  <p style={{ fontSize: "14px", color: "#1a1a1a", margin: "3px 0 0" }}>{fmtDate(passport!.issueDate)}</p>
-                </div>
-                <div>
-                  <p style={labelSt}>Expiry date</p>
-                  <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "3px" }}>
-                    <p style={{ fontSize: "14px", color: "#1a1a1a", margin: 0 }}>{fmtDate(passport!.expiryDate)}</p>
-                    {passport!.expiryDate && isExpiringSoon(passport!.expiryDate) && (
-                      <span style={{
-                        fontSize: "11px", fontWeight: 600, padding: "1px 8px",
-                        borderRadius: "999px", backgroundColor: "#FEF3C7", color: "#92400E",
-                      }}>
-                        Expires soon
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div>
-                  <p style={labelSt}>Status</p>
-                  <p style={{
-                    fontSize: "13px", fontWeight: 600, margin: "3px 0 0",
-                    color: passport!.expiryDate && isExpired(passport!.expiryDate) ? "#e53e3e" : "#16a34a",
+      {/* Passport subsection */}
+      <div style={{ borderTop: "1px solid #E8E8E8", paddingTop: "16px", marginTop: "4px" }}>
+        <p style={sectionHeading}>Passport</p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4">
+          <InlineField
+            fieldKey="passportCountry"
+            label="Issuing country"
+            displayValue={member.passportCountry || ""}
+            inputValue={member.passportCountry || ""}
+            {...sharedProps}
+          />
+          <InlineField
+            fieldKey="passportNumber"
+            label="Passport number"
+            displayValue={member.passportNumber || ""}
+            inputValue={member.passportNumber || ""}
+            masked
+            {...sharedProps}
+          />
+          <InlineField
+            fieldKey="citizenshipCountry"
+            label="Citizenship"
+            displayValue={member.citizenshipCountry || ""}
+            inputValue={member.citizenshipCountry || ""}
+            {...sharedProps}
+          />
+          <InlineField
+            fieldKey="passportIssueDate"
+            label="Issue date"
+            displayValue={fmtDate(member.passportIssueDate)}
+            inputType="date"
+            inputValue={toDateInput(member.passportIssueDate)}
+            {...sharedProps}
+          />
+          <div>
+            <p style={labelSt}>Expiry date</p>
+            {openField === "passportExpiryDate" ? (
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "4px" }}>
+                <ExpiryDateField
+                  memberId={member.id}
+                  currentValue={toDateInput(member.passportExpiryDate)}
+                  onSaved={(val) => { handleSaved("passportExpiryDate", val); setOpenField(null); }}
+                  onCancel={() => setOpenField(null)}
+                />
+              </div>
+            ) : (
+              <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "3px" }}>
+                <span style={{ fontSize: "14px", color: member.passportExpiryDate ? "#1a1a1a" : "#CCCCCC" }}>
+                  {expiryForDisplay}
+                </span>
+                {member.passportExpiryDate && isExpiringSoon(member.passportExpiryDate) && (
+                  <span style={{
+                    fontSize: "11px", fontWeight: 600, padding: "1px 8px",
+                    borderRadius: "999px", backgroundColor: "#FEF3C7", color: "#92400E",
                   }}>
-                    {passport!.expiryDate ? (isExpired(passport!.expiryDate) ? "Expired" : "Valid") : "—"}
-                  </p>
-                </div>
+                    Expires soon
+                  </span>
+                )}
+                <button
+                  onClick={() => setOpenField("passportExpiryDate")}
+                  style={{ background: "none", border: "none", cursor: "pointer", fontSize: "12px", color: "#C4664A", fontWeight: 500, padding: 0 }}
+                >
+                  {member.passportExpiryDate ? "Edit" : "+ Add"}
+                </button>
               </div>
-            ) : (
-              <button
-                onClick={() => setEditing(true)}
-                style={{ background: "none", border: "none", cursor: "pointer", fontSize: "14px", color: "#C4664A", fontWeight: 500, padding: 0 }}
-              >
-                + Add passport details
-              </button>
             )}
           </div>
-
-          {/* Trusted Traveler subsection */}
-          <div style={{ borderTop: "1px solid #E8E8E8", paddingTop: "16px", marginTop: "16px" }}>
-            <p style={sectionHeading}>Trusted Traveler Programs</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-              <div>
-                <p style={labelSt}>TSA PreCheck / KTN</p>
-                <div style={{ marginTop: "3px" }}>
-                  <ValueOrAdd value={passport?.ktn || ""} onAdd={() => setEditing(true)} />
-                </div>
-              </div>
-              <div>
-                <p style={labelSt}>Global Entry</p>
-                <div style={{ marginTop: "3px" }}>
-                  <ValueOrAdd value={passport?.globalEntry || ""} onAdd={() => setEditing(true)} />
-                </div>
-              </div>
-              <div>
-                <p style={labelSt}>NEXUS number</p>
-                <div style={{ marginTop: "3px" }}>
-                  <ValueOrAdd value={passport?.nexus || ""} onAdd={() => setEditing(true)} />
-                </div>
-              </div>
-              <div>
-                <p style={labelSt}>Redress number</p>
-                <div style={{ marginTop: "3px" }}>
-                  <ValueOrAdd value={passport?.redress || ""} onAdd={() => setEditing(true)} />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Visa Notes subsection */}
-          <div style={{ borderTop: "1px solid #E8E8E8", paddingTop: "16px", marginTop: "16px" }}>
-            <p style={sectionHeading}>Visa Notes</p>
-            {passport?.visaNotes ? (
-              <p style={{ fontSize: "14px", color: "#717171", lineHeight: 1.5, margin: 0 }}>{passport.visaNotes}</p>
-            ) : (
-              <p style={{ fontSize: "13px", color: "#CCCCCC", margin: 0 }}>
-                e.g. US passport — visa on arrival for Japan. Indian passport — requires visa for Schengen.
-              </p>
-            )}
-          </div>
-        </>
-      ) : (
-        // Edit mode
-        <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-          <p style={{ fontSize: "12px", color: "#717171", margin: 0 }}>
-            Name is managed in the Travelers section.
-          </p>
-
           <div>
-            <p style={{ ...sectionHeading, marginBottom: "10px" }}>Passport</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label style={{ display: "block", ...labelSt, marginBottom: "4px" }}>Passport issuing country</label>
-                <input style={inputSt} {...f("passportCountry")} />
-              </div>
-              <div>
-                <label style={{ display: "block", ...labelSt, marginBottom: "4px" }}>Passport number</label>
-                <input style={inputSt} {...f("passportNumber")} />
-              </div>
-              <div>
-                <label style={{ display: "block", ...labelSt, marginBottom: "4px" }}>Citizenship country</label>
-                <input style={inputSt} {...f("citizenshipCountry")} />
-              </div>
-              <div>
-                <label style={{ display: "block", ...labelSt, marginBottom: "4px" }}>Issue date</label>
-                <input type="date" style={inputSt} {...f("issueDate")} />
-              </div>
-              <div>
-                <label style={{ display: "block", ...labelSt, marginBottom: "4px" }}>Expiry date</label>
-                <input type="date" style={inputSt} {...f("expiryDate")} />
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <p style={{ ...sectionHeading, marginBottom: "10px" }}>Trusted Traveler Programs</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label style={{ display: "block", ...labelSt, marginBottom: "4px" }}>TSA PreCheck / KTN</label>
-                <input style={inputSt} {...f("ktn")} />
-              </div>
-              <div>
-                <label style={{ display: "block", ...labelSt, marginBottom: "4px" }}>Global Entry number</label>
-                <input style={inputSt} {...f("globalEntry")} />
-              </div>
-              <div>
-                <label style={{ display: "block", ...labelSt, marginBottom: "4px" }}>NEXUS number</label>
-                <input style={inputSt} {...f("nexus")} />
-              </div>
-              <div>
-                <label style={{ display: "block", ...labelSt, marginBottom: "4px" }}>Redress number</label>
-                <input style={inputSt} {...f("redress")} />
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <label style={{ display: "block", ...labelSt, marginBottom: "4px" }}>Visa notes</label>
-            <textarea
-              style={{ ...inputSt, resize: "vertical" }}
-              rows={3}
-              placeholder="e.g. US passport — visa on arrival for Japan. Indian passport — requires visa for Schengen."
-              {...f("visaNotes")}
-            />
-          </div>
-
-          <div style={{ display: "flex", gap: "8px" }}>
-            <button
-              onClick={handleSave}
-              style={{ backgroundColor: "#1B3A5C", color: "#fff", border: "none", borderRadius: "8px", padding: "8px 18px", fontSize: "13px", fontWeight: 500, cursor: "pointer" }}
-            >
-              Save
-            </button>
-            <button
-              onClick={() => { setForm(passport ?? emptyPassport()); setEditing(false); }}
-              style={{ backgroundColor: "#fff", color: "#717171", border: "1px solid #E8E8E8", borderRadius: "8px", padding: "8px 18px", fontSize: "13px", cursor: "pointer" }}
-            >
-              Cancel
-            </button>
+            <p style={labelSt}>Status</p>
+            <p style={{
+              fontSize: "13px", fontWeight: 600, margin: "3px 0 0",
+              color: member.passportExpiryDate && isExpired(member.passportExpiryDate) ? "#e53e3e" : "#16a34a",
+            }}>
+              {member.passportExpiryDate ? (isExpired(member.passportExpiryDate) ? "Expired" : "Valid") : "—"}
+            </p>
           </div>
         </div>
-      )}
+      </div>
+
+      {/* Trusted Traveler subsection */}
+      <div style={{ borderTop: "1px solid #E8E8E8", paddingTop: "16px", marginTop: "16px" }}>
+        <p style={sectionHeading}>Trusted Traveler Programs</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+          <InlineField
+            fieldKey="ktn"
+            label="TSA PreCheck / KTN"
+            displayValue={member.ktn || ""}
+            inputValue={member.ktn || ""}
+            {...sharedProps}
+          />
+          <InlineField
+            fieldKey="globalEntry"
+            label="Global Entry"
+            displayValue={member.globalEntry || ""}
+            inputValue={member.globalEntry || ""}
+            {...sharedProps}
+          />
+          <InlineField
+            fieldKey="nexus"
+            label="NEXUS number"
+            displayValue={member.nexus || ""}
+            inputValue={member.nexus || ""}
+            {...sharedProps}
+          />
+          <InlineField
+            fieldKey="redress"
+            label="Redress number"
+            displayValue={member.redress || ""}
+            inputValue={member.redress || ""}
+            {...sharedProps}
+          />
+        </div>
+      </div>
+
+      {/* Visa Notes subsection */}
+      <div style={{ borderTop: "1px solid #E8E8E8", paddingTop: "16px", marginTop: "16px" }}>
+        <p style={sectionHeading}>Visa Notes</p>
+        <InlineTextareaField
+          fieldKey="visaNotes"
+          label=""
+          displayValue={member.visaNotes || ""}
+          {...sharedProps}
+        />
+      </div>
     </div>
+  );
+}
+
+// Separate component for expiry date to handle its own local state cleanly
+function ExpiryDateField({
+  memberId,
+  currentValue,
+  onSaved,
+  onCancel,
+}: {
+  memberId: string;
+  currentValue: string;
+  onSaved: (val: string) => void;
+  onCancel: () => void;
+}) {
+  const [val, setVal] = useState(currentValue);
+  const [saving, setSaving] = useState(false);
+
+  async function save() {
+    setSaving(true);
+    const res = await fetch("/api/profile/travel-docs", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ memberId, field: "passportExpiryDate", value: val }),
+    });
+    setSaving(false);
+    if (res.ok) onSaved(val);
+  }
+
+  return (
+    <>
+      <input type="date" style={{ ...inputSt, flex: 1 }} value={val} onChange={(e) => setVal(e.target.value)} autoFocus />
+      <button
+        onClick={save}
+        disabled={saving}
+        style={{
+          backgroundColor: "#1B3A5C", color: "#fff", border: "none",
+          borderRadius: "6px", padding: "6px 14px", fontSize: "13px",
+          fontWeight: 500, cursor: saving ? "not-allowed" : "pointer",
+          opacity: saving ? 0.7 : 1, flexShrink: 0,
+        }}
+      >
+        {saving ? "…" : "Save"}
+      </button>
+      <button
+        onClick={onCancel}
+        style={{ background: "none", border: "none", cursor: "pointer", fontSize: "13px", color: "#717171", padding: 0, flexShrink: 0 }}
+      >
+        Cancel
+      </button>
+    </>
   );
 }
 
