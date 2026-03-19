@@ -24,10 +24,15 @@ export function SourceFilterSaves({
 }) {
   const [filter, setFilter] = useState<SourceFilter>("ALL");
   const [dropLinkOpen, setDropLinkOpen] = useState(false);
+  const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
 
-  const filtered = filter === "ALL"
-    ? items
-    : items.filter(item => item.sourceType === filter);
+  function handleDelete(id: string) {
+    setDeletedIds(prev => new Set([...prev, id]));
+    fetch(`/api/saves/${id}`, { method: "DELETE" }).catch(e => console.error("[delete save]", e));
+  }
+
+  const filtered = (filter === "ALL" ? items : items.filter(item => item.sourceType === filter))
+    .filter(item => !deletedIds.has(item.id));
 
   // Show at most 6, already deduped by caller
   const visible = filtered.slice(0, 6);
@@ -81,7 +86,7 @@ export function SourceFilterSaves({
           <a href="/saves" style={{ fontSize: "13px", fontWeight: 600, color: "#C4664A", textDecoration: "none" }}>See all</a>
         </div>
         {visible.length > 0 ? (
-          <RecentSavesCards items={visible} />
+          <RecentSavesCards items={visible} onDelete={handleDelete} />
         ) : (
           <p style={{ fontSize: "13px", color: "#aaa", padding: "16px 0" }}>No saves from {filter.charAt(0) + filter.slice(1).toLowerCase()} yet.</p>
         )}

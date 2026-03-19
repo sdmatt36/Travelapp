@@ -56,6 +56,7 @@ import {
   DollarSign,
   Star,
   Bookmark,
+  Trash2,
 } from "lucide-react";
 import { TripMap } from "@/components/features/trips/TripMap";
 import { DropLinkModal } from "@/components/features/home/DropLinkModal";
@@ -661,13 +662,14 @@ function SavedDetailModal({ item, onClose }: { item: SavedDisplayItem; onClose: 
   );
 }
 
-function SavedHorizCard({ item, isDesktop, onAddToItinerary, onBook, onLearnMore, assignedDay }: {
+function SavedHorizCard({ item, isDesktop, onAddToItinerary, onBook, onLearnMore, assignedDay, onDelete }: {
   item: SavedDisplayItem;
   isDesktop: boolean;
   onAddToItinerary: () => void;
   onBook: () => void;
   onLearnMore: () => void;
   assignedDay?: number;
+  onDelete?: () => void;
 }) {
   const [imgFailed, setImgFailed] = useState(false);
   const thumbSize = isDesktop ? 96 : 72;
@@ -705,6 +707,11 @@ function SavedHorizCard({ item, isDesktop, onAddToItinerary, onBook, onLearnMore
               <button type="button" onClick={e => { e.stopPropagation(); onBook(); }} style={{ fontSize: "10px", fontWeight: 600, padding: "3px 8px", borderRadius: "20px", border: "1px solid #E0E0E0", backgroundColor: "transparent", color: "#555", cursor: "pointer", whiteSpace: "nowrap" }}>Book</button>
             )}
             <button type="button" onClick={e => { e.stopPropagation(); onLearnMore(); }} style={{ fontSize: "10px", fontWeight: 600, padding: "3px 8px", borderRadius: "20px", border: "1px solid #E0E0E0", backgroundColor: "transparent", color: "#555", cursor: "pointer", whiteSpace: "nowrap" }}>Learn more</button>
+            {onDelete && (
+              <button type="button" onClick={e => { e.stopPropagation(); onDelete(); }} style={{ fontSize: "10px", padding: "3px 6px", borderRadius: "20px", border: "1px solid rgba(220,53,69,0.25)", backgroundColor: "transparent", color: "#dc3545", cursor: "pointer", display: "flex", alignItems: "center" }}>
+                <Trash2 size={11} />
+              </button>
+            )}
           </div>
         )}
         <div style={{ display: "flex", alignItems: "center", gap: "4px", marginTop: "1px" }}>
@@ -850,6 +857,12 @@ function SavedContent({ tripId: tripIdProp, tripStartDate, tripEndDate, tripTitl
   }
   function handleBook(item: SavedDisplayItem) { const url = item.bookUrl ?? item.websiteUrl; if (url) window.open(url, "_blank"); }
   function handleLearnMore(item: SavedDisplayItem) { setDetailItem(item); }
+  function handleDeleteSave(item: SavedDisplayItem) {
+    if (!item.id) return;
+    fetch(`/api/saves/${item.id}`, { method: "DELETE" })
+      .then(() => fetchSaves())
+      .catch(e => console.error("[delete save]", e));
+  }
 
   function renderSection(section: { category: string; items: SavedDisplayItem[] }) {
     return (
@@ -867,6 +880,7 @@ function SavedContent({ tripId: tripIdProp, tripStartDate, tripEndDate, tripTitl
             onBook={() => handleBook(item)}
             onLearnMore={() => handleLearnMore(item)}
             assignedDay={assignedDays[item.title]}
+            onDelete={() => handleDeleteSave(item)}
           />
         ))}
       </div>
@@ -2356,7 +2370,7 @@ export function TripTabContent({ initialTab = "saved", tripId, tripTitle, tripSt
     : [];
 
   return (
-    <div style={{ padding: "0 24px", overflowX: "hidden", maxWidth: "900px", margin: "0 auto" }}>
+    <div style={{ padding: "0 24px", maxWidth: "900px", margin: "0 auto" }}>
       {/* Tab bar + Add button */}
       <div
         style={{

@@ -115,9 +115,8 @@ export function DropLinkModal({
         setStep("preview");
       } catch (err) {
         console.error("[modal] extraction failed:", err);
-        setExtracted({ title: "Saved link", location: "", tags: [], img: "", source: "Web", description: "" });
-        setEditedTitle("Saved link");
-        setStep("preview");
+        setStep("input");
+        setUrlError("Couldn't load link details. Check the URL and try again.");
       }
     }, 700);
     return () => clearTimeout(timer);

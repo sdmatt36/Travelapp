@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MapPin } from "lucide-react";
+import { MapPin, Trash2 } from "lucide-react";
 import { SaveDetailModal } from "@/components/features/saves/SaveDetailModal";
 
 export type RecentSaveItem = {
@@ -51,7 +51,7 @@ function getLocation(item: RecentSaveItem): string {
   return "";
 }
 
-export function RecentSavesCards({ items }: { items: RecentSaveItem[] }) {
+export function RecentSavesCards({ items, onDelete }: { items: RecentSaveItem[]; onDelete?: (id: string) => void }) {
   const [modalItemId, setModalItemId] = useState<string | null>(null);
 
   return (
@@ -60,7 +60,6 @@ export function RecentSavesCards({ items }: { items: RecentSaveItem[] }) {
         {items.map((item) => {
           const tags = item.categoryTags ?? [];
           const loc = getLocation(item);
-          const gradient = getGradient(tags);
           const imgSrc = getImageSrc(item);
           return (
             <div
@@ -68,11 +67,10 @@ export function RecentSavesCards({ items }: { items: RecentSaveItem[] }) {
               onClick={() => setModalItemId(item.id)}
               style={{ cursor: "pointer", textDecoration: "none" }}
             >
-              <div style={{ backgroundColor: "#FAFAFA", borderRadius: "12px", boxShadow: "0 1px 4px rgba(0,0,0,0.08)", overflow: "hidden" }}>
+              <div style={{ backgroundColor: "#FAFAFA", borderRadius: "12px", boxShadow: "0 1px 4px rgba(0,0,0,0.08)", overflow: "hidden", position: "relative" }}>
                 {imgSrc ? (
                   <div style={{
                     height: "130px",
-                    background: gradient,
                     backgroundImage: `url(${imgSrc})`,
                     backgroundSize: "cover",
                     backgroundPosition: "center",
@@ -80,7 +78,7 @@ export function RecentSavesCards({ items }: { items: RecentSaveItem[] }) {
                 ) : (
                   <div style={{
                     height: "130px",
-                    background: gradient,
+                    backgroundColor: "#1B3A5C",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -89,6 +87,15 @@ export function RecentSavesCards({ items }: { items: RecentSaveItem[] }) {
                       {(item.destinationCity || item.rawTitle || "?").charAt(0).toUpperCase()}
                     </span>
                   </div>
+                )}
+                {onDelete && (
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); onDelete(item.id); }}
+                    style={{ position: "absolute", top: "8px", right: "8px", background: "rgba(0,0,0,0.45)", border: "none", borderRadius: "50%", width: "28px", height: "28px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}
+                  >
+                    <Trash2 size={13} style={{ color: "#fff" }} />
+                  </button>
                 )}
                 <div style={{ padding: "12px" }}>
                   <p style={{ fontSize: "14px", fontWeight: 700, color: "#1a1a1a", marginBottom: "2px", lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical" }}>
