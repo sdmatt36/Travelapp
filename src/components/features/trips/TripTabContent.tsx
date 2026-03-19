@@ -65,7 +65,7 @@ import { AddFlightModal } from "@/components/flights/AddFlightModal";
 import { AddActivityModal } from "@/components/activities/AddActivityModal";
 import { parseDateForDisplay } from "@/lib/dates";
 
-type Tab = "saved" | "itinerary" | "recommended" | "packing";
+type Tab = "saved" | "itinerary" | "recommended" | "packing" | "notes";
 
 type Flight = {
   id: string;
@@ -2530,6 +2530,54 @@ export function TripTabContent({ initialTab = "saved", tripId, tripTitle, tripSt
       .catch(e => console.error("[markActivityBooked]", e));
   }
 
+  // ── Notes state ───────────────────────────────────────────────────────────
+  type TripNote = { id: string; content: string; checked: boolean; createdAt: string };
+  const [tripNotes, setTripNotes] = useState<TripNote[]>([]);
+  const [newNote, setNewNote] = useState("");
+  const [isAddingNote, setIsAddingNote] = useState(false);
+
+  useEffect(() => {
+    if (tab !== "notes" || !tripId) return;
+    fetch(`/api/trips/${tripId}/notes`)
+      .then(r => r.json())
+      .then(d => setTripNotes(Array.isArray(d) ? d : []))
+      .catch(console.error);
+  }, [tripId, tab]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function handleAddNote() {
+    if (!newNote.trim() || isAddingNote || !tripId) return;
+    setIsAddingNote(true);
+    try {
+      const res = await fetch(`/api/trips/${tripId}/notes`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: newNote }),
+      });
+      if (!res.ok) throw new Error("Failed");
+      const saved: TripNote = await res.json();
+      setTripNotes(prev => [...prev, saved]);
+      setNewNote("");
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsAddingNote(false);
+    }
+  }
+
+  async function handleToggleNote(id: string, checked: boolean) {
+    await fetch(`/api/trips/${tripId}/notes/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ checked: !checked }),
+    });
+    setTripNotes(prev => prev.map(n => n.id === id ? { ...n, checked: !n.checked } : n));
+  }
+
+  async function handleDeleteNote(id: string) {
+    await fetch(`/api/trips/${tripId}/notes/${id}`, { method: "DELETE" });
+    setTripNotes(prev => prev.filter(n => n.id !== id));
+  }
+
   const tripAsModalEntry = tripId
     ? [{ id: tripId, title: tripTitle ?? "This trip", startDate: tripStartDate ?? null, endDate: tripEndDate ?? null }]
     : [];
@@ -2555,7 +2603,7 @@ export function TripTabContent({ initialTab = "saved", tripId, tripTitle, tripSt
             msOverflowStyle: "none" as const,
           }}
         >
-          {(["Saved", "Itinerary", "Recommended", "Packing"] as const).map((label) => {
+          {(["Saved", "Itinerary", "Recommended", "Packing", "Notes"] as const).map((label) => {
             const key = label.toLowerCase() as Tab;
             const active = tab === key;
             return (
@@ -2688,6 +2736,147 @@ export function TripTabContent({ initialTab = "saved", tripId, tripTitle, tripSt
       )}
       {tab === "itinerary" && <ItineraryContent key={itineraryVersion} flyTarget={flyTarget} onFlyTargetConsumed={() => setFlyTarget(null)} tripId={tripId} tripStartDate={tripStartDate} tripEndDate={tripEndDate} onSwitchToRecommended={() => setTab("recommended")} destinationCity={destinationCity} destinationCountry={destinationCountry} flights={flights} activities={activities} />}
       {tab === "packing" && <PackingContent tripId={tripId} />}
+      {tab === "notes" && (
+        <div style={{ maxWidth: "600px" }}>
+          {/* Header */}
+          <div style={{ marginBottom: "20px" }}>
+            <p style={{ fontSize: "18px", fontWeight: 800, color: "#1a1a1a", marginBottom: "4px" }}>Trip notes</p>
+            <p style={{ fontSize: "13px", color: "#717171" }}>Reminders, things to check, ideas — everything in one place.</p>
+          </div>
+
+          {/* Add note input */}
+          <div style={{ display: "flex", gap: "8px", marginBottom: "20px" }}>
+            <input
+              type="text"
+              value={newNote}
+              onChange={e => setNewNote(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") handleAddNote(); }}
+              placeholder="Add a note or reminder..."
+              style={{
+                flex: 1,
+                border: "1.5px solid #E8E8E8",
+                borderRadius: "12px",
+                padding: "11px 14px",
+                fontSize: "14px",
+                color: "#1a1a1a",
+                outline: "none",
+                fontFamily: "inherit",
+              }}
+            />
+            <button
+              onClick={handleAddNote}
+              disabled={!newNote.trim() || isAddingNote}
+              style={{
+                padding: "11px 18px",
+                borderRadius: "12px",
+                border: "none",
+                backgroundColor: newNote.trim() && !isAddingNote ? "#1B3A5C" : "#E0E0E0",
+                color: newNote.trim() && !isAddingNote ? "#fff" : "#aaa",
+                fontSize: "13px",
+                fontWeight: 700,
+                cursor: newNote.trim() && !isAddingNote ? "pointer" : "default",
+                whiteSpace: "nowrap",
+                fontFamily: "inherit",
+              }}
+            >
+              + Add
+            </button>
+          </div>
+
+          {/* Notes list */}
+          {tripNotes.length === 0 ? (
+            <div style={{ padding: "40px 24px", textAlign: "center", border: "1.5px dashed #E0E0E0", borderRadius: "16px" }}>
+              <p style={{ fontSize: "15px", fontWeight: 700, color: "#1a1a1a", marginBottom: "6px" }}>No notes yet.</p>
+              <p style={{ fontSize: "13px", color: "#717171" }}>Add reminders, things to check, or anything related to this trip.</p>
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+              {[...tripNotes]
+                .sort((a, b) => Number(a.checked) - Number(b.checked))
+                .map(note => (
+                  <div
+                    key={note.id}
+                    style={{
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: "12px",
+                      padding: "12px 14px",
+                      borderRadius: "12px",
+                      backgroundColor: note.checked ? "#FAFAFA" : "#fff",
+                      border: "1px solid",
+                      borderColor: note.checked ? "#F0F0F0" : "#EEEEEE",
+                      marginBottom: "4px",
+                    }}
+                    className="group"
+                  >
+                    {/* Checkbox */}
+                    <button
+                      onClick={() => handleToggleNote(note.id, note.checked)}
+                      style={{
+                        flexShrink: 0,
+                        width: "20px",
+                        height: "20px",
+                        borderRadius: "50%",
+                        border: `2px solid ${note.checked ? "#1B3A5C" : "#C8C8C8"}`,
+                        backgroundColor: note.checked ? "#1B3A5C" : "transparent",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        cursor: "pointer",
+                        padding: 0,
+                        marginTop: "1px",
+                        transition: "all 0.15s",
+                      }}
+                    >
+                      {note.checked && (
+                        <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                          <path d="M1 4l3 3 5-6" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      )}
+                    </button>
+
+                    {/* Text */}
+                    <span style={{
+                      flex: 1,
+                      fontSize: "14px",
+                      color: note.checked ? "#aaa" : "#1a1a1a",
+                      textDecoration: note.checked ? "line-through" : "none",
+                      lineHeight: 1.5,
+                      wordBreak: "break-word",
+                    }}>
+                      {note.content}
+                    </span>
+
+                    {/* Delete */}
+                    <button
+                      onClick={() => handleDeleteNote(note.id)}
+                      style={{
+                        flexShrink: 0,
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        color: "#D0D0D0",
+                        padding: "2px",
+                        lineHeight: 1,
+                        marginTop: "1px",
+                      }}
+                      title="Delete note"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))}
+            </div>
+          )}
+
+          {/* Done count */}
+          {tripNotes.filter(n => n.checked).length > 0 && (
+            <p style={{ fontSize: "12px", color: "#aaa", marginTop: "12px", textAlign: "center" }}>
+              {tripNotes.filter(n => n.checked).length} of {tripNotes.length} done
+            </p>
+          )}
+        </div>
+      )}
       {tab === "recommended" && (
         <RecommendedContent
           tripId={tripId}
