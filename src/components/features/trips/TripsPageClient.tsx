@@ -227,12 +227,18 @@ function TripCard({ trip, onDelete }: { trip: Trip; onDelete: (id: string) => vo
   );
 }
 
-export function TripsPageClient({ trips: initialTrips }: { trips: Trip[] }) {
+export function TripsPageClient({
+  trips: initialTrips,
+  defaultTab = "upcoming",
+}: {
+  trips: Trip[];
+  defaultTab?: "upcoming" | "past";
+}) {
   const [trips, setTrips] = useState<Trip[]>(initialTrips);
   const upcoming = trips.filter((t) => t.status !== "COMPLETED");
   const past = trips.filter((t) => t.status === "COMPLETED");
 
-  const [tab, setTab] = useState<"upcoming" | "past">("upcoming");
+  const [tab, setTab] = useState<"upcoming" | "past">(defaultTab);
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const displayed = tab === "upcoming" ? upcoming : past;
 

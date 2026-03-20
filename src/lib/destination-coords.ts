@@ -94,11 +94,21 @@ const COORDS: Array<{ cities: string[]; countries: string[]; coords: [number, nu
   { cities: ["granada"], countries: [], coords: [-3.5986, 37.1773] },
 ];
 
-const DEFAULT: [number, number] = [0, 20]; // world center fallback
+// World center — obviously wrong rather than misleadingly wrong
+const DEFAULT: [number, number] = [20.0, 20.0];
 
 export const KNOWN_CITIES: string[] = Array.from(
   new Set(COORDS.flatMap((e) => e.cities).map((c) => c.replace(/\b\w/g, (l) => l.toUpperCase())))
 ).sort();
+
+// Safe substring match: requires key to be ≥4 chars to avoid
+// short aliases like "la" matching substrings of "sri lanka"
+function cityMatch(input: string, key: string): boolean {
+  if (input === key) return true;
+  if (key.length >= 4 && input.includes(key)) return true;
+  if (input.length >= 4 && key.includes(input)) return true;
+  return false;
+}
 
 export function getDestinationCoords(
   city: string | null | undefined,
@@ -107,14 +117,21 @@ export function getDestinationCoords(
   const c = (city ?? "").toLowerCase().trim();
   const co = (country ?? "").toLowerCase().trim();
 
-  for (const entry of COORDS) {
-    // City match (substring)
-    if (c && entry.cities.some((ec) => c.includes(ec) || ec.includes(c))) {
-      return entry.coords;
+  // Pass 1: city-only match across all entries (prevents early country fallback)
+  if (c) {
+    for (const entry of COORDS) {
+      if (entry.cities.some((ec) => cityMatch(c, ec))) {
+        return entry.coords;
+      }
     }
-    // Country match
-    if (co && entry.countries.some((ec) => co.includes(ec) || ec.includes(co))) {
-      return entry.coords;
+  }
+
+  // Pass 2: country-only match across all entries
+  if (co) {
+    for (const entry of COORDS) {
+      if (entry.countries.some((ec) => co.includes(ec) || ec.includes(co))) {
+        return entry.coords;
+      }
     }
   }
 

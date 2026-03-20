@@ -1121,7 +1121,7 @@ function PastTripBuilderForm() {
         {/* Header */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "24px" }}>
           <Link
-            href="/trips"
+            href="/trips?tab=past"
             style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "13px", color: MUTED, textDecoration: "none" }}
           >
             <ChevronLeft size={15} /> Back

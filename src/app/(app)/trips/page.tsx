@@ -5,9 +5,14 @@ import { TripsPageClient } from "@/components/features/trips/TripsPageClient";
 
 export const dynamic = "force-dynamic";
 
-export default async function TripsPage() {
+export default async function TripsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string }>;
+}) {
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
+  const { tab } = await searchParams;
 
   const user = await db.user.findUnique({
     where: { clerkId: userId },
@@ -39,5 +44,5 @@ export default async function TripsPage() {
     savedCount: t._count.savedItems,
   }));
 
-  return <TripsPageClient trips={trips} />;
+  return <TripsPageClient trips={trips} defaultTab={tab === "past" ? "past" : "upcoming"} />;
 }
