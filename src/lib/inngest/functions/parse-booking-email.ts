@@ -77,6 +77,10 @@ Return this exact JSON structure:
   "fromAirport": "IATA code or null",
   "toAirport": "IATA code or null",
   "airline": "string or null",
+  "returnDepartureDate": "YYYY-MM-DD or null",
+  "returnDepartureTime": "HH:MM or null",
+  "returnFromAirport": "IATA code or null",
+  "returnToAirport": "IATA code or null",
   "address": "string or null",
   "city": "string or null",
   "country": "string or null",
@@ -180,6 +184,29 @@ Return this exact JSON structure:
             dayIndex,
           },
         });
+
+        // Create return leg if email included return flight data
+        if (extracted.returnDepartureDate) {
+          await db.flight.create({
+            data: {
+              tripId: matchedTrip.id,
+              type: "return",
+              airline: extracted.airline ?? "",
+              flightNumber: (extracted.flightNumber ?? "") + " (return)",
+              fromAirport: extracted.returnFromAirport ?? extracted.toAirport ?? "",
+              fromCity: extracted.returnFromAirport ?? extracted.toAirport ?? "",
+              toAirport: extracted.returnToAirport ?? extracted.fromAirport ?? "",
+              toCity: extracted.returnToAirport ?? extracted.fromAirport ?? "",
+              departureDate: extracted.returnDepartureDate,
+              departureTime: extracted.returnDepartureTime ?? "",
+              arrivalDate: extracted.returnDepartureDate,
+              arrivalTime: null,
+              confirmationCode: extracted.confirmationCode ?? null,
+              status: "booked",
+              dayIndex: null,
+            },
+          });
+        }
 
         return { type: "flight", id: flight.id };
       } else if (extracted.type === "hotel" && extracted.vendorName) {

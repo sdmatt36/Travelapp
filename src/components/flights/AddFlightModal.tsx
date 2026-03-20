@@ -19,7 +19,8 @@ const CABIN_CLASSES = [
 
 const FLIGHT_TYPES = [
   { value: "outbound", label: "Outbound" },
-  { value: "return", label: "Return" },
+  { value: "round_trip", label: "Round Trip" },
+  { value: "return", label: "Return only" },
   { value: "connection", label: "Connection" },
 ];
 
@@ -43,6 +44,12 @@ export function AddFlightModal({ tripId, onClose, onSaved }: AddFlightModalProps
   const [seatNumbers, setSeatNumbers] = useState("");
   const [notes, setNotes] = useState("");
 
+  // Return leg (round trip only)
+  const [returnDate, setReturnDate] = useState("");
+  const [returnTime, setReturnTime] = useState("");
+  const [returnArrivalDate, setReturnArrivalDate] = useState("");
+  const [returnArrivalTime, setReturnArrivalTime] = useState("");
+
   const fromCity = AIRPORTS.find((a) => a.code === fromAirport)?.city ?? fromAirport;
   const toCity = AIRPORTS.find((a) => a.code === toAirport)?.city ?? toAirport;
 
@@ -58,11 +65,12 @@ export function AddFlightModal({ tripId, onClose, onSaved }: AddFlightModalProps
     setSaving(true);
     setError("");
     try {
+      const outboundType = type === "round_trip" ? "outbound" : type;
       const res = await fetch(`/api/trips/${tripId}/flights`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          type,
+          type: outboundType,
           airline,
           flightNumber,
           fromAirport,
@@ -82,6 +90,32 @@ export function AddFlightModal({ tripId, onClose, onSaved }: AddFlightModalProps
         }),
       });
       if (!res.ok) throw new Error("Failed to save flight");
+
+      // Save return leg for round trips
+      if (type === "round_trip" && returnDate) {
+        const retRes = await fetch(`/api/trips/${tripId}/flights`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "return",
+            airline,
+            flightNumber: flightNumber + " (return)",
+            fromAirport: toAirport,
+            fromCity: toCity,
+            toAirport: fromAirport,
+            toCity: fromCity,
+            departureDate: returnDate,
+            departureTime: returnTime || "",
+            arrivalDate: returnArrivalDate || returnDate,
+            arrivalTime: returnArrivalTime || null,
+            cabinClass,
+            confirmationCode: confirmationCode || null,
+            status: isBooked ? "booked" : "saved",
+          }),
+        });
+        if (!retRes.ok) throw new Error("Failed to save return flight");
+      }
+
       onSaved();
       onClose();
     } catch {
@@ -221,6 +255,49 @@ export function AddFlightModal({ tripId, onClose, onSaved }: AddFlightModalProps
           </div>
         </div>
 
+        {/* Return leg — round trip only */}
+        {type === "round_trip" && (
+          <div style={{ borderTop: "1.5px solid #E5E5E5", marginTop: "6px", paddingTop: "18px", marginBottom: "14px" }}>
+            <p style={{ fontSize: "13px", fontWeight: 700, color: "#1B3A5C", marginBottom: "14px", textTransform: "uppercase", letterSpacing: "0.06em" }}>↩ Return Flight</p>
+
+            {/* Auto-swapped route display */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "14px" }}>
+              <div>
+                <label style={labelStyle}>From</label>
+                <div style={{ ...inputStyle, backgroundColor: "#F5F5F5", color: "#717171" }}>{toAirport || "—"}</div>
+              </div>
+              <div>
+                <label style={labelStyle}>To</label>
+                <div style={{ ...inputStyle, backgroundColor: "#F5F5F5", color: "#717171" }}>{fromAirport || "—"}</div>
+              </div>
+            </div>
+
+            {/* Return departure */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "14px" }}>
+              <div>
+                <label style={labelStyle}>Return Date *</label>
+                <input type="date" value={returnDate} onChange={(e) => setReturnDate(e.target.value)} style={inputStyle} />
+              </div>
+              <div>
+                <label style={labelStyle}>Departure Time</label>
+                <input type="time" value={returnTime} onChange={(e) => setReturnTime(e.target.value)} style={inputStyle} />
+              </div>
+            </div>
+
+            {/* Return arrival (optional) */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+              <div>
+                <label style={labelStyle}>Arrival Date <span style={{ textTransform: "none", fontWeight: 400, fontSize: "10px" }}>(optional)</span></label>
+                <input type="date" value={returnArrivalDate} onChange={(e) => setReturnArrivalDate(e.target.value)} style={inputStyle} />
+              </div>
+              <div>
+                <label style={labelStyle}>Arrival Time <span style={{ textTransform: "none", fontWeight: 400, fontSize: "10px" }}>(optional)</span></label>
+                <input type="time" value={returnArrivalTime} onChange={(e) => setReturnArrivalTime(e.target.value)} style={inputStyle} />
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Duration + Cabin */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "14px" }}>
           <div>
@@ -288,7 +365,7 @@ export function AddFlightModal({ tripId, onClose, onSaved }: AddFlightModalProps
           disabled={saving || !canSave}
           style={{ width: "100%", padding: "14px", borderRadius: "12px", backgroundColor: saving || !canSave ? "#ccc" : "#1B3A5C", color: "#fff", fontSize: "15px", fontWeight: 700, border: "none", cursor: saving || !canSave ? "not-allowed" : "pointer" }}
         >
-          {saving ? "Saving…" : "Save Flight"}
+          {saving ? "Saving…" : type === "round_trip" ? "Save Both Flights" : "Save Flight"}
         </button>
       </div>
     </div>,
