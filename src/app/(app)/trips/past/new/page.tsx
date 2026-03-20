@@ -477,14 +477,16 @@ function Step2Links({
           onFocus={(e) => { e.currentTarget.style.borderColor = TERRA; }}
           onBlur={(e) => { e.currentTarget.style.borderColor = "#EEEEEE"; }}
         />
-        <button
-          type="button"
-          onClick={() => handleExtract(linkInput)}
-          disabled={isExtracting || !linkInput.startsWith("http")}
-          style={{ padding: "12px 16px", borderRadius: "12px", backgroundColor: TERRA, color: "#fff", fontWeight: 600, fontSize: "14px", border: "none", cursor: "pointer", whiteSpace: "nowrap", fontFamily: "inherit", opacity: isExtracting ? 0.6 : 1 }}
-        >
-          {isExtracting ? "Loading…" : "Extract →"}
-        </button>
+        {linkInput.length > 0 && (
+          <button
+            type="button"
+            onClick={() => handleExtract(linkInput)}
+            disabled={isExtracting || !linkInput.startsWith("http")}
+            style={{ padding: "12px 16px", borderRadius: "12px", backgroundColor: TERRA, color: "#fff", fontWeight: 600, fontSize: "14px", border: "none", cursor: "pointer", whiteSpace: "nowrap", fontFamily: "inherit", opacity: isExtracting || !linkInput.startsWith("http") ? 0.5 : 1 }}
+          >
+            {isExtracting ? "Loading…" : "Extract →"}
+          </button>
+        )}
       </div>
 
       {/* Link cards */}
@@ -497,7 +499,19 @@ function Step2Links({
                   <img src={link.imageUrl} alt="" style={{ width: "60px", height: "60px", objectFit: "cover", borderRadius: "8px", flexShrink: 0 }} />
                 )}
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: "14px", fontWeight: 700, color: "#1a1a1a", marginBottom: "4px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{link.title}</p>
+                  {(!link.title || link.title.startsWith("http")) ? (
+                    <input
+                      type="text"
+                      value={link.title?.startsWith("http") ? "" : (link.title ?? "")}
+                      onChange={(e) => updateLink(link.id, "title", e.target.value)}
+                      placeholder="Type the hotel or place name…"
+                      style={{ fontSize: "14px", fontWeight: 700, color: "#1B3A5C", borderBottom: "1.5px solid #EEEEEE", borderTop: "none", borderLeft: "none", borderRight: "none", width: "100%", paddingBottom: "4px", marginBottom: "4px", outline: "none", backgroundColor: "transparent", fontFamily: "inherit" }}
+                      onFocus={(e) => { e.currentTarget.style.borderBottomColor = TERRA; }}
+                      onBlur={(e) => { e.currentTarget.style.borderBottomColor = "#EEEEEE"; }}
+                    />
+                  ) : (
+                    <p style={{ fontSize: "14px", fontWeight: 700, color: "#1a1a1a", marginBottom: "4px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{link.title}</p>
+                  )}
                   <select
                     value={link.category}
                     onChange={(e) => updateLink(link.id, "category", e.target.value)}

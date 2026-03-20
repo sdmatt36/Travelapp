@@ -1,35 +1,80 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { detectPlatform } from "@/lib/extraction/detect-platform";
-import { parsePlatform } from "@/lib/extraction/platform-parsers";
-import { extractOgMetadata } from "@/lib/og-extract";
-import { resolveVenueImage } from "@/lib/extraction/resolve-image";
+import Anthropic from "@anthropic-ai/sdk";
 
-const PLATFORM_LABELS: Record<string, string> = {
-  booking_com:   "Booking.com",
-  airbnb:        "Airbnb",
-  google_maps:   "Google Maps",
-  getyourguide:  "GetYourGuide",
-  viator:        "Viator",
-  tripadvisor:   "TripAdvisor",
-  expedia:       "Expedia",
-  hotels_com:    "Hotels.com",
-  instagram:     "Instagram",
-  tiktok:        "TikTok",
-  unknown:       "Web",
-};
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-async function resolveShortUrl(url: string): Promise<string> {
+interface OgResult {
+  title: string | null;
+  imageUrl: string | null;
+  description: string | null;
+}
+
+async function fetchOgData(url: string): Promise<OgResult> {
+  // Try Microlink first — handles JS-rendered sites (Airbnb, Booking.com, etc.)
   try {
-    const res = await fetch(url, {
-      method: "HEAD",
-      redirect: "follow",
-      signal: AbortSignal.timeout(5000),
+    const endpoint = `https://api.microlink.io?url=${encodeURIComponent(url)}&screenshot=false`;
+    const res = await fetch(endpoint, {
+      headers: { "Content-Type": "application/json" },
+      signal: AbortSignal.timeout(8000),
     });
-    return res.url || url;
+    if (res.ok) {
+      const json = await res.json();
+      if (json.status === "success" && json.data?.title) {
+        const rawImage = json.data.image?.url ?? null;
+        return {
+          title: json.data.title ?? null,
+          imageUrl: rawImage?.startsWith("http") && !rawImage.includes("{") ? rawImage : null,
+          description: json.data.description ?? null,
+        };
+      }
+    }
+  } catch { /* fall through to direct fetch */ }
+
+  // Direct HTML fetch fallback
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 6000);
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
+        "Accept": "text/html,application/xhtml+xml",
+        "Accept-Language": "en-US,en;q=0.9",
+      },
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+
+    if (!res.ok) return { title: null, imageUrl: null, description: null };
+    const html = await res.text();
+
+    const getOg = (prop: string): string | null => {
+      const a = html.match(new RegExp(`<meta[^>]*property=["']og:${prop}["'][^>]*content=["']([^"']+)["']`, "i"))?.[1];
+      if (a) return a;
+      return html.match(new RegExp(`<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:${prop}["']`, "i"))?.[1] ?? null;
+    };
+
+    let title = getOg("title");
+    if (!title) {
+      const raw = html.match(/<title[^>]*>([^<]{3,})<\/title>/i)?.[1]?.trim();
+      if (raw) title = raw.replace(/\s*[|\-–—]\s*.{0,80}$/, "").trim() || null;
+    }
+
+    const rawImage = getOg("image");
+    const imageUrl = rawImage?.startsWith("http") && !rawImage.includes("{") ? rawImage : null;
+
+    return { title: title ?? null, imageUrl: imageUrl ?? null, description: getOg("description") ?? null };
   } catch {
-    return url;
+    return { title: null, imageUrl: null, description: null };
   }
+}
+
+function heuristicCategory(url: string): string {
+  const u = url.toLowerCase();
+  if (/hotel|inn|resort|lodge|hostel|suites?|ryokan|villa|metropolitan|granvia|hilton|marriott|hyatt|sheraton|westin|ritz/.test(u)) return "hotel";
+  if (/restaurant|cafe|dining|food|eat|bistro|izakaya|ramen|sushi/.test(u)) return "restaurant";
+  if (/museum|tour|ticket|guide|activity|experience|attraction/.test(u)) return "activity";
+  return "other";
 }
 
 export async function POST(request: Request) {
@@ -38,56 +83,68 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const rawUrl: string = body?.url;
-    if (!rawUrl) return NextResponse.json({ error: "URL required" }, { status: 400 });
+    const url: string = body?.url;
+    if (!url) return NextResponse.json({ error: "URL required" }, { status: 400 });
 
-    // Detect platform and resolve short URLs
-    let platform = detectPlatform(rawUrl);
-    let url = rawUrl;
+    // Step 1: Try HTML/OG extraction
+    let { title, imageUrl, description } = await fetchOgData(url);
+    console.log("[extract] OG result - title:", title, "| imageUrl:", imageUrl?.slice(0, 60) ?? "none");
 
-    if (platform === "google_maps_short") {
-      url = await resolveShortUrl(rawUrl);
-      platform = detectPlatform(url);
-      if (platform === "google_maps_short") platform = "google_maps";
-    }
+    // Step 2: If no good title, use Claude to infer venue name from URL
+    if (!title || title.startsWith("http")) {
+      console.log("[extract] No OG title — calling Claude to infer from URL");
+      try {
+        const msg = await anthropic.messages.create({
+          model: "claude-haiku-4-5-20251001",
+          max_tokens: 200,
+          messages: [{
+            role: "user",
+            content: `Given this URL: ${url}
 
-    // Platform-specific parsing (URL-only, instant)
-    const platformData = parsePlatform(platform, url);
-    console.log("[extract] URL:", url, "| platform:", platform, "| platformData:", JSON.stringify(platformData));
+Infer the venue or place name and category. Return ONLY a JSON object:
+{
+  "title": "The venue or place name (human-readable, not a URL)",
+  "category": "hotel|restaurant|activity|food|culture|shopping|transportation|other",
+  "city": "city name or null",
+  "country": "country name or null"
+}
 
-    // OG/Microlink metadata fetch
-    const og = await extractOgMetadata(url);
-    console.log("[extract] OG result:", JSON.stringify(og));
+Rules:
+- title must be a proper name like "Hotel Granvia Kyoto", not a URL
+- For hotel sites: use the hotel name
+- For restaurant sites: use the restaurant name
+- Infer from domain name, path segments, and TLD
+- Return only the JSON object, no markdown, no explanation`,
+          }],
+        });
 
-    // Sanitize image: reject template placeholders and non-http values
-    const rawImage = og.image ?? null;
-    const safeImage = rawImage && rawImage.startsWith("http") && !rawImage.includes("{") ? rawImage : null;
+        const text = (msg.content[0] as { type: string; text: string }).text.trim();
+        const parsed = JSON.parse(text.match(/\{[\s\S]+\}/)?.[0] ?? "{}");
+        console.log("[extract] Claude inferred:", JSON.stringify(parsed));
 
-    // Fall back to Google Places image if OG had no image
-    let venueImage: string | null = null;
-    if (!safeImage) {
-      const imageTitle = og.title ?? platformData.title ?? null;
-      if (imageTitle) {
-        venueImage = await resolveVenueImage(imageTitle).then(u => u ?? null).catch(() => null);
-        if (venueImage) console.log("[extract] Google Places image:", venueImage);
+        if (parsed.title && !parsed.title.startsWith("http")) {
+          return NextResponse.json({
+            title: parsed.title,
+            imageUrl,
+            description,
+            city: parsed.city ?? null,
+            country: parsed.country ?? null,
+            category: parsed.category ?? heuristicCategory(url),
+          });
+        }
+      } catch (err) {
+        console.error("[extract] Claude inference failed:", err);
       }
     }
 
-    // Merge: OG wins for title/image quality; platform fills dates/category
-    const result = {
-      title: og.title ?? platformData.title ?? null,
-      description: og.description ?? null,
-      image: safeImage ?? venueImage,
-      checkin: platformData.checkin ?? null,
-      checkout: platformData.checkout ?? null,
-      category: platformData.category ?? null,
-      platform: (platform as string) === "google_maps_short" ? "google_maps" : platform,
-      platformLabel: PLATFORM_LABELS[platform] ?? "Web",
-      resolvedUrl: url !== rawUrl ? url : null,
-    };
-
-    console.log("[extract] Final result:", JSON.stringify(result));
-    return NextResponse.json(result);
+    return NextResponse.json({
+      title: title ?? null,
+      imageUrl,
+      description,
+      city: null,
+      country: null,
+      category: heuristicCategory(url),
+    });
   } catch (err) {
     console.error("[api/extract] error:", err);
     return NextResponse.json({ error: "Extraction failed" }, { status: 500 });
