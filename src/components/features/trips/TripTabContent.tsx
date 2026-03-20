@@ -779,6 +779,7 @@ type ApiSavedItem = {
   extractedCheckin: string | null;
   extractedCheckout: string | null;
   isBooked: boolean;
+  dayIndex?: number | null;
 };
 
 function inferSavedCategory(item: ApiSavedItem): string {
@@ -824,7 +825,7 @@ function apiToDisplayItem(item: ApiSavedItem): SavedDisplayItem {
   };
 }
 
-function SavedContent({ tripId: tripIdProp, tripStartDate, tripEndDate, tripTitle }: { tripId?: string; tripStartDate?: string | null; tripEndDate?: string | null; tripTitle?: string }) {
+function SavedContent({ tripId: tripIdProp, tripStartDate, tripEndDate, tripTitle, onSwitchToItinerary }: { tripId?: string; tripStartDate?: string | null; tripEndDate?: string | null; tripTitle?: string; onSwitchToItinerary?: () => void }) {
   const isDesktop = useIsDesktop();
   const [dayPickerItem, setDayPickerItem] = useState<SavedDisplayItem | null>(null);
   const [lodgingDateItem, setLodgingDateItem] = useState<SavedDisplayItem | null>(null);
@@ -848,11 +849,15 @@ function SavedContent({ tripId: tripIdProp, tripStartDate, tripEndDate, tripTitl
           return;
         }
         const groups: Record<string, SavedDisplayItem[]> = {};
+        const preAssigned: Record<string, number> = {};
         for (const s of saves) {
           const cat = inferSavedCategory(s);
           if (!groups[cat]) groups[cat] = [];
-          groups[cat].push(apiToDisplayItem(s));
+          const display = apiToDisplayItem(s);
+          groups[cat].push(display);
+          if (s.dayIndex != null) preAssigned[display.title] = s.dayIndex;
         }
+        setAssignedDays(preAssigned);
         const left: { category: string; items: SavedDisplayItem[] }[] = [];
         const right: { category: string; items: SavedDisplayItem[] }[] = [];
         const LEFT_CATS = ["LODGING", "AIRFARE"];
@@ -1015,9 +1020,12 @@ function SavedContent({ tripId: tripIdProp, tripStartDate, tripEndDate, tripTitl
       )}
 
       {inlineToast && (
-        <div style={{ position: "fixed", bottom: "80px", left: "50%", transform: "translateX(-50%)", backgroundColor: "#1a1a1a", color: "#fff", fontSize: "13px", fontWeight: 600, padding: "10px 20px", borderRadius: "999px", zIndex: 9999, pointerEvents: "none", whiteSpace: "nowrap" }}>
+        <button
+          onClick={() => { if (onSwitchToItinerary) onSwitchToItinerary(); }}
+          style={{ position: "fixed", bottom: "80px", left: "50%", transform: "translateX(-50%)", backgroundColor: "#1a1a1a", color: "#fff", fontSize: "13px", fontWeight: 600, padding: "10px 20px", borderRadius: "999px", zIndex: 9999, whiteSpace: "nowrap", border: "none", cursor: onSwitchToItinerary ? "pointer" : "default" }}
+        >
           {inlineToast}
-        </div>
+        </button>
       )}
       {dayPickerItem && (
         <SavedDayPickerModal
@@ -1039,6 +1047,8 @@ function SavedContent({ tripId: tripIdProp, tripStartDate, tripEndDate, tripTitl
               }).catch(e => console.error("[ItineraryWrite] DB persist failed:", e));
             }
             setAssignedDays(prev => ({ ...prev, [dayPickerItem.title]: dayIndex }));
+            setInlineToast(`Added to Day ${dayIndex + 1} — tap to view itinerary →`);
+            setTimeout(() => setInlineToast(null), 4000);
             setDayPickerItem(null);
           }}
           onClose={() => setDayPickerItem(null)}
@@ -1241,7 +1251,7 @@ function BudgetPromptBanner({ tripId }: { tripId?: string }) {
   );
 }
 
-function ItineraryContent({ flyTarget, onFlyTargetConsumed, tripId, tripStartDate, tripEndDate, onSwitchToRecommended, destinationCity, destinationCountry, flights = [], activities = [] }: {
+function ItineraryContent({ flyTarget, onFlyTargetConsumed, tripId, tripStartDate, tripEndDate, onSwitchToRecommended, destinationCity, destinationCountry, flights = [], activities = [], onRemoveActivityFromDay, onMarkActivityBooked, onRemoveFlightFromDay }: {
   flyTarget: { lat: number; lng: number } | null;
   onFlyTargetConsumed: () => void;
   tripId?: string;
@@ -1252,6 +1262,9 @@ function ItineraryContent({ flyTarget, onFlyTargetConsumed, tripId, tripStartDat
   destinationCountry?: string | null;
   flights?: Flight[];
   activities?: Activity[];
+  onRemoveActivityFromDay?: (id: string) => void;
+  onMarkActivityBooked?: (id: string) => void;
+  onRemoveFlightFromDay?: (id: string) => void;
 }) {
   const isDesktop = useIsDesktop();
   const [openDay, setOpenDay] = useState(0); // -1 = all collapsed
@@ -1353,8 +1366,8 @@ function ItineraryContent({ flyTarget, onFlyTargetConsumed, tripId, tripStartDat
                 {tripDays.map(({ dayIndex, label, date }, i) => {
                   const isOpen = openDay === i;
                   const dayItems = recAdditions.filter(a => a.dayIndex === dayIndex);
-                  const dayFlights = flights.filter(f => f.dayIndex === dayIndex && f.status === "booked");
-                  const dayActivities = activities.filter(a => a.dayIndex === dayIndex && (a.status === "confirmed" || a.status === "booked"));
+                  const dayFlights = flights.filter(f => f.dayIndex === dayIndex);
+                  const dayActivities = activities.filter(a => a.dayIndex === dayIndex);
                   return (
                     <div key={i} style={{ borderBottom: i < tripDays.length - 1 ? "1px solid rgba(0,0,0,0.06)" : "none" }}>
 
@@ -1395,19 +1408,29 @@ function ItineraryContent({ flyTarget, onFlyTargetConsumed, tripId, tripStartDat
 
                           {/* Flights for this day */}
                           {dayFlights.map(f => (
-                            <div key={f.id} style={{ backgroundColor: "#F5F8FC", border: "1.5px solid #D8E4F0", borderRadius: "10px", padding: "10px 12px", marginBottom: "8px", display: "flex", alignItems: "center", gap: "10px" }}>
-                              <Plane size={14} style={{ color: "#1B3A5C", flexShrink: 0 }} />
-                              <div style={{ flex: 1, minWidth: 0 }}>
-                                <p style={{ fontSize: "13px", fontWeight: 700, color: "#1a1a1a" }}>{f.fromAirport} → {f.toAirport} · {f.airline} {f.flightNumber}</p>
-                                <p style={{ fontSize: "12px", color: "#717171" }}>{f.departureTime} → {f.arrivalTime}{f.duration ? ` · ${f.duration}` : ""}</p>
+                            <div key={f.id} style={{ backgroundColor: "#F5F8FC", border: "1.5px solid #D8E4F0", borderRadius: "10px", padding: "10px 12px", marginBottom: "8px" }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                                <Plane size={14} style={{ color: "#1B3A5C", flexShrink: 0 }} />
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <p style={{ fontSize: "13px", fontWeight: 700, color: "#1a1a1a" }}>{f.fromAirport} → {f.toAirport} · {f.airline} {f.flightNumber}</p>
+                                  <p style={{ fontSize: "12px", color: "#717171" }}>{f.departureTime} → {f.arrivalTime}{f.duration ? ` · ${f.duration}` : ""}</p>
+                                </div>
+                                {f.confirmationCode && (
+                                  <span style={{ fontSize: "11px", color: "#1B3A5C", fontWeight: 600, backgroundColor: "rgba(27,58,92,0.08)", borderRadius: "999px", padding: "2px 8px", whiteSpace: "nowrap" }}>{f.confirmationCode}</span>
+                                )}
+                                <span style={{ fontSize: "11px", backgroundColor: f.status === "booked" ? "rgba(27,58,92,0.1)" : "rgba(0,0,0,0.06)", color: f.status === "booked" ? "#1B3A5C" : "#888", borderRadius: "999px", padding: "2px 8px", fontWeight: 600, whiteSpace: "nowrap" }}>
+                                  {f.status === "booked" ? "Booked" : "Saved"}
+                                </span>
                               </div>
-                              {f.confirmationCode && (
-                                <span style={{ fontSize: "11px", color: "#1B3A5C", fontWeight: 600, backgroundColor: "rgba(27,58,92,0.08)", borderRadius: "999px", padding: "2px 8px", whiteSpace: "nowrap" }}>{f.confirmationCode}</span>
+                              {onRemoveFlightFromDay && (
+                                <button onClick={() => onRemoveFlightFromDay(f.id)} style={{ fontSize: "11px", color: "#e53e3e", fontWeight: 500, background: "none", border: "none", cursor: "pointer", padding: "4px 0 0 24px" }}>
+                                  Remove from day
+                                </button>
                               )}
                             </div>
                           ))}
 
-                          {/* Activities (confirmed/booked) for this day */}
+                          {/* Activities for this day */}
                           {dayActivities.map(a => (
                             <div key={a.id} style={{ backgroundColor: "#F5FBF5", border: "1.5px solid #C8E0CA", borderRadius: "10px", padding: "10px 12px", marginBottom: "8px", display: "flex", alignItems: "flex-start", gap: "10px" }}>
                               <Compass size={14} style={{ color: "#6B8F71", flexShrink: 0, marginTop: "2px" }} />
@@ -1419,8 +1442,8 @@ function ItineraryContent({ flyTarget, onFlyTargetConsumed, tripId, tripStartDat
                                   </p>
                                 )}
                                 <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
-                                  <span style={{ fontSize: "11px", color: a.status === "booked" ? "#4a7c59" : "#1B3A5C", fontWeight: 600, backgroundColor: a.status === "booked" ? "rgba(107,143,113,0.12)" : "rgba(27,58,92,0.08)", borderRadius: "999px", padding: "2px 8px" }}>
-                                    {a.status === "booked" ? "Booked" : "Confirmed"}
+                                  <span style={{ fontSize: "11px", color: a.status === "booked" ? "#4a7c59" : a.status === "confirmed" ? "#1B3A5C" : "#717171", fontWeight: 600, backgroundColor: a.status === "booked" ? "rgba(107,143,113,0.12)" : a.status === "confirmed" ? "rgba(27,58,92,0.08)" : "rgba(0,0,0,0.06)", borderRadius: "999px", padding: "2px 8px" }}>
+                                    {a.status === "booked" ? "Booked" : a.status === "confirmed" ? "Confirmed" : "Interested"}
                                   </span>
                                   {a.confirmationCode && (
                                     <span style={{ fontSize: "11px", color: "#555", fontFamily: "monospace" }}>{a.confirmationCode}</span>
@@ -1428,7 +1451,18 @@ function ItineraryContent({ flyTarget, onFlyTargetConsumed, tripId, tripStartDat
                                   {a.website && (
                                     <a href={a.website} target="_blank" rel="noopener noreferrer" style={{ fontSize: "12px", color: "#C4664A", fontWeight: 600 }}>Book tickets →</a>
                                   )}
+                                  {a.status !== "booked" && onMarkActivityBooked && (
+                                    <button onClick={() => onMarkActivityBooked(a.id)} style={{ fontSize: "12px", color: "#C4664A", fontWeight: 600, background: "none", border: "none", cursor: "pointer", padding: 0 }}>
+                                      Mark booked →
+                                    </button>
+                                  )}
                                 </div>
+                                {a.notes && <p style={{ fontSize: "12px", color: "#888", marginTop: "4px", fontStyle: "italic" }}>{a.notes}</p>}
+                                {onRemoveActivityFromDay && (
+                                  <button onClick={() => onRemoveActivityFromDay(a.id)} style={{ fontSize: "11px", color: "#e53e3e", fontWeight: 500, background: "none", border: "none", cursor: "pointer", padding: "4px 0 0" }}>
+                                    Remove from day
+                                  </button>
+                                )}
                               </div>
                             </div>
                           ))}
@@ -2422,6 +2456,11 @@ function FlightCard({ flight, onDelete, onMarkBooked }: { flight: Flight; onDele
           {flight.notes && (
             <p style={{ fontSize: "12px", color: "#888", marginTop: "6px", fontStyle: "italic" }}>{flight.notes}</p>
           )}
+          {flight.dayIndex != null && (
+            <span style={{ fontSize: "11px", fontWeight: 600, padding: "2px 8px", borderRadius: "20px", backgroundColor: "rgba(74,124,89,0.1)", color: "#4a7c59", border: "1px solid rgba(74,124,89,0.2)", display: "inline-block", marginTop: "6px" }}>
+              ✓ Day {flight.dayIndex + 1}
+            </span>
+          )}
         </div>
         <button
           onClick={onDelete}
@@ -2437,7 +2476,7 @@ function FlightCard({ flight, onDelete, onMarkBooked }: { flight: Flight; onDele
 
 // ── Activity card ─────────────────────────────────────────────────────────────
 
-function ActivityCard({ activity, onDelete, onEdit, onMarkBooked }: { activity: Activity; onDelete: () => void; onEdit: () => void; onMarkBooked?: () => void }) {
+function ActivityCard({ activity, onDelete, onEdit, onMarkBooked, onAddToItinerary }: { activity: Activity; onDelete: () => void; onEdit: () => void; onMarkBooked?: () => void; onAddToItinerary?: () => void }) {
   const isBooked = activity.status === "booked";
   const isConfirmed = activity.status === "confirmed";
   const statusColor = isBooked ? "#6B8F71" : isConfirmed ? "#1B3A5C" : "#717171";
@@ -2480,6 +2519,21 @@ function ActivityCard({ activity, onDelete, onEdit, onMarkBooked }: { activity: 
           {activity.notes && (
             <p style={{ fontSize: "12px", color: "#888", marginTop: "6px", fontStyle: "italic" }}>{activity.notes}</p>
           )}
+          <div style={{ display: "flex", gap: "6px", marginTop: "6px", flexWrap: "wrap" }}>
+            {activity.dayIndex != null ? (
+              <span style={{ fontSize: "11px", fontWeight: 600, padding: "2px 8px", borderRadius: "20px", backgroundColor: "rgba(74,124,89,0.1)", color: "#4a7c59", border: "1px solid rgba(74,124,89,0.2)" }}>
+                ✓ Day {activity.dayIndex + 1}
+              </span>
+            ) : onAddToItinerary && (
+              <button
+                type="button"
+                onClick={e => { e.stopPropagation(); onAddToItinerary(); }}
+                style={{ fontSize: "11px", fontWeight: 600, padding: "2px 8px", borderRadius: "20px", border: "1px solid rgba(196,102,74,0.3)", backgroundColor: "transparent", color: "#C4664A", cursor: "pointer" }}
+              >
+                + Add to itinerary
+              </button>
+            )}
+          </div>
         </div>
         <div style={{ display: "flex", gap: "4px", flexShrink: 0 }}>
           <button
@@ -2519,6 +2573,7 @@ export function TripTabContent({ initialTab = "saved", tripId, tripTitle, tripSt
   const [showFlightModal, setShowFlightModal] = useState(false);
   const [showActivityModal, setShowActivityModal] = useState(false);
   const [editingActivity, setEditingActivity] = useState<ExistingActivity | null>(null);
+  const [activityDayPickerItem, setActivityDayPickerItem] = useState<Activity | null>(null);
   const [flights, setFlights] = useState<Flight[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
 
@@ -2583,6 +2638,28 @@ export function TripTabContent({ initialTab = "saved", tripId, tripTitle, tripSt
     })
       .then(() => setActivities(prev => prev.map(a => a.id === activityId ? { ...a, status: "booked" } : a)))
       .catch(e => console.error("[markActivityBooked]", e));
+  }
+
+  function handleRemoveActivityFromDay(activityId: string) {
+    if (!tripId) return;
+    fetch(`/api/trips/${tripId}/activities/${activityId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ dayIndex: null }),
+    })
+      .then(() => setActivities(prev => prev.map(a => a.id === activityId ? { ...a, dayIndex: null } : a)))
+      .catch(e => console.error("[removeActivityFromDay]", e));
+  }
+
+  function handleRemoveFlightFromDay(flightId: string) {
+    if (!tripId) return;
+    fetch(`/api/trips/${tripId}/flights/${flightId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ dayIndex: null }),
+    })
+      .then(() => setFlights(prev => prev.map(f => f.id === flightId ? { ...f, dayIndex: null } : f)))
+      .catch(e => console.error("[removeFlightFromDay]", e));
   }
 
   // ── Notes state ───────────────────────────────────────────────────────────
@@ -2799,6 +2876,28 @@ export function TripTabContent({ initialTab = "saved", tripId, tripTitle, tripSt
         />
       )}
 
+      {activityDayPickerItem && (
+        <SavedDayPickerModal
+          itemTitle={activityDayPickerItem.title}
+          tripStartDate={tripStartDate}
+          tripEndDate={tripEndDate}
+          onConfirm={(dayIndex) => {
+            const actId = activityDayPickerItem.id;
+            if (tripId && actId) {
+              fetch(`/api/trips/${tripId}/activities/${actId}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ dayIndex }),
+              })
+                .then(() => setActivities(prev => prev.map(a => a.id === actId ? { ...a, dayIndex } : a)))
+                .catch(e => console.error("[activityDayAssign]", e));
+            }
+            setActivityDayPickerItem(null);
+          }}
+          onClose={() => setActivityDayPickerItem(null)}
+        />
+      )}
+
       {tab === "saved" && (
         <>
           {flights.length > 0 && (
@@ -2824,17 +2923,17 @@ export function TripTabContent({ initialTab = "saved", tripId, tripTitle, tripSt
                 </button>
               </div>
               {activities.map(a => (
-                <ActivityCard key={a.id} activity={a} onDelete={() => handleDeleteActivity(a.id)} onEdit={() => setEditingActivity(a)} onMarkBooked={() => handleMarkActivityBooked(a.id)} />
+                <ActivityCard key={a.id} activity={a} onDelete={() => handleDeleteActivity(a.id)} onEdit={() => setEditingActivity(a)} onMarkBooked={() => handleMarkActivityBooked(a.id)} onAddToItinerary={a.dayIndex == null ? () => setActivityDayPickerItem(a) : undefined} />
               ))}
               {activities.length === 0 && (
                 <p style={{ fontSize: "13px", color: "#bbb", fontStyle: "italic", marginBottom: "8px" }}>No activities yet. Add baseball games, tours, events…</p>
               )}
             </div>
           )}
-          <SavedContent tripId={tripId} tripStartDate={tripStartDate} tripEndDate={tripEndDate} tripTitle={tripTitle} />
+          <SavedContent tripId={tripId} tripStartDate={tripStartDate} tripEndDate={tripEndDate} tripTitle={tripTitle} onSwitchToItinerary={() => setTab("itinerary")} />
         </>
       )}
-      {tab === "itinerary" && <ItineraryContent key={itineraryVersion} flyTarget={flyTarget} onFlyTargetConsumed={() => setFlyTarget(null)} tripId={tripId} tripStartDate={tripStartDate} tripEndDate={tripEndDate} onSwitchToRecommended={() => setTab("recommended")} destinationCity={destinationCity} destinationCountry={destinationCountry} flights={flights} activities={activities} />}
+      {tab === "itinerary" && <ItineraryContent key={itineraryVersion} flyTarget={flyTarget} onFlyTargetConsumed={() => setFlyTarget(null)} tripId={tripId} tripStartDate={tripStartDate} tripEndDate={tripEndDate} onSwitchToRecommended={() => setTab("recommended")} destinationCity={destinationCity} destinationCountry={destinationCountry} flights={flights} activities={activities} onRemoveActivityFromDay={handleRemoveActivityFromDay} onMarkActivityBooked={handleMarkActivityBooked} onRemoveFlightFromDay={handleRemoveFlightFromDay} />}
       {tab === "packing" && <PackingContent tripId={tripId} />}
       {tab === "notes" && (
         <div style={{ maxWidth: "600px" }}>
