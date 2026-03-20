@@ -58,16 +58,6 @@ const STATUS_COLOR: Record<string, { text: string }> = {
   COMPLETED: { text: "#717171" },
 };
 
-// Community inspiration trips — seeded with real itinerary data
-const DISCOVERY_DESTINATIONS = [
-  { city: "Kyoto", country: "Japan", img: "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=400&auto=format&fit=crop&q=80", tripId: "cmtrip-kyoto-may25" },
-  { city: "Madrid", country: "Spain", img: "https://images.unsplash.com/photo-1539037116277-4db20889f2d4?w=400&auto=format&fit=crop&q=80", tripId: "cmtrip-madrid-jun25" },
-  { city: "Lisbon", country: "Portugal", img: "https://images.unsplash.com/photo-1555881400-74d7acaacd8b?w=400&auto=format&fit=crop&q=80", tripId: "cmtrip-lisbon-jul25" },
-  { city: "Amalfi Coast", country: "Italy", img: "https://images.unsplash.com/photo-1533587851505-d119e13fa0d7?w=400&auto=format&fit=crop&q=80", tripId: null },
-  { city: "Prague", country: "Czech Republic", img: "https://images.unsplash.com/photo-1541849546-216549ae216d?w=400&auto=format&fit=crop&q=80", tripId: null },
-  { city: "Barcelona", country: "Spain", img: "https://images.unsplash.com/photo-1583422409516-2895a77efded?w=400&auto=format&fit=crop&q=80", tripId: null },
-];
-
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
@@ -95,6 +85,33 @@ export default async function HomePage() {
 
   const profile = user?.familyProfile;
   if (!profile) redirect("/onboarding");
+
+  // Top community trips for "Popular with Flokk families" — exclude user's own trips
+  const communityTrips = await db.trip.findMany({
+    where: {
+      privacy: "PUBLIC",
+      status: "COMPLETED",
+      familyProfileId: { not: profile.id },
+    },
+    select: {
+      id: true,
+      title: true,
+      destinationCity: true,
+      destinationCountry: true,
+      startDate: true,
+      endDate: true,
+      heroImageUrl: true,
+      _count: { select: { savedItems: true } },
+      familyProfile: { select: { familyName: true } },
+    },
+    orderBy: { savedItems: { _count: "desc" } },
+    take: 4,
+  });
+
+  // Only PLANNING/ACTIVE trips for save-to dropdowns (excludes community templates)
+  const activePlannedTrips = profile.trips.filter(
+    (t) => t.status === "PLANNING" || t.status === "ACTIVE"
+  );
 
   // Deduplicate saved items by rawTitle (keeps most recent), then take 6
   const seenTitles = new Set<string>();
@@ -201,7 +218,7 @@ export default async function HomePage() {
             {/* Quick action tiles — mobile order 5 */}
             <div className="order-5 md:order-none">
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-              <DropLinkTile trips={profile.trips.map(t => ({ id: t.id, title: t.title, startDate: t.startDate ? t.startDate.toISOString() : null, endDate: t.endDate ? t.endDate.toISOString() : null }))} />
+              <DropLinkTile trips={activePlannedTrips.map(t => ({ id: t.id, title: t.title, startDate: t.startDate ? t.startDate.toISOString() : null, endDate: t.endDate ? t.endDate.toISOString() : null }))} />
               <Link
                 href={activeTrip ? `/trips/${activeTrip.id}?tab=recommended` : "/discover"}
                 style={{ position: "relative", borderRadius: "16px", overflow: "hidden", display: "block", height: "160px", backgroundImage: "url('https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=400&q=80')", backgroundSize: "cover", backgroundPosition: "center", textDecoration: "none" }}
@@ -229,7 +246,7 @@ export default async function HomePage() {
                 categoryTags: item.categoryTags,
                 sourceType: item.sourceType,
               }))}
-              trips={profile.trips.map(t => ({ id: t.id, title: t.title, startDate: t.startDate ? t.startDate.toISOString() : null, endDate: t.endDate ? t.endDate.toISOString() : null }))}
+              trips={activePlannedTrips.map(t => ({ id: t.id, title: t.title, startDate: t.startDate ? t.startDate.toISOString() : null, endDate: t.endDate ? t.endDate.toISOString() : null }))}
             />
             </div>{/* end source filter wrapper */}
 
@@ -391,41 +408,48 @@ export default async function HomePage() {
             </div>
             </div>{/* end crew order wrapper */}
 
-            {/* Families like yours — mobile order 8 */}
+            {/* Popular community trips — mobile order 8 */}
             <div className="order-8 md:order-none">
             <div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
-                <h2 style={{ fontWeight: 700, color: "#1a1a1a", fontSize: "15px" }}>Families like yours are going to...</h2>
+                <h2 style={{ fontWeight: 700, color: "#1a1a1a", fontSize: "15px" }}>Popular with Flokk families</h2>
+                <Link href="/discover" style={{ fontSize: "13px", fontWeight: 600, color: "#C4664A", textDecoration: "none" }}>
+                  See all
+                </Link>
               </div>
-              <div className="grid grid-cols-2" style={{ gap: "10px" }}>
-                {DISCOVERY_DESTINATIONS.map((dest) => (
-                  <Link
-                    key={dest.city}
-                    href={dest.tripId ? `/trips/${dest.tripId}` : "/trips"}
-                    style={{ textDecoration: "none" }}
-                  >
-                    <div
-                      style={{
-                        height: "130px",
-                        borderRadius: "14px",
-                        overflow: "hidden",
-                        position: "relative",
-                        backgroundImage: `url(${dest.img})`,
-                        backgroundSize: "cover",
-                        backgroundPosition: "center",
-                      }}
-                    >
-                      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, transparent 30%, rgba(0,0,0,0.7) 100%)" }} />
-                      <div style={{ position: "absolute", bottom: "10px", left: "10px", right: "10px", zIndex: 2 }}>
-                        <p style={{ fontSize: "13px", fontWeight: 700, color: "#fff", lineHeight: 1.2 }}>{dest.city}</p>
-                        <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.75)", marginTop: "2px" }}>{dest.country}</p>
-                      </div>
-                    </div>
-                  </Link>
-                ))}
-              </div>
+              {communityTrips.length === 0 ? (
+                <Link href="/discover" style={{ display: "block", textAlign: "center", padding: "20px", backgroundColor: "#F9F9F9", borderRadius: "14px", fontSize: "13px", color: "#C4664A", fontWeight: 600, textDecoration: "none" }}>
+                  Explore community trips →
+                </Link>
+              ) : (
+                <div className="grid grid-cols-2" style={{ gap: "10px" }}>
+                  {communityTrips.map((trip) => {
+                    const img = getTripCoverImage(trip.destinationCity, trip.destinationCountry, trip.heroImageUrl);
+                    const nights = trip.startDate && trip.endDate
+                      ? Math.round((new Date(trip.endDate).getTime() - new Date(trip.startDate).getTime()) / (1000 * 60 * 60 * 24))
+                      : null;
+                    const familyName = trip.familyProfile?.familyName;
+                    return (
+                      <Link key={trip.id} href={`/trips/${trip.id}`} style={{ textDecoration: "none" }}>
+                        <div style={{ height: "130px", borderRadius: "14px", overflow: "hidden", position: "relative", backgroundImage: `url(${img})`, backgroundSize: "cover", backgroundPosition: "center" }}>
+                          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, transparent 30%, rgba(0,0,0,0.75) 100%)" }} />
+                          <div style={{ position: "absolute", bottom: "10px", left: "10px", right: "10px", zIndex: 2 }}>
+                            <p style={{ fontSize: "12px", fontWeight: 700, color: "#fff", lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                              {trip.destinationCity ?? trip.title}
+                            </p>
+                            <p style={{ fontSize: "10px", color: "rgba(255,255,255,0.75)", marginTop: "2px" }}>
+                              {nights ? `${nights} nights` : trip.destinationCountry ?? ""}
+                              {familyName ? ` · by ${familyName}` : ""}
+                            </p>
+                          </div>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
             </div>
-            </div>{/* end families order wrapper */}
+            </div>{/* end popular trips order wrapper */}
 
           </div>
         </div>

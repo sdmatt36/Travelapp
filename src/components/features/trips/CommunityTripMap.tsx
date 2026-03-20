@@ -82,7 +82,7 @@ export function CommunityTripMap({
         container: containerRef.current,
         style: "mapbox://styles/mapbox/outdoors-v12",
         center,
-        zoom: 10,
+        zoom: 12,
       });
       mapRef.current = map;
 

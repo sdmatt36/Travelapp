@@ -7,6 +7,7 @@ import { CommunityTripMap, type MarkerDef } from "./CommunityTripMap";
 import Link from "next/link";
 import { RecommendationDrawer, type DrawerRec } from "./RecommendationDrawer";
 import { parseDateForDisplay } from "@/lib/dates";
+import { getDestinationCoords } from "@/lib/destination-coords";
 
 export type ActivityItem = {
   id: string;
@@ -122,12 +123,18 @@ function buildAllMarkers(days: DayEntry[]): MarkerDef[] {
   return markers;
 }
 
-function computeCenter(items: ActivityItem[]): [number, number] {
+function computeCenter(
+  items: ActivityItem[],
+  destinationCity: string | null,
+  destinationCountry: string | null,
+): [number, number] {
   const pts = items.filter((i) => i.lat != null && i.lng != null && i.dayIndex !== 0);
-  if (pts.length === 0) return [0, 20];
-  const avgLng = pts.reduce((sum, p) => sum + p.lng!, 0) / pts.length;
-  const avgLat = pts.reduce((sum, p) => sum + p.lat!, 0) / pts.length;
-  return [avgLng, avgLat];
+  if (pts.length > 0) {
+    const avgLng = pts.reduce((sum, p) => sum + p.lng!, 0) / pts.length;
+    const avgLat = pts.reduce((sum, p) => sum + p.lat!, 0) / pts.length;
+    return [avgLng, avgLat];
+  }
+  return getDestinationCoords(destinationCity, destinationCountry);
 }
 
 function getMemberSummary(members: ViewerMember[]): string {
@@ -278,6 +285,7 @@ export function CommunityTripView({
   tripId,
   tripTitle,
   destinationCity,
+  destinationCountry,
   viewerMembers,
 }: {
   items: ActivityItem[];
@@ -286,6 +294,7 @@ export function CommunityTripView({
   tripId: string;
   tripTitle: string;
   destinationCity: string | null;
+  destinationCountry?: string | null;
   viewerMembers: ViewerMember[];
 }) {
   const [tab, setTab] = useState<"itinerary" | "recommended">("itinerary");
@@ -309,7 +318,7 @@ export function CommunityTripView({
   }, []);
 
   const days = buildDays(items, startDate);
-  const mapCenter = computeCenter(items);
+  const mapCenter = computeCenter(items, destinationCity, destinationCountry ?? null);
   const allMarkers = buildAllMarkers(days);
 
   const recDayPills: { dayIndex: number; label: string }[] = (() => {

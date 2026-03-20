@@ -218,6 +218,7 @@ export default async function TripDetailPage({
           tripId={trip.id}
           tripTitle={trip.title}
           destinationCity={trip.destinationCity ?? null}
+          destinationCountry={trip.destinationCountry ?? null}
           viewerMembers={viewerMembers}
         />
       ) : (
