@@ -86,15 +86,18 @@ export default async function HomePage() {
   const profile = user?.familyProfile;
   if (!profile) redirect("/onboarding");
 
-  // Top community trips for "Popular with Flokk families" — exclude user's own trips
-  const communityTrips = await db.trip.findMany({
-    where: {
-      privacy: "PUBLIC",
-      status: "COMPLETED",
-      familyProfileId: { not: profile.id },
-    },
+  // Only PLANNING/ACTIVE trips for save-to dropdowns (excludes community templates)
+  const activePlannedTrips = profile.trips.filter(
+    (t) => t.status === "PLANNING" || t.status === "ACTIVE"
+  );
+
+  // Top community trips for "Popular with Flokk families"
+  // Fetch broadly then JS-filter: seeded community trips share familyProfileId with user in dev
+  const rawCommunityTrips = await db.trip.findMany({
+    where: { privacy: "PUBLIC", status: "COMPLETED" },
     select: {
       id: true,
+      familyProfileId: true,
       title: true,
       destinationCity: true,
       destinationCountry: true,
@@ -105,13 +108,19 @@ export default async function HomePage() {
       familyProfile: { select: { familyName: true } },
     },
     orderBy: { savedItems: { _count: "desc" } },
-    take: 4,
+    take: 20,
   });
 
-  // Only PLANNING/ACTIVE trips for save-to dropdowns (excludes community templates)
-  const activePlannedTrips = profile.trips.filter(
-    (t) => t.status === "PLANNING" || t.status === "ACTIVE"
+  const activeCities = new Set(
+    activePlannedTrips
+      .map((t) => t.destinationCity?.toLowerCase())
+      .filter((c): c is string => Boolean(c))
   );
+
+  const communityTrips = rawCommunityTrips
+    .filter((t) => t.familyProfileId !== profile.id || t.id.startsWith("cmtrip-"))
+    .filter((t) => !activeCities.has(t.destinationCity?.toLowerCase() ?? ""))
+    .slice(0, 4);
 
   // Deduplicate saved items by rawTitle (keeps most recent), then take 6
   const seenTitles = new Set<string>();
@@ -126,7 +135,9 @@ export default async function HomePage() {
   const rawName = profile.familyName || user?.email?.split("@")[0] || "there";
   const displayName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
   const activeTrip = profile.trips.find((t) => t.status === "PLANNING" || t.status === "ACTIVE") ?? null;
-  const hasCompletedTrips = profile.trips.some((t) => t.status === "COMPLETED");
+  const hasCompletedTrips = profile.trips.some(
+    (t) => t.status === "COMPLETED" && !t.id.startsWith("cmtrip-")
+  );
   const activeTripCover = getTripCoverImage(activeTrip?.destinationCity, activeTrip?.destinationCountry, activeTrip?.heroImageUrl);
 
   const adultCount = profile.members.filter((m) => m.role === "ADULT").length;
