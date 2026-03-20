@@ -99,7 +99,9 @@ export function RecentSavesCards({ items, onDelete }: { items: RecentSaveItem[];
                 )}
                 <div style={{ padding: "12px" }}>
                   <p style={{ fontSize: "14px", fontWeight: 700, color: "#1a1a1a", marginBottom: "2px", lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical" }}>
-                    {item.rawTitle ?? "Saved place"}
+                    {item.rawTitle?.startsWith("http")
+                      ? (item.destinationCity ? `Place in ${item.destinationCity}` : "Saved place")
+                      : (item.rawTitle ?? "Saved place")}
                   </p>
                   {loc && (
                     <div style={{ display: "flex", alignItems: "center", gap: "3px", marginBottom: "6px" }}>

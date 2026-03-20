@@ -52,10 +52,18 @@ const SOURCE_LABEL_MAP: Record<string, string> = {
   MANUAL: "Manually added", IN_APP: "In-app", EMAIL_IMPORT: "Email", PHOTO_IMPORT: "Photo",
 };
 
+function resolveTitle(rawTitle: string | null, city: string | null): string {
+  if (!rawTitle) return "Saved place";
+  if (rawTitle.startsWith("http")) {
+    return city ? `Place in ${city}` : "Saved place";
+  }
+  return rawTitle;
+}
+
 function mapApiItem(item: ApiItem): Save {
   return {
     id: item.id,
-    title: item.rawTitle ?? "Untitled",
+    title: resolveTitle(item.rawTitle, item.destinationCity),
     location: [item.destinationCity, item.destinationCountry].filter(Boolean).join(", "),
     source: SOURCE_LABEL_MAP[item.sourceType] ?? item.sourceType,
     tags: item.categoryTags,
