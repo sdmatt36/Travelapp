@@ -4,6 +4,7 @@ import { Suspense, useState, useRef, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft, X, Star, Check, Plus, Upload } from "lucide-react";
+import { COUNTRIES } from "@/lib/countries";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -119,8 +120,8 @@ function StarRating({
 // ── Step 1: Basics ─────────────────────────────────────────────────────────────
 
 function Step1Basics({
-  destination,
-  setDestination,
+  destinations,
+  setDestinations,
   country,
   setCountry,
   startDate,
@@ -131,8 +132,8 @@ function Step1Basics({
   setTitle,
   onContinue,
 }: {
-  destination: string;
-  setDestination: (v: string) => void;
+  destinations: { city: string }[];
+  setDestinations: React.Dispatch<React.SetStateAction<{ city: string }[]>>;
   country: string;
   setCountry: (v: string) => void;
   startDate: string;
@@ -146,34 +147,31 @@ function Step1Basics({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const primaryCity = destinations[0]?.city ?? "";
+
   const autoTitle =
-    destination && startDate
-      ? `${destination} ${new Date(startDate + "T00:00:00").toLocaleDateString("en-US", { month: "short", year: "2-digit" })}`
+    primaryCity && startDate
+      ? `${destinations.map((d) => d.city).filter(Boolean).join(" + ")} ${new Date(startDate + "T00:00:00").toLocaleDateString("en-US", { month: "short", year: "2-digit" })}`
       : "";
 
-  const handleDestinationChange = (v: string) => {
-    setDestination(v);
+  const updateCity = (i: number, v: string) => {
+    const updated = destinations.map((d, idx) => idx === i ? { ...d, city: v } : d);
+    setDestinations(updated);
     if (!title || title === autoTitle) {
-      const t =
-        v && startDate
-          ? `${v} ${new Date(startDate + "T00:00:00").toLocaleDateString("en-US", { month: "short", year: "2-digit" })}`
-          : "";
-      setTitle(t);
+      const cities = updated.map((d) => d.city).filter(Boolean).join(" + ");
+      setTitle(cities && startDate ? `${cities} ${new Date(startDate + "T00:00:00").toLocaleDateString("en-US", { month: "short", year: "2-digit" })}` : "");
     }
   };
 
   const handleStartChange = (v: string) => {
     setStartDate(v);
     if (!title || title === autoTitle) {
-      const t =
-        destination && v
-          ? `${destination} ${new Date(v + "T00:00:00").toLocaleDateString("en-US", { month: "short", year: "2-digit" })}`
-          : "";
-      setTitle(t);
+      const cities = destinations.map((d) => d.city).filter(Boolean).join(" + ");
+      setTitle(cities && v ? `${cities} ${new Date(v + "T00:00:00").toLocaleDateString("en-US", { month: "short", year: "2-digit" })}` : "");
     }
   };
 
-  const canContinue = destination.trim() !== "" && startDate !== "" && endDate !== "";
+  const canContinue = primaryCity.trim() !== "" && startDate !== "" && endDate !== "";
 
   const handleClick = async () => {
     if (!canContinue) { setError("Please fill in destination and dates."); return; }
@@ -190,30 +188,58 @@ function Step1Basics({
         <p style={{ fontSize: "14px", color: MUTED }}>Tell us about this trip</p>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+      {/* Multi-city destination inputs */}
+      <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
         <label style={{ fontSize: "13px", fontWeight: 600, color: "#1a1a1a" }}>Destination city *</label>
-        <input
-          type="text"
-          value={destination}
-          onChange={(e) => handleDestinationChange(e.target.value)}
-          placeholder="e.g. Kyoto"
-          style={inputStyle}
-          onFocus={(e) => { e.currentTarget.style.borderColor = TERRA; }}
-          onBlur={(e) => { e.currentTarget.style.borderColor = "#EEEEEE"; }}
-        />
+        {destinations.map((dest, i) => (
+          <div key={i} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            {i > 0 && (
+              <span style={{ fontSize: "11px", fontWeight: 700, color: MUTED, whiteSpace: "nowrap", minWidth: "48px" }}>
+                + stop {i + 1}
+              </span>
+            )}
+            <input
+              type="text"
+              value={dest.city}
+              onChange={(e) => updateCity(i, e.target.value)}
+              placeholder={i === 0 ? "e.g. Chiang Rai" : "e.g. Bangkok"}
+              style={{ ...inputStyle, flex: 1 }}
+              onFocus={(e) => { e.currentTarget.style.borderColor = TERRA; }}
+              onBlur={(e) => { e.currentTarget.style.borderColor = "#EEEEEE"; }}
+            />
+            {i > 0 && (
+              <button type="button" onClick={() => setDestinations((prev) => prev.filter((_, idx) => idx !== i))} style={{ background: "none", border: "none", cursor: "pointer", color: "#CCC", padding: "4px" }}>
+                <X size={15} />
+              </button>
+            )}
+          </div>
+        ))}
+        {destinations.length < 6 && (
+          <button
+            type="button"
+            onClick={() => setDestinations((prev) => [...prev, { city: "" }])}
+            style={{ alignSelf: "flex-start", fontSize: "13px", fontWeight: 600, color: TERRA, background: "none", border: "none", cursor: "pointer", padding: "0", fontFamily: "inherit" }}
+          >
+            + Add another city
+          </button>
+        )}
       </div>
 
+      {/* Country dropdown */}
       <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
         <label style={{ fontSize: "13px", fontWeight: 600, color: "#1a1a1a" }}>Country</label>
-        <input
-          type="text"
+        <select
           value={country}
           onChange={(e) => setCountry(e.target.value)}
-          placeholder="e.g. Japan"
-          style={inputStyle}
+          style={{ ...inputStyle, appearance: "auto" }}
           onFocus={(e) => { e.currentTarget.style.borderColor = TERRA; }}
           onBlur={(e) => { e.currentTarget.style.borderColor = "#EEEEEE"; }}
-        />
+        >
+          <option value="">Select country…</option>
+          {COUNTRIES.map((c) => (
+            <option key={c.code} value={c.name}>{c.name}</option>
+          ))}
+        </select>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
@@ -248,7 +274,7 @@ function Step1Basics({
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder={autoTitle || "e.g. Kyoto May '25"}
+          placeholder={autoTitle || "e.g. Chiang Rai + Bangkok May '25"}
           style={inputStyle}
           onFocus={(e) => { e.currentTarget.style.borderColor = TERRA; }}
           onBlur={(e) => { e.currentTarget.style.borderColor = "#EEEEEE"; }}
@@ -336,8 +362,14 @@ function Step2Links({
   };
 
   const handleContinue = async () => {
+    if (!tripId) {
+      console.error("[past-trip] no tripId available for link saves");
+      await onContinue();
+      return;
+    }
     setSaving(true);
     for (const link of savedLinks) {
+      console.log("[past-trip] saving link with tripId:", tripId, "url:", link.url);
       await fetch("/api/saves", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -473,6 +505,7 @@ function Step3Services({
   const handleContinue = async () => {
     setSaving(true);
     for (const svc of services) {
+      console.log("[past-trip] saving service with tripId:", tripId);
       await fetch(`/api/trips/${tripId}/services`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -588,6 +621,7 @@ function Step4Tips({
   const handleContinue = async () => {
     setSaving(true);
     for (const tip of tips) {
+      console.log("[past-trip] saving tip with tripId:", tripId);
       await fetch(`/api/trips/${tripId}/tips`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -878,7 +912,7 @@ function PastTripBuilderForm() {
   const [tripId, setTripId] = useState<string | null>(null);
 
   // Step 1
-  const [destination, setDestination] = useState(preDestination);
+  const [destinations, setDestinations] = useState<{ city: string }[]>([{ city: preDestination }]);
   const [country, setCountry] = useState(preCountry);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -906,33 +940,34 @@ function PastTripBuilderForm() {
   };
 
   const handleStep1Continue = async () => {
+    const cityString = destinations.map((d) => d.city).filter(Boolean).join(" + ");
     const finalTitle =
       title.trim() ||
-      (destination && startDate
-        ? `${destination} ${new Date(startDate + "T00:00:00").toLocaleDateString("en-US", { month: "short", year: "2-digit" })}`
-        : destination);
+      (cityString && startDate
+        ? `${cityString} ${new Date(startDate + "T00:00:00").toLocaleDateString("en-US", { month: "short", year: "2-digit" })}`
+        : cityString);
+
+    const destinationParam = country ? `${cityString}, ${country}` : cityString;
 
     const res = await fetch("/api/trips", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        destination: country ? `${destination}, ${country}` : destination,
-        startDate,
-        endDate,
+        destination: destinationParam,
+        startDate: new Date(startDate + "T12:00:00").toISOString(),
+        endDate: new Date(endDate + "T12:00:00").toISOString(),
         status: "COMPLETED",
       }),
     });
     const data = await res.json();
     if (data.tripId) {
       setTripId(data.tripId);
-      // Update title if custom
-      if (title.trim() && title.trim() !== finalTitle) {
-        await fetch(`/api/trips/${data.tripId}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ title: title.trim() }),
-        });
-      }
+      // Always patch title since it includes multi-city names
+      await fetch(`/api/trips/${data.tripId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: finalTitle }),
+      });
     }
     setStep(2);
   };
@@ -992,8 +1027,8 @@ function PastTripBuilderForm() {
         {/* Step content */}
         {step === 1 && (
           <Step1Basics
-            destination={destination}
-            setDestination={setDestination}
+            destinations={destinations}
+            setDestinations={setDestinations}
             country={country}
             setCountry={setCountry}
             startDate={startDate}
@@ -1008,7 +1043,7 @@ function PastTripBuilderForm() {
         {step === 2 && tripId && (
           <Step2Links
             tripId={tripId}
-            destination={destination}
+            destination={destinations.map((d) => d.city).filter(Boolean).join(" + ")}
             country={country}
             savedLinks={savedLinks}
             setSavedLinks={setSavedLinks}
@@ -1045,7 +1080,7 @@ function PastTripBuilderForm() {
         {step === 6 && tripId && (
           <Step6Share
             tripId={tripId}
-            destination={destination}
+            destination={destinations.map((d) => d.city).filter(Boolean).join(" + ")}
             startDate={startDate}
             endDate={endDate}
             savedLinks={savedLinks}

@@ -23,6 +23,8 @@ const SaveSchema = z.object({
   dayIndex: z.number().int().min(1).optional(),
   extractedCheckin: z.string().optional(),
   extractedCheckout: z.string().optional(),
+  userRating: z.number().int().min(1).max(5).optional().nullable(),
+  userNote: z.string().optional().nullable(),
 });
 
 function detectSourceType(url: string): SourceType {
@@ -40,7 +42,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const body = await request.json();
-    const { url, tripId, title, description, thumbnailUrl, tags, lat, lng, dayIndex, extractedCheckin, extractedCheckout } = SaveSchema.parse(body);
+    const { url, tripId, title, description, thumbnailUrl, tags, lat, lng, dayIndex, extractedCheckin, extractedCheckout, userRating, userNote } = SaveSchema.parse(body);
 
     const user = await db.user.findUnique({
       where: { clerkId: userId },
@@ -110,6 +112,8 @@ export async function POST(request: Request) {
         extractedCheckout: extractedCheckout ?? null,
         extractionStatus: rawTitle ? "ENRICHED" : "PENDING",
         status: tripId ? "TRIP_ASSIGNED" : "UNORGANIZED",
+        userRating: userRating ?? null,
+        userNote: userNote ?? null,
       },
     });
 
