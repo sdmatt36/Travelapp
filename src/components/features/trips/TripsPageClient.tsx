@@ -109,7 +109,24 @@ function TripCard({ trip, onDelete }: { trip: Trip; onDelete: (id: string) => vo
     <Link href={`/trips/${trip.id}`} style={{ textDecoration: "none", display: "block" }}>
       <div className="group hover:shadow-lg transition-shadow" style={{ backgroundColor: "#fff", borderRadius: "20px", overflow: "hidden", border: "1.5px solid #EEEEEE", boxShadow: "0 2px 8px rgba(0,0,0,0.07)" }}>
         {/* Hero image */}
-        <div style={{ height: "140px", position: "relative", overflow: "hidden", backgroundImage: `url('${hero}')`, backgroundSize: "cover", backgroundPosition: "center" }}>
+        <div
+          id={`trip-hero-${trip.id}`}
+          style={{ height: "140px", position: "relative", overflow: "hidden", backgroundImage: `url('${hero}')`, backgroundSize: "cover", backgroundPosition: "center" }}
+        >
+          {/* Invisible img used only for onError fallback */}
+          <img
+            src={hero}
+            alt=""
+            aria-hidden
+            style={{ display: "none" }}
+            onError={() => {
+              const el = document.getElementById(`trip-hero-${trip.id}`);
+              if (el) {
+                el.style.backgroundImage = "none";
+                el.style.background = "linear-gradient(135deg, #1B3A5C 0%, #2d5a8e 100%)";
+              }
+            }}
+          />
           <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.55) 100%)" }} />
 
           {/* Countdown chip */}
