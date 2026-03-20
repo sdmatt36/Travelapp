@@ -204,7 +204,7 @@ export function SaveDetailModal({
         {/* Hero */}
         <div style={{ height: "220px", position: "relative", flexShrink: 0 }}>
           {item?.mediaThumbnailUrl ? (
-            <div style={{ width: "100%", height: "100%", backgroundImage: `url('${item.mediaThumbnailUrl}')`, backgroundSize: "cover", backgroundPosition: "center" }} />
+            <div style={{ width: "100%", height: "100%", backgroundImage: `url('${item.mediaThumbnailUrl.replace("http://", "https://")}')`, backgroundSize: "cover", backgroundPosition: "center" }} />
           ) : (
             <div style={{ width: "100%", height: "100%", background: gradient }} />
           )}

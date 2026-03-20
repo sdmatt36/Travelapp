@@ -71,7 +71,7 @@ function mapApiItem(item: ApiItem): Save {
     tripId: item.tripId ?? null,
     dayIndex: item.dayIndex ?? null,
     distance: null,
-    img: item.mediaThumbnailUrl || null,
+    img: item.mediaThumbnailUrl ? item.mediaThumbnailUrl.replace("http://", "https://") : null,
   };
 }
 

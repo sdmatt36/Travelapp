@@ -69,6 +69,11 @@ async function fetchOgData(url: string): Promise<OgResult> {
   }
 }
 
+function forceHttps(url: string | null): string | null {
+  if (!url) return null;
+  return url.startsWith("http://") ? url.replace("http://", "https://") : url;
+}
+
 function heuristicCategory(url: string): string {
   const u = url.toLowerCase();
   if (/hotel|inn|resort|lodge|hostel|suites?|ryokan|villa|metropolitan|granvia|hilton|marriott|hyatt|sheraton|westin|ritz/.test(u)) return "hotel";
@@ -125,7 +130,7 @@ Rules:
         if (parsed.title && !parsed.title.startsWith("http")) {
           return NextResponse.json({
             title: parsed.title,
-            imageUrl,
+            imageUrl: forceHttps(imageUrl),
             description,
             city: parsed.city ?? null,
             country: parsed.country ?? null,
@@ -139,7 +144,7 @@ Rules:
 
     return NextResponse.json({
       title: title ?? null,
-      imageUrl,
+      imageUrl: forceHttps(imageUrl),
       description,
       city: null,
       country: null,

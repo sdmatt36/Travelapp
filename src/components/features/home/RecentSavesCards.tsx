@@ -38,7 +38,8 @@ const TITLE_LOCATIONS: Array<[RegExp, string]> = [
 ];
 
 function getImageSrc(item: RecentSaveItem): string | null {
-  return item.mediaThumbnailUrl || null;
+  if (!item.mediaThumbnailUrl) return null;
+  return item.mediaThumbnailUrl.replace("http://", "https://");
 }
 
 function getLocation(item: RecentSaveItem): string {
