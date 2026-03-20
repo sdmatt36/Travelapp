@@ -31,13 +31,14 @@ export async function GET(
 
   const items = await db.savedItem.findMany({
     where: { tripId, dayIndex: { not: null } },
-    orderBy: [{ dayIndex: "asc" }, { savedAt: "asc" }],
+    orderBy: [{ dayIndex: "asc" }, { sortOrder: "asc" }, { savedAt: "asc" }],
     select: {
       id: true,
       rawTitle: true,
       rawDescription: true,
       mediaThumbnailUrl: true,
       dayIndex: true,
+      sortOrder: true,
       lat: true,
       lng: true,
       isBooked: true,

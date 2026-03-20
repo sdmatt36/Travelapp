@@ -282,6 +282,7 @@ model SavedItem {
   bookedAt            DateTime?
   userRating          Int?
   userNote            String?
+  sortOrder           Int       @default(0)
 }
 
 enum SourceType {
@@ -584,6 +585,7 @@ model Flight {
   seatNumbers       String?
   notes             String?
   dayIndex          Int?
+  sortOrder         Int      @default(0)
   status            String   @default("saved")
   createdAt         DateTime @default(now())
 }
@@ -611,6 +613,7 @@ model ManualActivity {
   status           String   @default("interested")
   confirmationCode String?
   dayIndex         Int?
+  sortOrder        Int      @default(0)
   createdAt        DateTime @default(now())
 }
 

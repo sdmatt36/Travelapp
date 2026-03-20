@@ -95,6 +95,7 @@ export function SaveDetailModal({
   const [isBooked, setIsBooked] = useState(false);
   const [localTags, setLocalTags] = useState<string[]>([]);
   const [editingTags, setEditingTags] = useState(false);
+  const [confirmRemove, setConfirmRemove] = useState(false);
   const noteTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const initialNotes = useRef("");
   const initialTags = useRef<string[]>([]);
@@ -372,12 +373,30 @@ export function SaveDetailModal({
 
           {onRemoveFromDay && (
             <div style={{ marginTop: "4px" }}>
-              <button
-                onClick={() => { onRemoveFromDay(); onClose(); }}
-                style={{ background: "none", border: "none", cursor: "pointer", padding: 0, fontSize: "12px", color: "#e53e3e", fontWeight: 500, fontFamily: "inherit" }}
-              >
-                Remove from day
-              </button>
+              {confirmRemove ? (
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 12px", borderRadius: "8px", backgroundColor: "rgba(229,62,62,0.06)", border: "1px solid rgba(229,62,62,0.2)" }}>
+                  <span style={{ fontSize: "12px", color: "#555", flex: 1 }}>Remove from itinerary?</span>
+                  <button
+                    onClick={() => { onRemoveFromDay(); onClose(); }}
+                    style={{ background: "none", border: "none", cursor: "pointer", padding: "2px 6px", fontSize: "12px", color: "#e53e3e", fontWeight: 700, fontFamily: "inherit" }}
+                  >
+                    Yes
+                  </button>
+                  <button
+                    onClick={() => setConfirmRemove(false)}
+                    style={{ background: "none", border: "none", cursor: "pointer", padding: "2px 6px", fontSize: "12px", color: "#999", fontWeight: 500, fontFamily: "inherit" }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setConfirmRemove(true)}
+                  style={{ background: "none", border: "none", cursor: "pointer", padding: 0, fontSize: "12px", color: "#e53e3e", fontWeight: 500, fontFamily: "inherit" }}
+                >
+                  Remove from day
+                </button>
+              )}
             </div>
           )}
         </div>

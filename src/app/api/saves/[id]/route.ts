@@ -51,7 +51,8 @@ export async function PATCH(
   const body = await request.json();
   const updateData: Record<string, unknown> = {};
   if (typeof body.notes === "string") updateData.notes = body.notes;
-  if (typeof body.dayIndex === "number") updateData.dayIndex = body.dayIndex;
+  if (typeof body.dayIndex === "number" || body.dayIndex === null) updateData.dayIndex = body.dayIndex;
+  if (typeof body.sortOrder === "number") updateData.sortOrder = body.sortOrder;
   if (typeof body.tripId === "string") {
     updateData.tripId = body.tripId;
     updateData.status = "TRIP_ASSIGNED";

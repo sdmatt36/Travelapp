@@ -2,6 +2,10 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
+import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from "@dnd-kit/core";
+import type { DragEndEvent } from "@dnd-kit/core";
+import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 
@@ -172,6 +176,10 @@ function FilledSlot({
   isExpanded,
   onExpandToggle,
   onRemove,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  dragHandleListeners,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  dragHandleAttributes,
 }: {
   time?: string;
   title: string;
@@ -186,6 +194,10 @@ function FilledSlot({
   isExpanded?: boolean;
   onExpandToggle?: () => void;
   onRemove?: () => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  dragHandleListeners?: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  dragHandleAttributes?: any;
 }) {
   const [note, setNote] = useState("");
   const isClickable = !!onExpandToggle;
@@ -204,7 +216,14 @@ function FilledSlot({
         }}
         className={isClickable ? "hover:bg-black/[0.02]" : ""}
       >
-        <GripVertical size={14} style={{ color: "#d0cbc2", flexShrink: 0 }} />
+        <span
+          onClick={e => e.stopPropagation()}
+          {...(dragHandleAttributes ?? {})}
+          {...(dragHandleListeners ?? {})}
+          style={{ cursor: dragHandleListeners ? "grab" : "default", flexShrink: 0, lineHeight: 0, display: "flex", alignItems: "center" }}
+        >
+          <GripVertical size={14} style={{ color: dragHandleListeners ? "#aaa" : "#d0cbc2" }} />
+        </span>
         {img ? (
           <div
             style={{
@@ -269,6 +288,26 @@ function FilledSlot({
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+// Sortable wrapper for FilledSlot — used in itinerary drag-to-reorder
+type FilledSlotProps = Parameters<typeof FilledSlot>[0];
+function SortableFilledSlot({ sortId, ...props }: FilledSlotProps & { sortId: string }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: sortId });
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+        zIndex: isDragging ? 100 : undefined,
+        position: "relative",
+      }}
+    >
+      <FilledSlot {...props} dragHandleListeners={listeners} dragHandleAttributes={attributes} />
     </div>
   );
 }
@@ -924,7 +963,7 @@ function SavedContent({ tripId: tripIdProp, tripStartDate, tripEndDate, tripTitl
       try {
         const key = ITINERARY_KEY(tripIdProp);
         const existing: RecAddition[] = JSON.parse(localStorage.getItem(key) ?? "[]");
-        existing.push({ dayIndex: 0, title: item.title, location: item.detail, img: item.img, savedItemId: item.id });
+        existing.push({ dayIndex: 0, title: item.title, location: item.detail, img: item.img, savedItemId: item.id, sortOrder: existing.length });
         localStorage.setItem(key, JSON.stringify(existing));
       } catch (e) { console.error("[ItineraryWrite] localStorage write failed:", e); }
       // Persist dayIndex to DB so itinerary tab can show it
@@ -1076,7 +1115,7 @@ function SavedContent({ tripId: tripIdProp, tripStartDate, tripEndDate, tripTitl
             try {
               const key = ITINERARY_KEY(tripIdProp);
               const existing: RecAddition[] = JSON.parse(localStorage.getItem(key) ?? "[]");
-              existing.push({ dayIndex, title: dayPickerItem.title, location: dayPickerItem.detail, img: dayPickerItem.img, savedItemId: dayPickerItem.id });
+              existing.push({ dayIndex, title: dayPickerItem.title, location: dayPickerItem.detail, img: dayPickerItem.img, savedItemId: dayPickerItem.id, sortOrder: existing.length });
               localStorage.setItem(key, JSON.stringify(existing));
             } catch (e) { console.error("[ItineraryWrite] localStorage write failed:", e); }
             if (dayPickerItem.id) {
@@ -1101,7 +1140,7 @@ function SavedContent({ tripId: tripIdProp, tripStartDate, tripEndDate, tripTitl
             try {
               const key = ITINERARY_KEY(tripIdProp);
               const existing: RecAddition[] = JSON.parse(localStorage.getItem(key) ?? "[]");
-              existing.push({ dayIndex: 0, title: lodgingDateItem.title, location: lodgingDateItem.detail, img: lodgingDateItem.img, savedItemId: lodgingDateItem.id });
+              existing.push({ dayIndex: 0, title: lodgingDateItem.title, location: lodgingDateItem.detail, img: lodgingDateItem.img, savedItemId: lodgingDateItem.id, sortOrder: existing.length });
               localStorage.setItem(key, JSON.stringify(existing));
             } catch (e) { console.error("[ItineraryWrite] localStorage write failed:", e); }
             if (lodgingDateItem.id) {
@@ -1221,7 +1260,7 @@ function TaskModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-type RecAddition = { dayIndex: number; title: string; location: string; img: string; savedItemId?: string; lat?: number | null; lng?: number | null; isBooked?: boolean };
+type RecAddition = { dayIndex: number; title: string; location: string; img: string; savedItemId?: string; lat?: number | null; lng?: number | null; isBooked?: boolean; sortOrder: number };
 
 const ITINERARY_KEY = (tripId?: string) => `flokk_itinerary_additions_${tripId ?? "default"}`;
 
@@ -1333,6 +1372,34 @@ function ItineraryContent({ flyTarget, onFlyTargetConsumed, tripId, tripStartDat
   const [expandedSlotKey, setExpandedSlotKey] = useState<string | null>(null);
   const [detailItemId, setDetailItemId] = useState<string | null>(null);
   const [detailRemover, setDetailRemover] = useState<(() => void) | null>(null);
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } })
+  );
+
+  function handleDragEnd(event: DragEndEvent, dayIdx: number, currentDayItems: RecAddition[]) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = currentDayItems.findIndex(a => a.savedItemId === String(active.id));
+    const newIndex = currentDayItems.findIndex(a => a.savedItemId === String(over.id));
+    if (oldIndex === -1 || newIndex === -1) return;
+    const reordered = arrayMove(currentDayItems, oldIndex, newIndex);
+    // Optimistic update
+    setRecAdditions(prev => {
+      const others = prev.filter(a => a.dayIndex !== dayIdx);
+      return [...others, ...reordered.map((a, i) => ({ ...a, sortOrder: i }))];
+    });
+    // Persist to DB (never deletes — UPDATE only)
+    reordered.forEach((a, i) => {
+      if (a.savedItemId) {
+        fetch(`/api/saves/${a.savedItemId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sortOrder: i }),
+        }).catch(e => console.error("[sortOrder PATCH]", e));
+      }
+    });
+  }
 
   function toggleSlot(key: string) {
     setExpandedSlotKey(prev => prev === key ? null : key);
@@ -1344,7 +1411,7 @@ function ItineraryContent({ flyTarget, onFlyTargetConsumed, tripId, tripStartDat
     if (!tripId) return;
     fetch(`/api/trips/${tripId}/itinerary`)
       .then(r => r.json())
-      .then(({ items }: { items: Array<{ id: string; rawTitle: string | null; rawDescription: string | null; mediaThumbnailUrl: string | null; dayIndex: number | null; lat?: number | null; lng?: number | null; isBooked?: boolean }> }) => {
+      .then(({ items }: { items: Array<{ id: string; rawTitle: string | null; rawDescription: string | null; mediaThumbnailUrl: string | null; dayIndex: number | null; sortOrder?: number; lat?: number | null; lng?: number | null; isBooked?: boolean }> }) => {
         if (!items?.length) return;
         setRecAdditions(items.map(item => ({
           dayIndex: item.dayIndex ?? 0,
@@ -1355,6 +1422,7 @@ function ItineraryContent({ flyTarget, onFlyTargetConsumed, tripId, tripStartDat
           lat: item.lat ?? null,
           lng: item.lng ?? null,
           isBooked: item.isBooked ?? false,
+          sortOrder: item.sortOrder ?? 0,
         })));
       })
       .catch(e => console.error("[ItineraryRead] API fetch failed:", e));
@@ -1425,7 +1493,9 @@ function ItineraryContent({ flyTarget, onFlyTargetConsumed, tripId, tripStartDat
               <div style={{ borderRadius: "12px", border: "1px solid rgba(0,0,0,0.08)", overflow: "hidden", backgroundColor: "#fff" }}>
                 {tripDays.map(({ dayIndex, label, date }, i) => {
                   const isOpen = openDay === i;
-                  const dayItems = recAdditions.filter(a => a.dayIndex === dayIndex);
+                  const dayItems = recAdditions
+                    .filter(a => a.dayIndex === dayIndex)
+                    .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
                   const dayFlights = flights.filter(f => f.dayIndex === dayIndex);
                   const dayActivities = activities.filter(a => a.dayIndex === dayIndex);
                   return (
@@ -1527,57 +1597,48 @@ function ItineraryContent({ flyTarget, onFlyTargetConsumed, tripId, tripStartDat
                             </div>
                           ))}
 
-                          {/* User-added items for this day */}
-                          {dayItems.map((a, idx) => {
-                            const key = `rec-${dayIndex}-${idx}`;
-                            return (
-                              <FilledSlot
-                                key={key}
-                                title={a.title}
-                                subtitle={a.location}
-                                img={a.img}
-                                tags={[a.isBooked ? "Booked ✓" : "Added"]}
-                                slotKey={key}
-                                isExpanded={expandedSlotKey === key}
-                                onExpandToggle={() => {
-                                  if (a.savedItemId) {
-                                    setDetailItemId(a.savedItemId);
-                                    setDetailRemover(() => () => {
-                                      try {
-                                        const stored: RecAddition[] = JSON.parse(localStorage.getItem(ITINERARY_KEY(tripId)) ?? "[]");
-                                        const withIndex = stored.map((item, si) => ({ item, si }));
-                                        const thisDay = withIndex.filter(({ item }) => item.dayIndex === dayIndex);
-                                        const globalIdx = thisDay[idx]?.si;
-                                        if (globalIdx !== undefined) {
-                                          const updated = stored.filter((_, si) => si !== globalIdx);
-                                          localStorage.setItem(ITINERARY_KEY(tripId), JSON.stringify(updated));
-                                          setRecAdditions(updated);
+                          {/* User-added saved items for this day — sortable via drag handle */}
+                          <DndContext
+                            sensors={sensors}
+                            collisionDetection={closestCenter}
+                            onDragEnd={(event) => handleDragEnd(event, dayIndex, dayItems)}
+                          >
+                            <SortableContext
+                              items={dayItems.map(a => a.savedItemId ?? `item-${dayIndex}-${a.title}`)}
+                              strategy={verticalListSortingStrategy}
+                            >
+                              {dayItems.map((a) => {
+                                const sortId = a.savedItemId ?? `item-${dayIndex}-${a.title}`;
+                                return (
+                                  <SortableFilledSlot
+                                    key={sortId}
+                                    sortId={sortId}
+                                    title={a.title}
+                                    subtitle={a.location}
+                                    img={a.img}
+                                    tags={[a.isBooked ? "Booked ✓" : "Added"]}
+                                    onExpandToggle={a.savedItemId ? () => {
+                                      // Bug 1 fix: card click opens detail modal only — no delete on click
+                                      setDetailItemId(a.savedItemId!);
+                                      setDetailRemover(() => () => {
+                                        // API-based removal: PATCH dayIndex to null, update local state
+                                        if (a.savedItemId) {
+                                          fetch(`/api/saves/${a.savedItemId}`, {
+                                            method: "PATCH",
+                                            headers: { "Content-Type": "application/json" },
+                                            body: JSON.stringify({ dayIndex: null }),
+                                          }).catch(e => console.error("[removeFromDay]", e));
                                         }
-                                      } catch { /* ignore */ }
-                                      setDetailItemId(null);
-                                      setDetailRemover(null);
-                                    });
-                                  } else {
-                                    toggleSlot(key);
-                                  }
-                                }}
-                                onRemove={() => {
-                                  try {
-                                    const stored: RecAddition[] = JSON.parse(localStorage.getItem(ITINERARY_KEY(tripId)) ?? "[]");
-                                    const withIndex = stored.map((item, si) => ({ item, si }));
-                                    const thisDay = withIndex.filter(({ item }) => item.dayIndex === dayIndex);
-                                    const globalIdx = thisDay[idx]?.si;
-                                    if (globalIdx !== undefined) {
-                                      const updated = stored.filter((_, si) => si !== globalIdx);
-                                      localStorage.setItem(ITINERARY_KEY(tripId), JSON.stringify(updated));
-                                      setRecAdditions(updated);
-                                    }
-                                  } catch { /* ignore */ }
-                                  setExpandedSlotKey(null);
-                                }}
-                              />
-                            );
-                          })}
+                                        setRecAdditions(prev => prev.filter(r => r.savedItemId !== a.savedItemId));
+                                        setDetailItemId(null);
+                                        setDetailRemover(null);
+                                      });
+                                    } : undefined}
+                                  />
+                                );
+                              })}
+                            </SortableContext>
+                          </DndContext>
 
                           {/* Empty slots */}
                           {dayItems.length === 0 && (
