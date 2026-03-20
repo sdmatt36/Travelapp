@@ -76,8 +76,33 @@ export function TripMap({ activeDay, flyTarget, onFlyTargetConsumed, tripId, des
   const mapboxRef = useRef<any>(null);
   const initializedRef = useRef(false);
   const [toast, setToast] = useState(false);
+  const [fetchedItems, setFetchedItems] = useState<MapSavedItem[]>([]);
 
   const destCoords = getDestinationCoords(destinationCity, destinationCountry);
+
+  // Fetch saves with coordinates for this trip
+  useEffect(() => {
+    if (!tripId) return;
+    fetch(`/api/saves?tripId=${tripId}`)
+      .then((r) => r.json())
+      .then((data: { saves?: Array<{ rawTitle?: string | null; lat?: number | null; lng?: number | null; dayIndex?: number | null }> }) => {
+        const items: MapSavedItem[] = (data.saves ?? [])
+          .filter((s) => s.lat != null && s.lng != null)
+          .map((s) => ({ title: s.rawTitle ?? "Save", lat: s.lat!, lng: s.lng!, dayIndex: s.dayIndex }));
+        setFetchedItems(items);
+      })
+      .catch(() => {});
+  }, [tripId]);
+
+  // Merge prop savedItems and fetched items, dedup by coords
+  const allSavedItems = (() => {
+    const merged = [...savedItems];
+    for (const fi of fetchedItems) {
+      const dup = merged.some((m) => Math.abs(m.lat - fi.lat) < 0.0001 && Math.abs(m.lng - fi.lng) < 0.0001);
+      if (!dup) merged.push(fi);
+    }
+    return merged;
+  })();
 
   // Initialize map once
   useEffect(() => {
@@ -97,15 +122,16 @@ export function TripMap({ activeDay, flyTarget, onFlyTargetConsumed, tripId, des
         container: containerRef.current,
         style: "mapbox://styles/mapbox/outdoors-v12",
         center: destCoords,
-        zoom: 10,
+        zoom: 12,
       });
       mapRef.current = map;
 
       map.on("load", () => {
         if (!destroyed) {
-          map.flyTo({ center: destCoords, zoom: 10, duration: 0 });
           initializedRef.current = true;
           map.resize();
+          // Center on destination immediately; markers will be added by the effect below
+          map.flyTo({ center: destCoords, zoom: 12, duration: 0 });
         }
       });
     });
@@ -133,15 +159,16 @@ export function TripMap({ activeDay, flyTarget, onFlyTargetConsumed, tripId, des
     return () => observer.disconnect();
   }, []);
 
-  // Respond to day changes driven by parent — show pins for items on that day
+  // Respond to day changes — show pins for items on that day (or all if day=0)
   useEffect(() => {
     if (!initializedRef.current || !mapRef.current) return;
-    const dayMarkers: MarkerDef[] = savedItems
-      .filter(s => s.dayIndex === activeDay && s.lat != null && s.lng != null)
-      .map((s, i) => ({ num: i + 1, label: s.title, lat: s.lat, lng: s.lng }));
+    const dayMarkers: MarkerDef[] = (activeDay > 0
+      ? allSavedItems.filter(s => s.dayIndex === activeDay)
+      : allSavedItems
+    ).map((s, i) => ({ num: i + 1, label: s.title, lat: s.lat, lng: s.lng }));
     addMarkersInternal(dayMarkers);
     flyToDay(mapRef.current, mapboxRef.current, dayMarkers, destCoords);
-  }, [activeDay, savedItems]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [activeDay, allSavedItems]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Fly to a specific coordinate when flyTarget is set
   useEffect(() => {

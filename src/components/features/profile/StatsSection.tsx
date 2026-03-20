@@ -258,7 +258,6 @@ function MemoryBoard({ stats }: { stats: TravelStats }) {
         {/* Top row: Trips + Countries */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
           <div style={{ backgroundColor: "#1B3A5C", borderRadius: "16px", padding: "22px 16px", textAlign: "center" }}>
-            <div style={{ fontSize: "24px", marginBottom: "6px" }}>✈️</div>
             <p style={{ fontSize: "48px", fontWeight: 900, color: "#fff", margin: 0, lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>
               {tripsCount}
             </p>
@@ -267,7 +266,6 @@ function MemoryBoard({ stats }: { stats: TravelStats }) {
             </p>
           </div>
           <div style={{ backgroundColor: "#C4664A", borderRadius: "16px", padding: "22px 16px", textAlign: "center" }}>
-            <div style={{ fontSize: "24px", marginBottom: "6px" }}>🌍</div>
             <p style={{ fontSize: "48px", fontWeight: 900, color: "#fff", margin: 0, lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>
               {countriesCount}
             </p>

@@ -41,7 +41,10 @@ const COORDS: Array<{ cities: string[]; countries: string[]; coords: [number, nu
   { cities: ["honolulu", "maui", "hawaii", "kauai", "big island"], countries: [], coords: [-157.8583, 21.3069] },
   { cities: ["cancun", "playa del carmen", "tulum"], countries: ["mexico"], coords: [-86.8515, 21.1619] },
   { cities: ["mexico city"], countries: ["mexico"], coords: [-99.1332, 19.4326] },
-  { cities: ["toronto", "vancouver", "montreal"], countries: ["canada"], coords: [-79.3832, 43.6532] },
+  { cities: ["toronto", "ontario"], countries: [], coords: [-79.3832, 43.6532] },
+  { cities: ["vancouver", "british columbia"], countries: [], coords: [-123.1207, 49.2827] },
+  { cities: ["montreal"], countries: [], coords: [-73.5674, 45.5019] },
+  { cities: ["buenos aires"], countries: ["argentina"], coords: [-58.3816, -34.6037] },
   // Additional Asia
   { cities: ["chengdu"], countries: [], coords: [104.0657, 30.5728] },
   { cities: ["xian", "xi an", "xi'an"], countries: [], coords: [108.9402, 34.3416] },
