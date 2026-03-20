@@ -406,14 +406,11 @@ export default function DiscoverPage() {
 
         {/* Header */}
         <div style={{ marginBottom: "24px" }}>
-          <p style={{ fontSize: "12px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "#C4664A", marginBottom: "6px" }}>
-            Get inspired
-          </p>
-          <h1 style={{ fontSize: "26px", fontWeight: 800, color: "#1a1a1a", lineHeight: 1.2 }}>
-            Picked for your family
+          <h1 style={{ fontSize: "26px", fontWeight: 800, color: "#1a1a1a", lineHeight: 1.2, marginBottom: "6px" }}>
+            Discover
           </h1>
-          <p style={{ fontSize: "14px", color: "#717171", marginTop: "6px", lineHeight: 1.5 }}>
-            Based on your interests and travel style — places families like yours love.
+          <p style={{ fontSize: "14px", color: "#717171", lineHeight: 1.5 }}>
+            Real trips from real families, plus destinations picked for yours.
           </p>
         </div>
 
@@ -518,86 +515,12 @@ export default function DiscoverPage() {
           </div>
         )}
 
-        {/* Filter bar */}
-        <div
-          style={{ display: "flex", gap: "8px", overflowX: "auto", paddingBottom: "12px", marginBottom: "20px", scrollbarWidth: "none", msOverflowStyle: "none" }}
-          className="hide-scrollbar"
-        >
-          {FILTERS.map((f) => (
-            <button
-              key={f}
-              onClick={() => setActiveFilter(f)}
-              style={{
-                flexShrink: 0,
-                padding: "7px 16px",
-                borderRadius: "999px",
-                border: activeFilter === f ? "none" : "1.5px solid #E0E0E0",
-                backgroundColor: activeFilter === f ? "#C4664A" : "#fff",
-                color: activeFilter === f ? "#fff" : "#717171",
-                fontSize: "13px",
-                fontWeight: activeFilter === f ? 700 : 500,
-                cursor: "pointer",
-                transition: "all 0.15s",
-              }}
-            >
-              {f}
-            </button>
-          ))}
-        </div>
-
-        {/* Destination grid */}
-        {filtered.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3" style={{ gap: "16px" }}>
-            {filtered.map((rec) => (
-              <Link key={rec.id} href={getDestinationHref(rec)} style={{ textDecoration: "none", display: "block" }}>
-                <div
-                  className="hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
-                  style={{ backgroundColor: "#fff", borderRadius: "16px", overflow: "hidden", border: "1px solid #EEEEEE", boxShadow: "0 1px 8px rgba(0,0,0,0.06)" }}
-                >
-                  <div style={{ height: "160px", backgroundImage: `url(${rec.img})`, backgroundSize: "cover", backgroundPosition: "center", position: "relative" }}>
-                    <div style={{ position: "absolute", top: "10px", left: "10px" }}>
-                      <span style={{ fontSize: "11px", fontWeight: 700, backgroundColor: "#C4664A", color: "#fff", borderRadius: "20px", padding: "3px 10px" }}>
-                        {rec.tag}
-                      </span>
-                    </div>
-                    {rec.communityTripId && (
-                      <div style={{ position: "absolute", top: "10px", right: "10px" }}>
-                        <span style={{ fontSize: "10px", fontWeight: 700, backgroundColor: "rgba(27,58,92,0.85)", backdropFilter: "blur(4px)", color: "#fff", borderRadius: "20px", padding: "3px 10px" }}>
-                          Community trip
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  <div style={{ padding: "14px 16px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "4px", marginBottom: "4px" }}>
-                      <MapPin size={12} style={{ color: "#C4664A", flexShrink: 0 }} />
-                      <span style={{ fontSize: "13px", fontWeight: 700, color: "#1a1a1a" }}>
-                        {rec.city}, {rec.country}
-                      </span>
-                    </div>
-                    <p style={{ fontSize: "12px", color: "#717171", lineHeight: 1.5, marginBottom: "10px" }}>{rec.why}</p>
-                    <p style={{ fontSize: "11px", color: "#C4664A", lineHeight: 1.4, fontWeight: 500 }}>{rec.pickReason}</p>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        ) : (
-          <div style={{ textAlign: "center", padding: "48px 24px", color: "#717171" }}>
-            <p style={{ fontSize: "15px", fontWeight: 600, color: "#1a1a1a", marginBottom: "6px" }}>No destinations here yet</p>
-            <p style={{ fontSize: "13px" }}>More {activeFilter} picks coming soon.</p>
-          </div>
-        )}
-
-        {/* Community trips strip */}
-        <div style={{ marginTop: "40px" }}>
-          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: "16px" }}>
-            <div>
-              <h2 style={{ fontSize: "18px", fontWeight: 800, color: "#1a1a1a", marginBottom: "2px" }}>
-                Trips families like yours loved
-              </h2>
-              <p style={{ fontSize: "13px", color: "#717171" }}>Real itineraries from the Flokk community</p>
-            </div>
+        {/* Community trips grid — MAIN section */}
+        <div style={{ marginBottom: "40px" }}>
+          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: "6px" }}>
+            <h2 style={{ fontSize: "20px", fontWeight: 800, color: "#1a1a1a" }}>
+              Real trips from real families
+            </h2>
             <button
               onClick={handleAddYoursClick}
               style={{ fontSize: "12px", color: "#C4664A", fontWeight: 600, background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: "2px", flexShrink: 0, padding: 0, fontFamily: "inherit" }}
@@ -605,14 +528,14 @@ export default function DiscoverPage() {
               Add yours <ChevronRight size={13} />
             </button>
           </div>
-          <div
-            style={{ display: "flex", gap: "12px", overflowX: "auto", paddingBottom: "8px", scrollbarWidth: "none", msOverflowStyle: "none" }}
-            className="hide-scrollbar"
-          >
-            {publicTrips.length === 0 ? (
-              <p style={{ fontSize: "13px", color: "#AAAAAA", padding: "8px 0" }}>Loading trips…</p>
-            ) : (
-              publicTrips.map((trip) => {
+          <p style={{ fontSize: "13px", color: "#717171", marginBottom: "20px" }}>
+            Every itinerary below was planned by a family who actually went.
+          </p>
+          {publicTrips.length === 0 ? (
+            <p style={{ fontSize: "13px", color: "#AAAAAA", padding: "8px 0" }}>Loading trips…</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3" style={{ gap: "16px" }}>
+              {publicTrips.map((trip) => {
                 const coverImage = getTripCoverImage(trip.destinationCity, trip.destinationCountry, trip.heroImageUrl);
                 const nights = trip.startDate && trip.endDate
                   ? Math.round((new Date(trip.endDate).getTime() - new Date(trip.startDate).getTime()) / (1000 * 60 * 60 * 24))
@@ -620,37 +543,118 @@ export default function DiscoverPage() {
                 const destination = [trip.destinationCity, trip.destinationCountry].filter(Boolean).join(", ");
                 const familyName = trip.familyProfile?.familyName;
                 return (
-                  <Link key={trip.id} href={`/trips/${trip.id}`} style={{ textDecoration: "none", flexShrink: 0 }}>
+                  <Link key={trip.id} href={`/trips/${trip.id}`} style={{ textDecoration: "none", display: "block" }}>
                     <div
-                      className="hover:shadow-md transition-shadow duration-200"
-                      style={{ width: "220px", backgroundColor: "#fff", borderRadius: "16px", overflow: "hidden", border: "1px solid #EEEEEE", boxShadow: "0 1px 6px rgba(0,0,0,0.06)" }}
+                      className="hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
+                      style={{ backgroundColor: "#fff", borderRadius: "16px", overflow: "hidden", border: "1px solid #EEEEEE", boxShadow: "0 1px 8px rgba(0,0,0,0.06)" }}
                     >
-                      <div style={{ height: "120px", backgroundImage: `url(${coverImage})`, backgroundSize: "cover", backgroundPosition: "center", position: "relative" }}>
-                        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.5) 100%)" }} />
-                        <div style={{ position: "absolute", bottom: "8px", left: "10px", right: "10px" }}>
-                          <p style={{ fontSize: "13px", fontWeight: 700, color: "#fff", lineHeight: 1.2 }}>{trip.title}</p>
+                      <div style={{ height: "160px", backgroundImage: `url(${coverImage})`, backgroundSize: "cover", backgroundPosition: "center", position: "relative" }}>
+                        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.55) 100%)" }} />
+                        <div style={{ position: "absolute", bottom: "10px", left: "12px", right: "12px" }}>
+                          <p style={{ fontSize: "14px", fontWeight: 700, color: "#fff", lineHeight: 1.2 }}>{trip.title}</p>
                         </div>
                       </div>
-                      <div style={{ padding: "10px 12px" }}>
+                      <div style={{ padding: "12px 14px" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: "4px", marginBottom: "4px" }}>
                           <MapPin size={11} style={{ color: "#C4664A", flexShrink: 0 }} />
-                          <span style={{ fontSize: "11px", color: "#2d2d2d", fontWeight: 600 }}>{destination}</span>
+                          <span style={{ fontSize: "12px", color: "#2d2d2d", fontWeight: 600 }}>{destination}</span>
                         </div>
-                        <p style={{ fontSize: "11px", color: "#717171", marginBottom: "6px" }}>
+                        <p style={{ fontSize: "11px", color: "#717171" }}>
                           {nights ? `${nights} nights` : ""}
                           {nights && trip._count.savedItems > 0 ? " · " : ""}
                           {trip._count.savedItems > 0 ? `${trip._count.savedItems} saves` : ""}
+                          {familyName ? `${nights || trip._count.savedItems > 0 ? " · " : ""}by ${familyName}` : ""}
                         </p>
-                        {familyName && (
-                          <p style={{ fontSize: "10px", color: "#AAAAAA" }}>by {familyName}</p>
-                        )}
                       </div>
                     </div>
                   </Link>
                 );
-              })
-            )}
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Get inspired — destination cards */}
+        <div style={{ marginBottom: "40px" }}>
+          <div style={{ marginBottom: "16px" }}>
+            <p style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "#C4664A", marginBottom: "4px" }}>
+              Get inspired
+            </p>
+            <h2 style={{ fontSize: "18px", fontWeight: 800, color: "#1a1a1a" }}>
+              Destinations picked for your family
+            </h2>
           </div>
+
+          {/* Filter bar */}
+          <div
+            style={{ display: "flex", gap: "8px", overflowX: "auto", paddingBottom: "12px", marginBottom: "20px", scrollbarWidth: "none", msOverflowStyle: "none" }}
+            className="hide-scrollbar"
+          >
+            {FILTERS.map((f) => (
+              <button
+                key={f}
+                onClick={() => setActiveFilter(f)}
+                style={{
+                  flexShrink: 0,
+                  padding: "7px 16px",
+                  borderRadius: "999px",
+                  border: activeFilter === f ? "none" : "1.5px solid #E0E0E0",
+                  backgroundColor: activeFilter === f ? "#C4664A" : "#fff",
+                  color: activeFilter === f ? "#fff" : "#717171",
+                  fontSize: "13px",
+                  fontWeight: activeFilter === f ? 700 : 500,
+                  cursor: "pointer",
+                  transition: "all 0.15s",
+                }}
+              >
+                {f}
+              </button>
+            ))}
+          </div>
+
+          {/* Destination grid */}
+          {filtered.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3" style={{ gap: "16px" }}>
+              {filtered.map((rec) => (
+                <Link key={rec.id} href={getDestinationHref(rec)} style={{ textDecoration: "none", display: "block" }}>
+                  <div
+                    className="hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
+                    style={{ backgroundColor: "#fff", borderRadius: "16px", overflow: "hidden", border: "1px solid #EEEEEE", boxShadow: "0 1px 8px rgba(0,0,0,0.06)" }}
+                  >
+                    <div style={{ height: "160px", backgroundImage: `url(${rec.img})`, backgroundSize: "cover", backgroundPosition: "center", position: "relative" }}>
+                      <div style={{ position: "absolute", top: "10px", left: "10px" }}>
+                        <span style={{ fontSize: "11px", fontWeight: 700, backgroundColor: "#C4664A", color: "#fff", borderRadius: "20px", padding: "3px 10px" }}>
+                          {rec.tag}
+                        </span>
+                      </div>
+                      {rec.communityTripId && (
+                        <div style={{ position: "absolute", top: "10px", right: "10px" }}>
+                          <span style={{ fontSize: "10px", fontWeight: 700, backgroundColor: "rgba(27,58,92,0.85)", backdropFilter: "blur(4px)", color: "#fff", borderRadius: "20px", padding: "3px 10px" }}>
+                            Community trip
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ padding: "14px 16px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "4px", marginBottom: "4px" }}>
+                        <MapPin size={12} style={{ color: "#C4664A", flexShrink: 0 }} />
+                        <span style={{ fontSize: "13px", fontWeight: 700, color: "#1a1a1a" }}>
+                          {rec.city}, {rec.country}
+                        </span>
+                      </div>
+                      <p style={{ fontSize: "12px", color: "#717171", lineHeight: 1.5, marginBottom: "10px" }}>{rec.why}</p>
+                      <p style={{ fontSize: "11px", color: "#C4664A", lineHeight: 1.4, fontWeight: 500 }}>{rec.pickReason}</p>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div style={{ textAlign: "center", padding: "48px 24px", color: "#717171" }}>
+              <p style={{ fontSize: "15px", fontWeight: 600, color: "#1a1a1a", marginBottom: "6px" }}>No destinations here yet</p>
+              <p style={{ fontSize: "13px" }}>More {activeFilter} picks coming soon.</p>
+            </div>
+          )}
         </div>
 
         {/* Travel Intel */}
