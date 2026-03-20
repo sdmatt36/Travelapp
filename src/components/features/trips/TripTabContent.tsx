@@ -705,7 +705,7 @@ function SavedDetailModal({ item, onClose }: { item: SavedDisplayItem; onClose: 
   );
 }
 
-function SavedHorizCard({ item, isDesktop, onAddToItinerary, onBook, onLearnMore, assignedDay, onDelete }: {
+function SavedHorizCard({ item, isDesktop: _isDesktop, onAddToItinerary, onBook, onLearnMore, assignedDay, onDelete }: {
   item: SavedDisplayItem;
   isDesktop: boolean;
   onAddToItinerary: () => void;
@@ -715,51 +715,53 @@ function SavedHorizCard({ item, isDesktop, onAddToItinerary, onBook, onLearnMore
   onDelete?: () => void;
 }) {
   const [imgFailed, setImgFailed] = useState(false);
-  const thumbSize = isDesktop ? 96 : 72;
+  const hasImg = !!item.img && !imgFailed;
   return (
-    <div onClick={onLearnMore} style={{ backgroundColor: "#fff", borderRadius: "12px", boxShadow: "0 1px 6px rgba(0,0,0,0.08)", border: "1px solid #EEEEEE", overflow: "hidden", display: "flex", flexDirection: "row", alignItems: "stretch", marginBottom: "10px", cursor: "pointer" }}>
-      {imgFailed ? (
-        <div style={{ width: thumbSize, minWidth: thumbSize, height: thumbSize, backgroundColor: "#F5F0EB", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-          {item.icon}
-        </div>
-      ) : (
+    <div
+      onClick={onLearnMore}
+      style={{ backgroundColor: "#fff", borderRadius: "14px", border: "1px solid #EEEEEE", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", overflow: "hidden", marginBottom: "10px", cursor: "pointer" }}
+    >
+      {/* Optional thumbnail strip */}
+      {hasImg && (
         <>
-          <div style={{ width: thumbSize, minWidth: thumbSize, height: thumbSize, backgroundImage: `url('${item.img}')`, backgroundSize: "cover", backgroundPosition: "center", flexShrink: 0 }} />
+          <div style={{ height: "80px", backgroundImage: `url('${item.img}')`, backgroundSize: "cover", backgroundPosition: "center" }} />
           <img src={item.img} alt="" onError={() => setImgFailed(true)} style={{ display: "none" }} />
         </>
       )}
-      <div style={{ padding: "10px 12px", flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", gap: "3px", minWidth: 0 }}>
-        <p style={{ fontSize: "13px", fontWeight: 700, color: "#1a1a1a", lineHeight: 1.3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.title}</p>
-        <p style={{ fontSize: "12px", color: "#717171", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.detail}</p>
-        {item.statusBooked ? (
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "2px" }}>
-            <span style={{ fontSize: "11px", fontWeight: 600, borderRadius: "20px", padding: "2px 8px", backgroundColor: "rgba(74,124,89,0.1)", color: "#4a7c59", border: "1px solid rgba(74,124,89,0.2)" }}>
-              {item.status}
+      <div style={{ padding: "12px 14px" }}>
+        {/* Title + status badge */}
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "8px", marginBottom: "2px" }}>
+          <p style={{ fontSize: "14px", fontWeight: 800, color: "#1B3A5C", lineHeight: 1.3, flex: 1, minWidth: 0 }}>{item.title}</p>
+          {item.statusBooked && (
+            <span style={{ fontSize: "10px", fontWeight: 600, borderRadius: "999px", padding: "2px 8px", backgroundColor: "rgba(74,124,89,0.1)", color: "#4a7c59", border: "1px solid rgba(74,124,89,0.2)", whiteSpace: "nowrap", flexShrink: 0 }}>
+              Booked
             </span>
-          </div>
-        ) : (
-          <div style={{ display: "flex", gap: "5px", marginTop: "4px", flexWrap: "wrap" }}>
-            {assignedDay !== undefined ? (
-              <span style={{ fontSize: "10px", fontWeight: 600, padding: "3px 8px", borderRadius: "20px", backgroundColor: "rgba(74,124,89,0.1)", color: "#4a7c59", border: "1px solid rgba(74,124,89,0.2)", whiteSpace: "nowrap" }}>
-                ✓ Day {assignedDay + 1}
-              </span>
-            ) : (
-              <button type="button" onClick={e => { e.stopPropagation(); onAddToItinerary(); }} style={{ fontSize: "10px", fontWeight: 600, padding: "3px 8px", borderRadius: "20px", border: "1px solid rgba(196,102,74,0.3)", backgroundColor: "transparent", color: "#C4664A", cursor: "pointer", whiteSpace: "nowrap" }}>+ Itinerary</button>
-            )}
-            {item.bookUrl && (
-              <button type="button" onClick={e => { e.stopPropagation(); onBook(); }} style={{ fontSize: "10px", fontWeight: 600, padding: "3px 8px", borderRadius: "20px", border: "1px solid #E0E0E0", backgroundColor: "transparent", color: "#555", cursor: "pointer", whiteSpace: "nowrap" }}>Book</button>
-            )}
-            <button type="button" onClick={e => { e.stopPropagation(); onLearnMore(); }} style={{ fontSize: "10px", fontWeight: 600, padding: "3px 8px", borderRadius: "20px", border: "1px solid #E0E0E0", backgroundColor: "transparent", color: "#555", cursor: "pointer", whiteSpace: "nowrap" }}>Learn more</button>
-            {onDelete && (
-              <button type="button" onClick={e => { e.stopPropagation(); onDelete(); }} style={{ fontSize: "10px", padding: "3px 6px", borderRadius: "20px", border: "1px solid rgba(220,53,69,0.25)", backgroundColor: "transparent", color: "#dc3545", cursor: "pointer", display: "flex", alignItems: "center" }}>
-                <Trash2 size={11} />
-              </button>
-            )}
-          </div>
+          )}
+        </div>
+        {/* Detail row (dates / description) */}
+        {item.detail && (
+          <p style={{ fontSize: "12px", color: "#717171", marginBottom: "10px", lineHeight: 1.4 }}>{item.detail}</p>
         )}
-        <div style={{ display: "flex", alignItems: "center", gap: "4px", marginTop: "1px" }}>
-          <Users size={10} style={{ color: "#BBBBBB", flexShrink: 0 }} />
-          <span style={{ fontSize: "11px", color: "#BBBBBB" }}>{item.families}</span>
+        {/* Action row */}
+        <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", alignItems: "center" }} onClick={e => e.stopPropagation()}>
+          {assignedDay !== undefined ? (
+            <span style={{ fontSize: "11px", fontWeight: 600, padding: "4px 10px", borderRadius: "999px", backgroundColor: "rgba(74,124,89,0.1)", color: "#4a7c59", border: "1px solid rgba(74,124,89,0.2)", whiteSpace: "nowrap" }}>
+              ✓ Day {assignedDay + 1}
+            </span>
+          ) : (
+            <button type="button" onClick={e => { e.stopPropagation(); onAddToItinerary(); }} style={{ fontSize: "11px", fontWeight: 600, padding: "4px 10px", borderRadius: "999px", border: "1.5px solid #C4664A", backgroundColor: "transparent", color: "#C4664A", cursor: "pointer", whiteSpace: "nowrap" }}>
+              + Itinerary
+            </button>
+          )}
+          {item.bookUrl && (
+            <button type="button" onClick={e => { e.stopPropagation(); onBook(); }} style={{ fontSize: "11px", fontWeight: 600, padding: "4px 10px", borderRadius: "999px", border: "1px solid #E0E0E0", backgroundColor: "transparent", color: "#555", cursor: "pointer", whiteSpace: "nowrap" }}>Book</button>
+          )}
+          <button type="button" onClick={e => { e.stopPropagation(); onLearnMore(); }} style={{ fontSize: "11px", fontWeight: 600, padding: "4px 10px", borderRadius: "999px", border: "1px solid #E0E0E0", backgroundColor: "transparent", color: "#555", cursor: "pointer", whiteSpace: "nowrap" }}>Learn more</button>
+          {onDelete && (
+            <button type="button" onClick={e => { e.stopPropagation(); onDelete(); }} style={{ fontSize: "10px", padding: "4px 7px", borderRadius: "999px", border: "1px solid rgba(220,53,69,0.25)", backgroundColor: "transparent", color: "#dc3545", cursor: "pointer", display: "flex", alignItems: "center", marginLeft: "auto" }}>
+              <Trash2 size={11} />
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -808,9 +810,11 @@ function apiToDisplayItem(item: ApiSavedItem): SavedDisplayItem {
   const LODGING_TAGS = /lodging|accommodation|hotel|airbnb|hostel/i;
   const tagsStr = item.categoryTags.join(" ");
   const isLodging = LODGING_TAGS.test(tagsStr);
+  // Use domain as fallback if rawTitle is missing or looks like a raw URL
+  const safeTitle = (item.rawTitle && !item.rawTitle.startsWith("http")) ? item.rawTitle : urlHost;
   return {
     id: item.id,
-    title: item.rawTitle ?? urlHost,
+    title: safeTitle,
     detail,
     status: item.isBooked ? "Booked" : "Saved",
     statusBooked: item.isBooked,
@@ -2474,85 +2478,196 @@ function FlightCard({ flight, onDelete, onMarkBooked }: { flight: Flight; onDele
   );
 }
 
-// ── Activity card ─────────────────────────────────────────────────────────────
+// ── Activity detail modal ──────────────────────────────────────────────────────
 
-function ActivityCard({ activity, onDelete, onEdit, onMarkBooked, onAddToItinerary }: { activity: Activity; onDelete: () => void; onEdit: () => void; onMarkBooked?: () => void; onAddToItinerary?: () => void }) {
+function ActivityDetailModal({ activity, onClose, onDelete, onEdit, onMarkBooked, onAddToItinerary }: {
+  activity: Activity;
+  onClose: () => void;
+  onDelete: () => void;
+  onEdit: () => void;
+  onMarkBooked?: () => void;
+  onAddToItinerary?: () => void;
+}) {
   const isBooked = activity.status === "booked";
   const isConfirmed = activity.status === "confirmed";
-  const statusColor = isBooked ? "#6B8F71" : isConfirmed ? "#1B3A5C" : "#717171";
-  const statusBg = isBooked ? "rgba(107,143,113,0.1)" : isConfirmed ? "rgba(27,58,92,0.1)" : "rgba(0,0,0,0.06)";
+  const statusColor = isBooked ? "#4a7c59" : isConfirmed ? "#1B3A5C" : "#717171";
+  const statusBg = isBooked ? "rgba(107,143,113,0.1)" : isConfirmed ? "rgba(27,58,92,0.08)" : "rgba(0,0,0,0.06)";
   const statusLabel = isBooked ? "Booked" : isConfirmed ? "Confirmed" : "Interested";
-  return (
-    <div style={{ backgroundColor: "#fff", border: `1.5px solid ${isBooked || isConfirmed ? "#D8E4F0" : "#EEEEEE"}`, borderRadius: "14px", padding: "14px 16px", marginBottom: "10px" }}>
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "8px" }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          {/* Title + status badge */}
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px", flexWrap: "wrap" }}>
-            <span style={{ fontSize: "15px", fontWeight: 800, color: "#1a1a1a" }}>{activity.title}</span>
-            <span style={{ fontSize: "11px", backgroundColor: statusBg, color: statusColor, borderRadius: "999px", padding: "2px 8px", fontWeight: 600 }}>{statusLabel}</span>
+  return createPortal(
+    <div
+      onClick={onClose}
+      style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.5)", zIndex: 9999, display: "flex", alignItems: "flex-end", justifyContent: "center" }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{ backgroundColor: "#fff", borderRadius: "20px 20px 0 0", width: "100%", maxWidth: "560px", maxHeight: "85vh", overflowY: "auto", paddingBottom: "env(safe-area-inset-bottom, 20px)" }}
+      >
+        <div style={{ padding: "20px 20px 0", display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px" }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ fontSize: "20px", fontWeight: 800, color: "#1B3A5C", lineHeight: 1.2, marginBottom: "6px" }}>{activity.title}</p>
+            <span style={{ fontSize: "11px", fontWeight: 700, backgroundColor: statusBg, color: statusColor, borderRadius: "999px", padding: "3px 10px" }}>{statusLabel}</span>
           </div>
-          {/* Date + time */}
-          <p style={{ fontSize: "13px", color: "#555", marginBottom: "4px" }}>
-            {activity.date}{activity.time ? ` · ${activity.time}` : ""}{activity.endTime ? ` – ${activity.endTime}` : ""}
-          </p>
+          <button onClick={onClose} style={{ background: "none", border: "none", fontSize: "22px", color: "#999", cursor: "pointer", lineHeight: 1, padding: "2px", flexShrink: 0 }}>×</button>
+        </div>
+        <div style={{ padding: "16px 20px 24px", display: "flex", flexDirection: "column", gap: "6px" }}>
+          {/* Date / time */}
+          {activity.date && (
+            <p style={{ fontSize: "14px", color: "#555" }}>
+              {activity.date}{activity.time ? ` · ${activity.time}` : ""}{activity.endTime ? ` – ${activity.endTime}` : ""}
+            </p>
+          )}
           {/* Venue */}
-          {activity.venueName && (
-            <p style={{ fontSize: "12px", color: "#717171", marginBottom: "4px" }}>{activity.venueName}</p>
+          {activity.venueName && <p style={{ fontSize: "13px", color: "#717171" }}>{activity.venueName}</p>}
+          {/* Price / confirmation */}
+          {(activity.price != null || activity.confirmationCode) && (
+            <p style={{ fontSize: "13px", color: "#555" }}>
+              {activity.price != null && `${activity.currency ?? "USD"} ${activity.price.toFixed(2)}`}
+              {activity.price != null && activity.confirmationCode && " · "}
+              {activity.confirmationCode && <span style={{ fontFamily: "monospace" }}>{activity.confirmationCode}</span>}
+            </p>
           )}
-          {/* Meta row */}
-          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
-            {activity.price != null && (
-              <span style={{ fontSize: "12px", color: "#555" }}>{activity.currency ?? "USD"} {activity.price.toFixed(2)}</span>
-            )}
-            {activity.confirmationCode && (
-              <span style={{ fontSize: "12px", color: "#555", fontFamily: "monospace" }}>{activity.confirmationCode}</span>
-            )}
-            {activity.website && (
-              <a href={activity.website} target="_blank" rel="noopener noreferrer" style={{ fontSize: "12px", color: "#C4664A", fontWeight: 600 }}>Book →</a>
-            )}
-            {!isBooked && !isConfirmed && onMarkBooked && (
-              <button onClick={onMarkBooked} style={{ fontSize: "12px", color: "#C4664A", fontWeight: 600, background: "none", border: "none", cursor: "pointer", padding: 0 }}>
-                Mark as booked →
-              </button>
-            )}
-          </div>
-          {activity.notes && (
-            <p style={{ fontSize: "12px", color: "#888", marginTop: "6px", fontStyle: "italic" }}>{activity.notes}</p>
+          {/* Day assigned */}
+          {activity.dayIndex != null && (
+            <span style={{ alignSelf: "flex-start", fontSize: "12px", fontWeight: 600, padding: "3px 10px", borderRadius: "999px", backgroundColor: "rgba(74,124,89,0.1)", color: "#4a7c59", border: "1px solid rgba(74,124,89,0.2)" }}>
+              ✓ Day {activity.dayIndex + 1}
+            </span>
           )}
-          <div style={{ display: "flex", gap: "6px", marginTop: "6px", flexWrap: "wrap" }}>
-            {activity.dayIndex != null ? (
-              <span style={{ fontSize: "11px", fontWeight: 600, padding: "2px 8px", borderRadius: "20px", backgroundColor: "rgba(74,124,89,0.1)", color: "#4a7c59", border: "1px solid rgba(74,124,89,0.2)" }}>
-                ✓ Day {activity.dayIndex + 1}
-              </span>
-            ) : onAddToItinerary && (
+          {/* Notes */}
+          {activity.notes && <p style={{ fontSize: "13px", color: "#888", fontStyle: "italic", marginTop: "4px" }}>{activity.notes}</p>}
+
+          {/* Actions */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "12px" }}>
+            {onAddToItinerary && activity.dayIndex == null && (
               <button
                 type="button"
-                onClick={e => { e.stopPropagation(); onAddToItinerary(); }}
-                style={{ fontSize: "11px", fontWeight: 600, padding: "2px 8px", borderRadius: "20px", border: "1px solid rgba(196,102,74,0.3)", backgroundColor: "transparent", color: "#C4664A", cursor: "pointer" }}
+                onClick={() => { onAddToItinerary(); onClose(); }}
+                style={{ width: "100%", padding: "12px", borderRadius: "12px", border: "1.5px solid #C4664A", backgroundColor: "transparent", fontSize: "14px", fontWeight: 700, color: "#C4664A", cursor: "pointer" }}
               >
                 + Add to itinerary
               </button>
             )}
+            {activity.website && (
+              <a href={activity.website} target="_blank" rel="noopener noreferrer" style={{ display: "block", textAlign: "center", padding: "11px", borderRadius: "12px", backgroundColor: "#1B3A5C", fontSize: "13px", fontWeight: 700, color: "#fff", textDecoration: "none" }}>
+                Visit website →
+              </a>
+            )}
+            {!isBooked && onMarkBooked && (
+              <button
+                type="button"
+                onClick={() => { onMarkBooked(); onClose(); }}
+                style={{ width: "100%", padding: "11px", borderRadius: "12px", border: "1.5px solid rgba(107,143,113,0.4)", backgroundColor: "transparent", fontSize: "13px", fontWeight: 700, color: "#4a7c59", cursor: "pointer" }}
+              >
+                Mark as booked ✓
+              </button>
+            )}
+            <div style={{ display: "flex", gap: "8px" }}>
+              <button
+                type="button"
+                onClick={() => { onClose(); onEdit(); }}
+                style={{ flex: 1, padding: "10px", borderRadius: "12px", border: "1px solid #E0E0E0", backgroundColor: "#fff", fontSize: "13px", fontWeight: 600, color: "#555", cursor: "pointer" }}
+              >
+                Edit
+              </button>
+              <button
+                type="button"
+                onClick={() => { onDelete(); onClose(); }}
+                style={{ flex: 1, padding: "10px", borderRadius: "12px", border: "1px solid rgba(220,53,69,0.3)", backgroundColor: "transparent", fontSize: "13px", fontWeight: 600, color: "#dc3545", cursor: "pointer" }}
+              >
+                Remove
+              </button>
+            </div>
           </div>
         </div>
-        <div style={{ display: "flex", gap: "4px", flexShrink: 0 }}>
-          <button
-            onClick={onEdit}
-            style={{ background: "none", border: "none", cursor: "pointer", color: "#ccc", padding: "2px", lineHeight: 1 }}
-            title="Edit activity"
-          >
-            <Pencil size={15} />
-          </button>
-          <button
-            onClick={onDelete}
-            style={{ background: "none", border: "none", cursor: "pointer", color: "#ccc", padding: "2px", lineHeight: 1 }}
-            title="Remove activity"
-          >
-            <Trash2 size={16} />
-          </button>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+// ── Activity card ─────────────────────────────────────────────────────────────
+
+function ActivityCard({ activity, onDelete, onEdit, onMarkBooked, onAddToItinerary }: { activity: Activity; onDelete: () => void; onEdit: () => void; onMarkBooked?: () => void; onAddToItinerary?: () => void }) {
+  const [showDetail, setShowDetail] = useState(false);
+  const isBooked = activity.status === "booked";
+  const isConfirmed = activity.status === "confirmed";
+  const statusColor = isBooked ? "#4a7c59" : isConfirmed ? "#1B3A5C" : "#717171";
+  const statusBg = isBooked ? "rgba(107,143,113,0.1)" : isConfirmed ? "rgba(27,58,92,0.08)" : "rgba(0,0,0,0.06)";
+  const statusLabel = isBooked ? "Booked" : isConfirmed ? "Confirmed" : "Interested";
+  return (
+    <>
+      <div
+        onClick={() => setShowDetail(true)}
+        style={{ backgroundColor: "#fff", border: "1px solid #EEEEEE", borderRadius: "14px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", padding: "14px 16px", marginBottom: "10px", cursor: "pointer" }}
+      >
+        {/* Title row */}
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "8px", marginBottom: "4px" }}>
+          <p style={{ fontSize: "16px", fontWeight: 800, color: "#1B3A5C", lineHeight: 1.2, flex: 1, minWidth: 0 }}>{activity.title}</p>
+          <span style={{ fontSize: "11px", fontWeight: 700, backgroundColor: statusBg, color: statusColor, borderRadius: "999px", padding: "3px 10px", whiteSpace: "nowrap", flexShrink: 0 }}>
+            {statusLabel}
+          </span>
+        </div>
+        {/* Date + venue */}
+        <p style={{ fontSize: "13px", color: "#717171", marginBottom: activity.notes ? "4px" : "0" }}>
+          {[activity.date, activity.time ? `${activity.time}${activity.endTime ? ` – ${activity.endTime}` : ""}` : null, activity.venueName].filter(Boolean).join(" · ")}
+        </p>
+        {activity.notes && (
+          <p style={{ fontSize: "12px", color: "#888", fontStyle: "italic", marginBottom: "0" }}>{activity.notes}</p>
+        )}
+        {/* Bottom action row */}
+        <div style={{ display: "flex", gap: "6px", marginTop: "10px", flexWrap: "wrap", alignItems: "center" }} onClick={e => e.stopPropagation()}>
+          {activity.dayIndex != null ? (
+            <span style={{ fontSize: "11px", fontWeight: 600, padding: "4px 10px", borderRadius: "999px", backgroundColor: "rgba(74,124,89,0.1)", color: "#4a7c59", border: "1px solid rgba(74,124,89,0.2)" }}>
+              ✓ Day {activity.dayIndex + 1}
+            </span>
+          ) : onAddToItinerary && (
+            <button
+              type="button"
+              onClick={e => { e.stopPropagation(); onAddToItinerary(); }}
+              style={{ fontSize: "12px", fontWeight: 700, padding: "5px 12px", borderRadius: "999px", border: "1.5px solid #C4664A", backgroundColor: "transparent", color: "#C4664A", cursor: "pointer" }}
+            >
+              + Add to itinerary
+            </button>
+          )}
+          {!isBooked && onMarkBooked && (
+            <button
+              type="button"
+              onClick={e => { e.stopPropagation(); onMarkBooked(); }}
+              style={{ fontSize: "12px", fontWeight: 600, padding: "5px 12px", borderRadius: "999px", border: "1.5px solid rgba(107,143,113,0.35)", backgroundColor: "transparent", color: "#4a7c59", cursor: "pointer" }}
+            >
+              Mark booked ✓
+            </button>
+          )}
+          <div style={{ marginLeft: "auto", display: "flex", gap: "2px" }}>
+            <button
+              type="button"
+              onClick={e => { e.stopPropagation(); setShowDetail(false); onEdit(); }}
+              style={{ background: "none", border: "none", cursor: "pointer", color: "#ccc", padding: "4px", lineHeight: 1 }}
+              title="Edit"
+            >
+              <Pencil size={14} />
+            </button>
+            <button
+              type="button"
+              onClick={e => { e.stopPropagation(); onDelete(); }}
+              style={{ background: "none", border: "none", cursor: "pointer", color: "#ccc", padding: "4px", lineHeight: 1 }}
+              title="Remove"
+            >
+              <Trash2 size={14} />
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+      {showDetail && (
+        <ActivityDetailModal
+          activity={activity}
+          onClose={() => setShowDetail(false)}
+          onDelete={() => { onDelete(); setShowDetail(false); }}
+          onEdit={() => { setShowDetail(false); onEdit(); }}
+          onMarkBooked={onMarkBooked ? () => { onMarkBooked(); setShowDetail(false); } : undefined}
+          onAddToItinerary={onAddToItinerary ? () => { onAddToItinerary(); setShowDetail(false); } : undefined}
+        />
+      )}
+    </>
   );
 }
 
@@ -2574,6 +2689,7 @@ export function TripTabContent({ initialTab = "saved", tripId, tripTitle, tripSt
   const [showActivityModal, setShowActivityModal] = useState(false);
   const [editingActivity, setEditingActivity] = useState<ExistingActivity | null>(null);
   const [activityDayPickerItem, setActivityDayPickerItem] = useState<Activity | null>(null);
+  const [activityToast, setActivityToast] = useState<string | null>(null);
   const [flights, setFlights] = useState<Flight[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
 
@@ -2889,13 +3005,26 @@ export function TripTabContent({ initialTab = "saved", tripId, tripTitle, tripSt
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ dayIndex }),
               })
-                .then(() => setActivities(prev => prev.map(a => a.id === actId ? { ...a, dayIndex } : a)))
+                .then(() => {
+                  setActivities(prev => prev.map(a => a.id === actId ? { ...a, dayIndex } : a));
+                  setActivityToast(`Added to Day ${dayIndex + 1} →`);
+                  setTimeout(() => setActivityToast(null), 4000);
+                })
                 .catch(e => console.error("[activityDayAssign]", e));
             }
             setActivityDayPickerItem(null);
           }}
           onClose={() => setActivityDayPickerItem(null)}
         />
+      )}
+
+      {activityToast && (
+        <button
+          onClick={() => { setTab("itinerary"); setActivityToast(null); }}
+          style={{ position: "fixed", bottom: "80px", left: "50%", transform: "translateX(-50%)", backgroundColor: "#1a1a1a", color: "#fff", fontSize: "13px", fontWeight: 600, padding: "10px 20px", borderRadius: "999px", zIndex: 9999, whiteSpace: "nowrap", border: "none", cursor: "pointer" }}
+        >
+          {activityToast}
+        </button>
       )}
 
       {tab === "saved" && (
