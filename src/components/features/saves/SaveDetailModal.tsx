@@ -72,10 +72,12 @@ export function SaveDetailModal({
   itemId,
   onClose,
   onTagsUpdated,
+  onMarkedBooked,
 }: {
   itemId: string;
   onClose: () => void;
   onTagsUpdated?: (itemId: string, tags: string[]) => void;
+  onMarkedBooked?: (itemId: string) => void;
 }) {
   const [item, setItem] = useState<SaveItem | null>(null);
   const [interestKeys, setInterestKeys] = useState<string[]>([]);
@@ -406,12 +408,15 @@ export function SaveDetailModal({
               ) : (
                 <button
                   onClick={async () => {
-                    await fetch(`/api/saves/${itemId}`, {
+                    const res = await fetch(`/api/saves/${itemId}`, {
                       method: "PATCH",
                       headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({ isBooked: true }),
                     });
-                    setIsBooked(true);
+                    if (res.ok) {
+                      setIsBooked(true);
+                      onMarkedBooked?.(itemId);
+                    }
                   }}
                   style={{
                     width: "100%", padding: "11px", borderRadius: "999px",

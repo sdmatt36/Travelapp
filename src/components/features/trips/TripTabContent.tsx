@@ -1151,7 +1151,7 @@ function TaskModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-type RecAddition = { dayIndex: number; title: string; location: string; img: string; savedItemId?: string; lat?: number | null; lng?: number | null };
+type RecAddition = { dayIndex: number; title: string; location: string; img: string; savedItemId?: string; lat?: number | null; lng?: number | null; isBooked?: boolean };
 
 const ITINERARY_KEY = (tripId?: string) => `flokk_itinerary_additions_${tripId ?? "default"}`;
 
@@ -1270,7 +1270,7 @@ function ItineraryContent({ flyTarget, onFlyTargetConsumed, tripId, tripStartDat
     if (!tripId) return;
     fetch(`/api/trips/${tripId}/itinerary`)
       .then(r => r.json())
-      .then(({ items }: { items: Array<{ id: string; rawTitle: string | null; rawDescription: string | null; mediaThumbnailUrl: string | null; dayIndex: number | null; lat?: number | null; lng?: number | null }> }) => {
+      .then(({ items }: { items: Array<{ id: string; rawTitle: string | null; rawDescription: string | null; mediaThumbnailUrl: string | null; dayIndex: number | null; lat?: number | null; lng?: number | null; isBooked?: boolean }> }) => {
         if (!items?.length) return;
         setRecAdditions(items.map(item => ({
           dayIndex: item.dayIndex ?? 0,
@@ -1280,6 +1280,7 @@ function ItineraryContent({ flyTarget, onFlyTargetConsumed, tripId, tripStartDat
           savedItemId: item.id,
           lat: item.lat ?? null,
           lng: item.lng ?? null,
+          isBooked: item.isBooked ?? false,
         })));
       })
       .catch(e => console.error("[ItineraryRead] API fetch failed:", e));
@@ -1440,7 +1441,7 @@ function ItineraryContent({ flyTarget, onFlyTargetConsumed, tripId, tripStartDat
                                 title={a.title}
                                 subtitle={a.location}
                                 img={a.img}
-                                tags={["Added"]}
+                                tags={[a.isBooked ? "Booked ✓" : "Added"]}
                                 slotKey={key}
                                 isExpanded={expandedSlotKey === key}
                                 onExpandToggle={() => a.savedItemId ? setDetailItemId(a.savedItemId) : toggleSlot(key)}
@@ -1508,7 +1509,13 @@ function ItineraryContent({ flyTarget, onFlyTargetConsumed, tripId, tripStartDat
       </div>
 
       {showTaskModal && <TaskModal onClose={() => setShowTaskModal(false)} />}
-      {detailItemId && <SaveDetailModal itemId={detailItemId} onClose={() => setDetailItemId(null)} />}
+      {detailItemId && (
+        <SaveDetailModal
+          itemId={detailItemId}
+          onClose={() => setDetailItemId(null)}
+          onMarkedBooked={(id) => setRecAdditions(prev => prev.map(a => a.savedItemId === id ? { ...a, isBooked: true } : a))}
+        />
+      )}
     </div>
   );
 }

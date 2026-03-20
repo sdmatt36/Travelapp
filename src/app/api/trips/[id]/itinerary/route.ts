@@ -40,6 +40,7 @@ export async function GET(
       dayIndex: true,
       lat: true,
       lng: true,
+      isBooked: true,
     },
   });
 
