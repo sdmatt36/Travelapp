@@ -83,7 +83,7 @@ export function TripMap({ activeDay, flyTarget, onFlyTargetConsumed, tripId, des
   // Fetch saves with coordinates for this trip
   useEffect(() => {
     if (!tripId) return;
-    fetch(`/api/saves?tripId=${tripId}`)
+    fetch(`/api/saves?tripId=${tripId}&public=true`)
       .then((r) => r.json())
       .then((data: { saves?: Array<{ rawTitle?: string | null; lat?: number | null; lng?: number | null; dayIndex?: number | null }> }) => {
         const items: MapSavedItem[] = (data.saves ?? [])
@@ -193,16 +193,23 @@ export function TripMap({ activeDay, flyTarget, onFlyTargetConsumed, tripId, des
     });
   }
 
+  function getActiveMarkers(): MarkerDef[] {
+    return (activeDay > 0
+      ? allSavedItems.filter(s => s.dayIndex === activeDay)
+      : allSavedItems
+    ).map((s, i) => ({ num: i + 1, label: s.title, lat: s.lat, lng: s.lng }));
+  }
+
   function handleOpenAppleMaps() {
-    window.open(buildAppleMapsUrl([], destCoords), "_blank", "noopener");
+    window.open(buildAppleMapsUrl(getActiveMarkers(), destCoords), "_blank", "noopener");
   }
 
   function handleOpenGoogleMaps() {
-    window.open(buildGoogleMapsUrl([], destCoords), "_blank", "noopener");
+    window.open(buildGoogleMapsUrl(getActiveMarkers(), destCoords), "_blank", "noopener");
   }
 
   async function handleShare() {
-    const url = buildGoogleMapsUrl([], destCoords);
+    const url = buildGoogleMapsUrl(getActiveMarkers(), destCoords);
     try {
       await navigator.clipboard.writeText(url);
     } catch {

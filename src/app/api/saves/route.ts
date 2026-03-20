@@ -146,6 +146,27 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const category = searchParams.get("category");
     const tripId = searchParams.get("tripId");
+    const isPublicRequest = searchParams.get("public") === "true";
+
+    // For public trip map requests, skip the familyProfileId filter when the trip is PUBLIC
+    if (isPublicRequest && tripId) {
+      const trip = await db.trip.findUnique({
+        where: { id: tripId },
+        select: { privacy: true },
+      });
+      if (trip?.privacy === "PUBLIC") {
+        const saves = await db.savedItem.findMany({
+          where: {
+            tripId,
+            ...(category && category !== "all" ? { categoryTags: { has: category } } : {}),
+          },
+          orderBy: { savedAt: "desc" },
+          include: { trip: { select: { id: true, title: true } } },
+        });
+        console.log("[GET /api/saves] public trip", tripId, "returning", saves.length, "saves");
+        return NextResponse.json({ saves }, { headers: { "Cache-Control": "no-store" } });
+      }
+    }
 
     const user = await db.user.findUnique({
       where: { clerkId: userId },
