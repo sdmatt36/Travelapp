@@ -19,6 +19,8 @@ type LinkItem = {
   country: string;
   rating: number | null;
   note: string;
+  checkIn: string;
+  checkOut: string;
 };
 
 type ServiceItem = {
@@ -78,6 +80,17 @@ const TIP_PILLS = [
 ];
 
 const SERVICE_TYPES = ["driver", "guide", "translator", "other"];
+
+const LINK_CATEGORIES = [
+  { value: "hotel", label: "Hotel" },
+  { value: "restaurant", label: "Restaurant" },
+  { value: "activity", label: "Activity" },
+  { value: "food", label: "Food" },
+  { value: "culture", label: "Culture" },
+  { value: "shopping", label: "Shopping" },
+  { value: "transportation", label: "Transportation" },
+  { value: "other", label: "Other" },
+];
 
 // ── Star rating component ──────────────────────────────────────────────────────
 
@@ -375,6 +388,8 @@ function Step2Links({
           country: data.country ?? country,
           rating: null,
           note: "",
+          checkIn: "",
+          checkOut: "",
         },
       ]);
       setLinkInput("");
@@ -411,6 +426,8 @@ function Step2Links({
         tags: [link.category || "other"],
         userRating: link.rating ?? undefined,
         userNote: link.note || undefined,
+        extractedCheckin: link.checkIn || undefined,
+        extractedCheckout: link.checkOut || undefined,
       };
       console.log("[Step2] fetch body:", JSON.stringify(fetchBody));
       try {
@@ -481,7 +498,15 @@ function Step2Links({
                 )}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ fontSize: "14px", fontWeight: 700, color: "#1a1a1a", marginBottom: "4px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{link.title}</p>
-                  <span style={{ fontSize: "11px", backgroundColor: "rgba(196,102,74,0.1)", color: TERRA, borderRadius: "6px", padding: "2px 8px", fontWeight: 500 }}>{link.category}</span>
+                  <select
+                    value={link.category}
+                    onChange={(e) => updateLink(link.id, "category", e.target.value)}
+                    style={{ fontSize: "11px", backgroundColor: "rgba(196,102,74,0.1)", color: TERRA, borderRadius: "6px", padding: "2px 8px", fontWeight: 500, border: "none", cursor: "pointer", fontFamily: "inherit", outline: "none" }}
+                  >
+                    {LINK_CATEGORIES.map((c) => (
+                      <option key={c.value} value={c.value}>{c.label}</option>
+                    ))}
+                  </select>
                 </div>
                 <button type="button" onClick={() => removeLink(link.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "#CCC", flexShrink: 0, padding: "0 0 0 4px" }}>
                   <X size={16} />
@@ -498,6 +523,35 @@ function Step2Links({
                   onFocus={(e) => { e.currentTarget.style.borderColor = TERRA; }}
                   onBlur={(e) => { e.currentTarget.style.borderColor = "#EEEEEE"; }}
                 />
+                {(link.category === "hotel" || link.category === "accommodation") && (
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                      <label style={{ fontSize: "11px", fontWeight: 600, color: MUTED }}>Check-in</label>
+                      <input
+                        type="date"
+                        value={link.checkIn}
+                        onChange={(e) => {
+                          updateLink(link.id, "checkIn", e.target.value);
+                          if (!link.checkOut) updateLink(link.id, "checkOut", e.target.value);
+                        }}
+                        style={{ ...inputStyle, fontSize: "13px", padding: "8px 12px" }}
+                        onFocus={(e) => { e.currentTarget.style.borderColor = TERRA; }}
+                        onBlur={(e) => { e.currentTarget.style.borderColor = "#EEEEEE"; }}
+                      />
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                      <label style={{ fontSize: "11px", fontWeight: 600, color: MUTED }}>Check-out</label>
+                      <input
+                        type="date"
+                        value={link.checkOut}
+                        onChange={(e) => updateLink(link.id, "checkOut", e.target.value)}
+                        style={{ ...inputStyle, fontSize: "13px", padding: "8px 12px" }}
+                        onFocus={(e) => { e.currentTarget.style.borderColor = TERRA; }}
+                        onBlur={(e) => { e.currentTarget.style.borderColor = "#EEEEEE"; }}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           ))}
