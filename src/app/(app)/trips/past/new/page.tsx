@@ -1,10 +1,11 @@
 "use client";
 
-import { Suspense, useState, useRef, useCallback } from "react";
+import { Suspense, useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft, X, Star, Check, Plus, Upload } from "lucide-react";
 import { COUNTRIES } from "@/lib/countries";
+import { KNOWN_CITIES } from "@/lib/destination-coords";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -146,29 +147,29 @@ function Step1Basics({
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [titleManuallyEdited, setTitleManuallyEdited] = useState(false);
 
   const primaryCity = destinations[0]?.city ?? "";
 
-  const autoTitle =
-    primaryCity && startDate
-      ? `${destinations.map((d) => d.city).filter(Boolean).join(" + ")} ${new Date(startDate + "T00:00:00").toLocaleDateString("en-US", { month: "short", year: "2-digit" })}`
-      : "";
+  const computeAutoTitle = (dests: { city: string }[], date: string) => {
+    const cities = dests.map((d) => d.city).filter(Boolean).join(" + ");
+    return cities && date
+      ? `${cities} ${new Date(date + "T00:00:00").toLocaleDateString("en-US", { month: "short", year: "2-digit" })}`
+      : cities;
+  };
+
+  useEffect(() => {
+    if (!titleManuallyEdited) {
+      setTitle(computeAutoTitle(destinations, startDate));
+    }
+  }, [destinations, startDate, titleManuallyEdited]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const updateCity = (i: number, v: string) => {
-    const updated = destinations.map((d, idx) => idx === i ? { ...d, city: v } : d);
-    setDestinations(updated);
-    if (!title || title === autoTitle) {
-      const cities = updated.map((d) => d.city).filter(Boolean).join(" + ");
-      setTitle(cities && startDate ? `${cities} ${new Date(startDate + "T00:00:00").toLocaleDateString("en-US", { month: "short", year: "2-digit" })}` : "");
-    }
+    setDestinations((prev) => prev.map((d, idx) => idx === i ? { ...d, city: v } : d));
   };
 
   const handleStartChange = (v: string) => {
     setStartDate(v);
-    if (!title || title === autoTitle) {
-      const cities = destinations.map((d) => d.city).filter(Boolean).join(" + ");
-      setTitle(cities && v ? `${cities} ${new Date(v + "T00:00:00").toLocaleDateString("en-US", { month: "short", year: "2-digit" })}` : "");
-    }
   };
 
   const canContinue = primaryCity.trim() !== "" && startDate !== "" && endDate !== "";
@@ -200,6 +201,7 @@ function Step1Basics({
             )}
             <input
               type="text"
+              list="known-cities"
               value={dest.city}
               onChange={(e) => updateCity(i, e.target.value)}
               placeholder={i === 0 ? "e.g. Chiang Rai" : "e.g. Bangkok"}
@@ -223,6 +225,9 @@ function Step1Basics({
             + Add another city
           </button>
         )}
+        <datalist id="known-cities">
+          {KNOWN_CITIES.map((c) => <option key={c} value={c} />)}
+        </datalist>
       </div>
 
       {/* Country dropdown */}
@@ -273,14 +278,14 @@ function Step1Basics({
         <input
           type="text"
           value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder={autoTitle || "e.g. Chiang Rai + Bangkok May '25"}
+          onChange={(e) => { setTitle(e.target.value); setTitleManuallyEdited(true); }}
+          placeholder={computeAutoTitle(destinations, startDate) || "e.g. Chiang Rai + Bangkok May '25"}
           style={inputStyle}
           onFocus={(e) => { e.currentTarget.style.borderColor = TERRA; }}
           onBlur={(e) => { e.currentTarget.style.borderColor = "#EEEEEE"; }}
         />
-        {autoTitle && !title && (
-          <p style={{ fontSize: "12px", color: MUTED }}>Will be saved as &quot;{autoTitle}&quot;</p>
+        {!titleManuallyEdited && title && (
+          <p style={{ fontSize: "12px", color: MUTED }}>Will be saved as &quot;{title}&quot;</p>
         )}
       </div>
 
@@ -370,19 +375,30 @@ function Step2Links({
     setSaving(true);
     for (const link of savedLinks) {
       console.log("[past-trip] saving link with tripId:", tripId, "url:", link.url);
-      await fetch("/api/saves", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          url: link.url,
-          tripId,
-          title: link.title,
-          thumbnailUrl: link.imageUrl,
-          tags: [link.category],
-          userRating: link.rating,
-          userNote: link.note,
-        }),
-      }).catch((err) => console.error("[save link]", err));
+      try {
+        const res = await fetch("/api/saves", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            url: link.url,
+            tripId,
+            title: link.title,
+            thumbnailUrl: link.imageUrl ?? undefined,
+            tags: [link.category || "other"],
+            userRating: link.rating ?? undefined,
+            userNote: link.note || undefined,
+          }),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          console.error("[past-trip] link save failed:", res.status, err);
+        } else {
+          const data = await res.json();
+          if (data.duplicate) console.log("[past-trip] link already saved (duplicate):", link.title);
+        }
+      } catch (err) {
+        console.error("[past-trip] link save network error:", err);
+      }
     }
     setSaving(false);
     await onContinue();
@@ -506,11 +522,19 @@ function Step3Services({
     setSaving(true);
     for (const svc of services) {
       console.log("[past-trip] saving service with tripId:", tripId);
-      await fetch(`/api/trips/${tripId}/services`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: svc.name, serviceType: svc.serviceType, phone: svc.phone || null, whatsapp: svc.whatsapp || null, rating: svc.rating || null, recommend: svc.recommend, notes: svc.notes || null }),
-      }).catch((err) => console.error("[save service]", err));
+      try {
+        const res = await fetch(`/api/trips/${tripId}/services`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: svc.name, serviceType: svc.serviceType, phone: svc.phone || null, whatsapp: svc.whatsapp || null, rating: svc.rating || null, recommend: svc.recommend, notes: svc.notes || null }),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          console.error("[past-trip] service save failed:", res.status, err);
+        }
+      } catch (err) {
+        console.error("[past-trip] service save network error:", err);
+      }
     }
     setSaving(false);
     await onContinue();
@@ -622,11 +646,19 @@ function Step4Tips({
     setSaving(true);
     for (const tip of tips) {
       console.log("[past-trip] saving tip with tripId:", tripId);
-      await fetch(`/api/trips/${tripId}/tips`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ category: tip.category, content: tip.content }),
-      }).catch((err) => console.error("[save tip]", err));
+      try {
+        const res = await fetch(`/api/trips/${tripId}/tips`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ category: tip.category, content: tip.content }),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          console.error("[past-trip] tip save failed:", res.status, err);
+        }
+      } catch (err) {
+        console.error("[past-trip] tip save network error:", err);
+      }
     }
     setSaving(false);
     await onContinue();
@@ -947,7 +979,8 @@ function PastTripBuilderForm() {
         ? `${cityString} ${new Date(startDate + "T00:00:00").toLocaleDateString("en-US", { month: "short", year: "2-digit" })}`
         : cityString);
 
-    const destinationParam = country ? `${cityString}, ${country}` : cityString;
+    const firstCity = destinations[0]?.city || cityString;
+    const destinationParam = country ? `${firstCity}, ${country}` : firstCity;
 
     const res = await fetch("/api/trips", {
       method: "POST",

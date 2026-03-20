@@ -96,6 +96,10 @@ const COORDS: Array<{ cities: string[]; countries: string[]; coords: [number, nu
 
 const DEFAULT: [number, number] = [0, 20]; // world center fallback
 
+export const KNOWN_CITIES: string[] = Array.from(
+  new Set(COORDS.flatMap((e) => e.cities).map((c) => c.replace(/\b\w/g, (l) => l.toUpperCase())))
+).sort();
+
 export function getDestinationCoords(
   city: string | null | undefined,
   country: string | null | undefined,
