@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { MapPin, ChevronRight, Play, X } from "lucide-react";
+import { MapPin, ChevronRight, Play, X, Search } from "lucide-react";
+import { KNOWN_CITIES } from "@/lib/destination-coords";
+import { getTripCoverImage } from "@/lib/destination-images";
 
 type Recommendation = {
   id: string;
@@ -216,6 +218,17 @@ type FeedItem = {
   categoryTags: string[];
 };
 
+type SearchTrip = {
+  id: string;
+  title: string;
+  destinationCity: string | null;
+  destinationCountry: string | null;
+  startDate: string | null;
+  endDate: string | null;
+  heroImageUrl: string | null;
+  _count: { savedItems: number };
+};
+
 // ── Sub-components ────────────────────────────────────────────────────────────
 
 function ArticleCard({ article }: { article: Article }) {
@@ -313,6 +326,14 @@ type UserTrip = {
 };
 
 export default function DiscoverPage() {
+  // Search state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [searchResults, setSearchResults] = useState<SearchTrip[] | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
+
   const [activeFilter, setActiveFilter] = useState("All");
   const [intelTab, setIntelTab] = useState<"articles" | "videos" | "community">("articles");
   const [flokkArticles, setFlokkArticles] = useState<Article[]>([]);
@@ -355,6 +376,59 @@ export default function DiscoverPage() {
     }
   }, [intelTab]);
 
+  // City suggestions from KNOWN_CITIES
+  useEffect(() => {
+    if (searchQuery.length < 2) {
+      setSuggestions([]);
+      return;
+    }
+    const q = searchQuery.toLowerCase();
+    const matches = KNOWN_CITIES.filter((c) => c.toLowerCase().includes(q)).slice(0, 6);
+    setSuggestions(matches);
+  }, [searchQuery]);
+
+  // Click outside to dismiss suggestions
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  async function handleSearch(q: string) {
+    if (!q.trim()) {
+      setSearchResults(null);
+      return;
+    }
+    setIsSearching(true);
+    setShowSuggestions(false);
+    try {
+      const res = await fetch(`/api/trips/search?q=${encodeURIComponent(q)}`);
+      const data = await res.json();
+      setSearchResults(data.trips ?? []);
+    } catch {
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  }
+
+  function handleSuggestionClick(city: string) {
+    setSearchQuery(city);
+    setShowSuggestions(false);
+    handleSearch(city);
+  }
+
+  function clearSearch() {
+    setSearchQuery("");
+    setSearchResults(null);
+    setSuggestions([]);
+    setShowSuggestions(false);
+  }
+
   const handleAddYoursClick = async () => {
     setShowAddYours(true);
     setIsLoadingTrips(true);
@@ -390,6 +464,107 @@ export default function DiscoverPage() {
             Based on your interests and travel style — places families like yours love.
           </p>
         </div>
+
+        {/* Search bar */}
+        <div ref={searchRef} style={{ position: "relative", marginBottom: "20px" }}>
+          <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+            <Search size={16} style={{ position: "absolute", left: "14px", color: "#AAAAAA", pointerEvents: "none" }} />
+            <input
+              type="text"
+              placeholder="Search cities, countries, or destinations…"
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setShowSuggestions(true);
+                if (!e.target.value.trim()) setSearchResults(null);
+              }}
+              onFocus={() => setShowSuggestions(true)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleSearch(searchQuery);
+                if (e.key === "Escape") clearSearch();
+              }}
+              style={{ width: "100%", padding: "12px 44px", borderRadius: "999px", border: "1.5px solid #E5E5E5", fontSize: "14px", color: "#1a1a1a", backgroundColor: "#F9F9F9", outline: "none", boxSizing: "border-box" }}
+            />
+            {searchQuery && (
+              <button
+                onClick={clearSearch}
+                style={{ position: "absolute", right: "14px", background: "none", border: "none", cursor: "pointer", color: "#AAAAAA", padding: "2px", display: "flex", alignItems: "center" }}
+              >
+                <X size={15} />
+              </button>
+            )}
+          </div>
+
+          {/* Suggestions dropdown */}
+          {showSuggestions && suggestions.length > 0 && (
+            <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, backgroundColor: "#fff", border: "1.5px solid #E5E5E5", borderRadius: "14px", boxShadow: "0 4px 16px rgba(0,0,0,0.10)", zIndex: 100, overflow: "hidden" }}>
+              {suggestions.map((city) => (
+                <button
+                  key={city}
+                  onMouseDown={() => handleSuggestionClick(city)}
+                  style={{ display: "flex", alignItems: "center", gap: "10px", width: "100%", padding: "10px 16px", background: "none", border: "none", cursor: "pointer", textAlign: "left", fontSize: "14px", color: "#1a1a1a", fontFamily: "inherit" }}
+                >
+                  <MapPin size={13} style={{ color: "#C4664A", flexShrink: 0 }} />
+                  {city}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Search results */}
+        {(searchResults !== null || isSearching) && (
+          <div style={{ marginBottom: "32px" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>
+              <p style={{ fontSize: "14px", fontWeight: 700, color: "#1a1a1a" }}>
+                {isSearching ? "Searching…" : `${searchResults?.length ?? 0} community trips found`}
+              </p>
+              <button onClick={clearSearch} style={{ fontSize: "12px", color: "#717171", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
+                Clear
+              </button>
+            </div>
+            {!isSearching && searchResults !== null && searchResults.length === 0 && (
+              <div style={{ textAlign: "center", padding: "32px 24px", backgroundColor: "#F9F9F9", borderRadius: "16px", border: "1px solid #EEEEEE" }}>
+                <p style={{ fontSize: "15px", fontWeight: 600, color: "#1a1a1a", marginBottom: "6px" }}>No trips found</p>
+                <p style={{ fontSize: "13px", color: "#717171" }}>Try a different city or country name.</p>
+              </div>
+            )}
+            {!isSearching && searchResults && searchResults.length > 0 && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3" style={{ gap: "14px" }}>
+                {searchResults.map((trip) => {
+                  const cover = getTripCoverImage(trip.destinationCity, trip.destinationCountry, trip.heroImageUrl);
+                  const nights = trip.startDate && trip.endDate
+                    ? Math.round((new Date(trip.endDate).getTime() - new Date(trip.startDate).getTime()) / (1000 * 60 * 60 * 24))
+                    : null;
+                  return (
+                    <Link key={trip.id} href={`/trips/${trip.id}`} style={{ textDecoration: "none", display: "block" }}>
+                      <div
+                        className="hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
+                        style={{ backgroundColor: "#fff", borderRadius: "16px", overflow: "hidden", border: "1px solid #EEEEEE", boxShadow: "0 1px 8px rgba(0,0,0,0.06)" }}
+                      >
+                        <div style={{ height: "140px", backgroundImage: `url(${cover})`, backgroundSize: "cover", backgroundPosition: "center" }} />
+                        <div style={{ padding: "12px 14px" }}>
+                          <p style={{ fontSize: "14px", fontWeight: 700, color: "#1a1a1a", marginBottom: "4px" }}>{trip.title}</p>
+                          <div style={{ display: "flex", alignItems: "center", gap: "4px", marginBottom: "4px" }}>
+                            <MapPin size={11} style={{ color: "#C4664A", flexShrink: 0 }} />
+                            <span style={{ fontSize: "12px", color: "#717171" }}>
+                              {[trip.destinationCity, trip.destinationCountry].filter(Boolean).join(", ")}
+                            </span>
+                          </div>
+                          <p style={{ fontSize: "11px", color: "#AAAAAA" }}>
+                            {nights ? `${nights} nights` : ""}
+                            {nights && trip._count.savedItems > 0 ? " · " : ""}
+                            {trip._count.savedItems > 0 ? `${trip._count.savedItems} saves` : ""}
+                          </p>
+                        </div>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Filter bar */}
         <div
