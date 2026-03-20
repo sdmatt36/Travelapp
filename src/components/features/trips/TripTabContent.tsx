@@ -485,6 +485,7 @@ type SavedDisplayItem = {
   description?: string;
   isLodging?: boolean;
   lodgingDates?: { checkin: string | null; checkout: string | null };
+  categoryTags?: string[];
 };
 
 
@@ -635,8 +636,17 @@ function LodgingDateModal({ itemTitle, onConfirm, onClose }: {
   );
 }
 
-function SavedDetailModal({ item, onClose }: { item: SavedDisplayItem; onClose: () => void }) {
+function SavedDetailModal({ item, onClose, onAddToItinerary, onMarkBooked, onDelete, assignedDay }: {
+  item: SavedDisplayItem;
+  onClose: () => void;
+  onAddToItinerary?: () => void;
+  onMarkBooked?: () => void;
+  onDelete?: () => void;
+  assignedDay?: number;
+}) {
   const [imgFailed, setImgFailed] = useState(false);
+  const initial = item.title.replace(/^www\./, "").charAt(0).toUpperCase();
+  const categoryLabel = item.categoryTags?.slice(0, 2).join(" · ") ?? "";
   return createPortal(
     <div
       onClick={onClose}
@@ -646,17 +656,17 @@ function SavedDetailModal({ item, onClose }: { item: SavedDisplayItem; onClose: 
         onClick={e => e.stopPropagation()}
         style={{ backgroundColor: "#fff", borderRadius: "20px 20px 0 0", width: "100%", maxWidth: "560px", maxHeight: "85vh", overflowY: "auto", paddingBottom: "env(safe-area-inset-bottom, 16px)" }}
       >
-        {/* Hero image */}
+        {/* Hero */}
         <div style={{ position: "relative" }}>
-          {imgFailed ? (
-            <div style={{ height: "200px", backgroundColor: "#F5F0EB", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              {item.icon}
-            </div>
-          ) : (
+          {!imgFailed && item.img ? (
             <>
               <div style={{ height: "200px", backgroundImage: `url('${item.img}')`, backgroundSize: "cover", backgroundPosition: "center" }} />
               <img src={item.img} alt="" onError={() => setImgFailed(true)} style={{ display: "none" }} />
             </>
+          ) : (
+            <div style={{ height: "160px", background: "linear-gradient(135deg, #1B3A5C 0%, #2d5a8e 100%)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <span style={{ fontSize: "48px", fontWeight: 900, color: "rgba(255,255,255,0.35)" }}>{initial}</span>
+            </div>
           )}
           <button onClick={onClose} style={{ position: "absolute", top: "12px", right: "12px", width: "32px", height: "32px", borderRadius: "50%", backgroundColor: "rgba(0,0,0,0.5)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: "18px", lineHeight: 1 }}>×</button>
           {item.statusBooked && (
@@ -667,34 +677,48 @@ function SavedDetailModal({ item, onClose }: { item: SavedDisplayItem; onClose: 
         {/* Content */}
         <div style={{ padding: "20px 20px 24px" }}>
           <p style={{ fontSize: "20px", fontWeight: 800, color: "#1a1a1a", marginBottom: "4px" }}>{item.title}</p>
-          <p style={{ fontSize: "13px", color: "#717171", marginBottom: "12px" }}>{item.detail}</p>
-
+          {categoryLabel && (
+            <span style={{ display: "inline-block", fontSize: "11px", fontWeight: 600, backgroundColor: "rgba(196,102,74,0.1)", color: "#C4664A", borderRadius: "999px", padding: "2px 10px", marginBottom: "8px" }}>{categoryLabel}</span>
+          )}
+          {item.detail && <p style={{ fontSize: "13px", color: "#717171", marginBottom: "12px" }}>{item.detail}</p>}
           {item.description && (
             <p style={{ fontSize: "14px", color: "#444", lineHeight: 1.6, marginBottom: "16px" }}>{item.description}</p>
           )}
 
-          <div style={{ display: "flex", alignItems: "center", gap: "4px", marginBottom: "16px" }}>
-            <Users size={12} style={{ color: "#BBBBBB" }} />
-            <span style={{ fontSize: "12px", color: "#BBBBBB" }}>{item.families}</span>
-          </div>
-
-          <div style={{ display: "flex", gap: "10px" }}>
+          {/* Actions */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
             {item.bookUrl && (
-              <button
-                type="button"
-                onClick={() => window.open(item.bookUrl, "_blank")}
-                style={{ flex: 1, padding: "12px", borderRadius: "12px", border: "none", backgroundColor: "#C4664A", fontSize: "14px", fontWeight: 700, color: "#fff", cursor: "pointer" }}
-              >
+              <button type="button" onClick={() => window.open(item.bookUrl, "_blank")}
+                style={{ padding: "12px", borderRadius: "12px", border: "none", backgroundColor: "#C4664A", fontSize: "14px", fontWeight: 700, color: "#fff", cursor: "pointer" }}>
                 Book now
               </button>
             )}
-            {item.websiteUrl && (
-              <button
-                type="button"
-                onClick={() => window.open(item.websiteUrl, "_blank")}
-                style={{ flex: 1, padding: "12px", borderRadius: "12px", border: "1.5px solid #EEEEEE", backgroundColor: "#fff", fontSize: "14px", fontWeight: 600, color: "#C4664A", cursor: "pointer" }}
-              >
-                Website ↗
+            {!item.bookUrl && item.websiteUrl && (
+              <a href={item.websiteUrl} target="_blank" rel="noopener noreferrer"
+                style={{ display: "block", padding: "12px", borderRadius: "12px", border: "none", backgroundColor: "#1B3A5C", fontSize: "14px", fontWeight: 700, color: "#fff", cursor: "pointer", textAlign: "center", textDecoration: "none" }}>
+                Visit site →
+              </a>
+            )}
+            {!item.statusBooked && onMarkBooked && (
+              <button type="button" onClick={onMarkBooked}
+                style={{ padding: "11px", borderRadius: "999px", backgroundColor: "transparent", border: "1.5px solid rgba(107,143,113,0.5)", fontSize: "13px", fontWeight: 700, color: "#4a7c59", cursor: "pointer" }}>
+                Mark as booked ✓
+              </button>
+            )}
+            {assignedDay !== undefined ? (
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "10px", borderRadius: "999px", backgroundColor: "rgba(74,124,89,0.08)", border: "1px solid rgba(74,124,89,0.2)" }}>
+                <span style={{ fontSize: "13px", fontWeight: 600, color: "#4a7c59" }}>✓ Added to Day {assignedDay + 1}</span>
+              </div>
+            ) : onAddToItinerary && (
+              <button type="button" onClick={onAddToItinerary}
+                style={{ padding: "11px", borderRadius: "999px", backgroundColor: "transparent", border: "1.5px solid #C4664A", fontSize: "13px", fontWeight: 700, color: "#C4664A", cursor: "pointer" }}>
+                + Add to itinerary
+              </button>
+            )}
+            {onDelete && (
+              <button type="button" onClick={onDelete}
+                style={{ padding: "10px", borderRadius: "999px", backgroundColor: "transparent", border: "1px solid rgba(220,53,69,0.25)", fontSize: "13px", fontWeight: 600, color: "#dc3545", cursor: "pointer" }}>
+                Remove
               </button>
             )}
           </div>
@@ -705,6 +729,9 @@ function SavedDetailModal({ item, onClose }: { item: SavedDisplayItem; onClose: 
   );
 }
 
+// Renders ALL savedItem types including URL saves,
+// manual saves, and activity saves created via the Activity button.
+// ActivityCard is for manualActivity DB rows only.
 function SavedHorizCard({ item, isDesktop: _isDesktop, onAddToItinerary, onBook, onLearnMore, assignedDay, onDelete }: {
   item: SavedDisplayItem;
   isDesktop: boolean;
@@ -716,31 +743,39 @@ function SavedHorizCard({ item, isDesktop: _isDesktop, onAddToItinerary, onBook,
 }) {
   const [imgFailed, setImgFailed] = useState(false);
   const hasImg = !!item.img && !imgFailed;
+  const initial = item.title.replace(/^www\./, "").charAt(0).toUpperCase();
+  const subtitleParts = [
+    item.categoryTags?.slice(0, 1)[0],
+    item.detail,
+  ].filter(Boolean);
+  const subtitle = subtitleParts.length > 1 ? subtitleParts.join(" · ") : subtitleParts[0] ?? "";
   return (
     <div
       onClick={onLearnMore}
       style={{ backgroundColor: "#fff", borderRadius: "14px", border: "1px solid #EEEEEE", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", overflow: "hidden", marginBottom: "10px", cursor: "pointer" }}
     >
-      {/* Optional thumbnail strip */}
-      {hasImg && (
+      {/* Header: thumbnail or navy gradient with initial */}
+      {hasImg ? (
         <>
           <div style={{ height: "80px", backgroundImage: `url('${item.img}')`, backgroundSize: "cover", backgroundPosition: "center" }} />
           <img src={item.img} alt="" onError={() => setImgFailed(true)} style={{ display: "none" }} />
         </>
+      ) : (
+        <div style={{ height: "60px", background: "linear-gradient(135deg, #1B3A5C 0%, #2d5a8e 100%)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <span style={{ fontSize: "22px", fontWeight: 900, color: "rgba(255,255,255,0.55)", letterSpacing: "-0.5px" }}>{initial}</span>
+        </div>
       )}
       <div style={{ padding: "12px 14px" }}>
-        {/* Title + status badge */}
+        {/* Title + booked badge */}
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "8px", marginBottom: "2px" }}>
           <p style={{ fontSize: "14px", fontWeight: 800, color: "#1B3A5C", lineHeight: 1.3, flex: 1, minWidth: 0 }}>{item.title}</p>
           {item.statusBooked && (
-            <span style={{ fontSize: "10px", fontWeight: 600, borderRadius: "999px", padding: "2px 8px", backgroundColor: "rgba(74,124,89,0.1)", color: "#4a7c59", border: "1px solid rgba(74,124,89,0.2)", whiteSpace: "nowrap", flexShrink: 0 }}>
-              Booked
-            </span>
+            <span style={{ fontSize: "10px", fontWeight: 600, borderRadius: "999px", padding: "2px 8px", backgroundColor: "rgba(74,124,89,0.1)", color: "#4a7c59", border: "1px solid rgba(74,124,89,0.2)", whiteSpace: "nowrap", flexShrink: 0 }}>Booked</span>
           )}
         </div>
-        {/* Detail row (dates / description) */}
-        {item.detail && (
-          <p style={{ fontSize: "12px", color: "#717171", marginBottom: "10px", lineHeight: 1.4 }}>{item.detail}</p>
+        {/* Subtitle: category + detail */}
+        {subtitle && (
+          <p style={{ fontSize: "12px", color: "#717171", marginBottom: "10px", lineHeight: 1.4 }}>{subtitle}</p>
         )}
         {/* Action row */}
         <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", alignItems: "center" }} onClick={e => e.stopPropagation()}>
@@ -750,7 +785,7 @@ function SavedHorizCard({ item, isDesktop: _isDesktop, onAddToItinerary, onBook,
             </span>
           ) : (
             <button type="button" onClick={e => { e.stopPropagation(); onAddToItinerary(); }} style={{ fontSize: "11px", fontWeight: 600, padding: "4px 10px", borderRadius: "999px", border: "1.5px solid #C4664A", backgroundColor: "transparent", color: "#C4664A", cursor: "pointer", whiteSpace: "nowrap" }}>
-              + Itinerary
+              + Add to itinerary
             </button>
           )}
           {item.bookUrl && (
@@ -826,6 +861,7 @@ function apiToDisplayItem(item: ApiSavedItem): SavedDisplayItem {
     description: item.rawDescription ?? "",
     isLodging,
     lodgingDates: { checkin: item.extractedCheckin, checkout: item.extractedCheckout },
+    categoryTags: item.categoryTags,
   };
 }
 
@@ -1084,7 +1120,27 @@ function SavedContent({ tripId: tripIdProp, tripStartDate, tripEndDate, tripTitl
         />
       )}
       {detailItem && (
-        <SavedDetailModal item={detailItem} onClose={() => setDetailItem(null)} />
+        <SavedDetailModal
+          item={detailItem}
+          onClose={() => setDetailItem(null)}
+          assignedDay={assignedDays[detailItem.title]}
+          onAddToItinerary={assignedDays[detailItem.title] === undefined ? () => {
+            const captured = detailItem;
+            setDetailItem(null);
+            handleAddToItinerary(captured);
+          } : undefined}
+          onMarkBooked={() => {
+            if (detailItem.id) {
+              fetch(`/api/saves/${detailItem.id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ isBooked: true }),
+              }).then(() => fetchSaves()).catch(e => console.error("[markBooked]", e));
+            }
+            setDetailItem(null);
+          }}
+          onDelete={() => { handleDeleteSave(detailItem); setDetailItem(null); }}
+        />
       )}
     </div>
   );
