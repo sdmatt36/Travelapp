@@ -5,8 +5,7 @@ import { db } from "@/lib/db";
 import { MapPin, Calendar, ChevronLeft } from "lucide-react";
 import { TripTabContent } from "@/components/features/trips/TripTabContent";
 import { CommunityTripView } from "@/components/features/trips/CommunityTripView";
-
-const DEFAULT_HERO = "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1200&q=80";
+import { getTripCoverImage } from "@/lib/destination-images";
 
 function formatDateRange(start: Date | null, end: Date | null) {
   if (!start) return null;
@@ -78,7 +77,7 @@ export default async function TripDetailPage({
   const dateRange = formatDateRange(trip.startDate, trip.endDate);
   const days = tripDays(trip.startDate, trip.endDate);
   const statusColor = STATUS_COLOR[trip.status] ?? "#717171";
-  const heroImg = trip.heroImageUrl ?? DEFAULT_HERO;
+  const heroImg = getTripCoverImage(trip.destinationCity, trip.destinationCountry, trip.heroImageUrl);
 
   // Serialize saved items for the community view
   const serializedItems = trip.savedItems.map((item) => ({

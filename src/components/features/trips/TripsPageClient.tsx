@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { MapPin, Calendar, Plus, Map, Search, Plane, Globe, Pencil, Trash2 } from "lucide-react";
+import { getTripCoverImage } from "@/lib/destination-images";
 
 type Trip = {
   id: string;
@@ -16,7 +17,6 @@ type Trip = {
   savedCount: number;
 };
 
-const DEFAULT_HERO = "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80";
 
 const STATUS_LABEL: Record<string, string> = {
   PLANNING: "Planning",
@@ -52,7 +52,7 @@ function formatDateRange(start: string | null, end: string | null) {
 }
 
 function TripCard({ trip, onDelete }: { trip: Trip; onDelete: (id: string) => void }) {
-  const hero = trip.heroImageUrl ?? DEFAULT_HERO;
+  const hero = getTripCoverImage(trip.destinationCity, trip.destinationCountry, trip.heroImageUrl);
   const dateRange = formatDateRange(trip.startDate, trip.endDate);
   const statusColor = STATUS_COLOR[trip.status] ?? "#717171";
   const [displayTitle, setDisplayTitle] = useState(trip.title);

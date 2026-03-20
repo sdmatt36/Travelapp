@@ -12,6 +12,7 @@ import {
   Calendar,
 } from "lucide-react";
 import { AddTripButton } from "@/components/features/home/AddTripModal";
+import { getTripCoverImage } from "@/lib/destination-images";
 import { DropLinkTile } from "@/components/features/home/DropLinkTile";
 import { SourceFilterSaves } from "@/components/features/home/SourceFilterSaves";
 
@@ -109,6 +110,7 @@ export default async function HomePage() {
   const displayName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
   const activeTrip = profile.trips.find((t) => t.status === "PLANNING" || t.status === "ACTIVE") ?? null;
   const hasCompletedTrips = profile.trips.some((t) => t.status === "COMPLETED");
+  const activeTripCover = getTripCoverImage(activeTrip?.destinationCity, activeTrip?.destinationCountry, activeTrip?.heroImageUrl);
 
   const adultCount = profile.members.filter((m) => m.role === "ADULT").length;
   const kidCount = profile.members.filter((m) => m.role === "CHILD").length;
@@ -144,7 +146,7 @@ export default async function HomePage() {
                 overflow: "hidden",
                 borderRadius: "24px",
                 height: "380px",
-                backgroundImage: "url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80')",
+                backgroundImage: `url('${activeTripCover}')`,
                 backgroundSize: "cover",
                 backgroundPosition: "center",
               }}
@@ -274,7 +276,7 @@ export default async function HomePage() {
                 <Link href={`/trips/${activeTrip.id}`} style={{ textDecoration: "none" }}>
                   <div style={{ backgroundColor: "#fff", borderRadius: "20px", overflow: "hidden", border: "1.5px solid #EEEEEE", boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}>
                     {/* Hero photo */}
-                    <div style={{ height: "110px", position: "relative", overflow: "hidden", backgroundImage: "url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80')", backgroundSize: "cover", backgroundPosition: "center" }}>
+                    <div style={{ height: "110px", position: "relative", overflow: "hidden", backgroundImage: `url('${activeTripCover}')`, backgroundSize: "cover", backgroundPosition: "center" }}>
                       <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.25)" }} />
                       <div style={{ position: "absolute", bottom: "12px", left: "16px", zIndex: 2 }}>
                         <p style={{ fontSize: "20px", fontWeight: 800, color: "#fff", lineHeight: 1.2 }}>{activeTrip.title}</p>
