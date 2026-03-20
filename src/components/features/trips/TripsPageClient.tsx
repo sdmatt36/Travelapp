@@ -15,6 +15,9 @@ type Trip = {
   status: "PLANNING" | "ACTIVE" | "COMPLETED";
   heroImageUrl: string | null;
   savedCount: number;
+  dayItemCounts: Record<number, number>;
+  wellPlannedDays: number;
+  startedDays: number;
 };
 
 
@@ -93,16 +96,12 @@ function TripCard({ trip, onDelete }: { trip: Trip; onDelete: (id: string) => vo
       ? `${daysUntil} days away`
       : `${Math.round(daysUntil! / 7)} weeks away`;
 
-  // Completion bar — per-day segments
+  // Completion bar — real per-day segments from server
   const totalDays =
     trip.startDate && trip.endDate
       ? diffCalendarDays(new Date(trip.startDate), new Date(trip.endDate)) + 1
       : null;
-  // Approximate per-day states from savedCount (2+ items = well planned, 1 = started)
-  const wellPlannedDays = totalDays ? Math.min(Math.floor(trip.savedCount / 2), totalDays) : 0;
-  const startedDays = totalDays
-    ? Math.min(trip.savedCount % 2 === 1 ? 1 : 0, totalDays - wellPlannedDays)
-    : 0;
+  const { wellPlannedDays, startedDays, dayItemCounts } = trip;
   const segmentCount = totalDays ? Math.min(totalDays, 20) : 0;
 
   return (
@@ -222,10 +221,11 @@ function TripCard({ trip, onDelete }: { trip: Trip; onDelete: (id: string) => vo
             <div style={{ marginTop: "10px" }}>
               <div style={{ display: "flex", gap: "3px", alignItems: "center" }}>
                 {Array.from({ length: segmentCount }).map((_, i) => {
+                  const count = dayItemCounts?.[i + 1] ?? 0;
                   const color =
-                    i < wellPlannedDays
+                    count >= 2
                       ? "#C4664A"
-                      : i < wellPlannedDays + startedDays
+                      : count === 1
                       ? "rgba(196,102,74,0.35)"
                       : "#E8E8E8";
                   return (

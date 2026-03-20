@@ -23,6 +23,8 @@ export default async function TripsPage({
             orderBy: { startDate: "asc" },
             include: {
               _count: { select: { savedItems: true } },
+              savedItems: { select: { dayIndex: true }, where: { dayIndex: { not: null } } },
+              manualActivities: { select: { dayIndex: true, status: true }, where: { dayIndex: { not: null } } },
             },
           },
         },
@@ -32,17 +34,37 @@ export default async function TripsPage({
 
   if (!user?.familyProfile) redirect("/onboarding");
 
-  const trips = user.familyProfile.trips.map((t) => ({
-    id: t.id,
-    title: t.title,
-    destinationCity: t.destinationCity,
-    destinationCountry: t.destinationCountry,
-    startDate: t.startDate ? t.startDate.toISOString() : null,
-    endDate: t.endDate ? t.endDate.toISOString() : null,
-    status: t.status as "PLANNING" | "ACTIVE" | "COMPLETED",
-    heroImageUrl: t.heroImageUrl,
-    savedCount: t._count.savedItems,
-  }));
+  const trips = user.familyProfile.trips.map((t) => {
+    // Build per-day item counts
+    const dayItemCounts: Record<number, number> = {};
+    for (const item of t.savedItems) {
+      if (item.dayIndex != null) {
+        dayItemCounts[item.dayIndex] = (dayItemCounts[item.dayIndex] ?? 0) + 1;
+      }
+    }
+    for (const act of t.manualActivities) {
+      if (act.dayIndex != null && (act.status === "confirmed" || act.status === "booked")) {
+        dayItemCounts[act.dayIndex] = (dayItemCounts[act.dayIndex] ?? 0) + 1;
+      }
+    }
+    const wellPlannedDays = Object.values(dayItemCounts).filter((c) => c >= 2).length;
+    const startedDays = Object.values(dayItemCounts).filter((c) => c === 1).length;
+
+    return {
+      id: t.id,
+      title: t.title,
+      destinationCity: t.destinationCity,
+      destinationCountry: t.destinationCountry,
+      startDate: t.startDate ? t.startDate.toISOString() : null,
+      endDate: t.endDate ? t.endDate.toISOString() : null,
+      status: t.status as "PLANNING" | "ACTIVE" | "COMPLETED",
+      heroImageUrl: t.heroImageUrl,
+      savedCount: t._count.savedItems,
+      dayItemCounts,
+      wellPlannedDays,
+      startedDays,
+    };
+  });
 
   return <TripsPageClient trips={trips} defaultTab={tab === "past" ? "past" : "upcoming"} />;
 }
