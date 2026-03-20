@@ -6,7 +6,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
       <AppHeader />
-      <main style={{ flex: 1 }}>
+      <main style={{ flex: "1 0 auto" }}>
         {children}
       </main>
       <div className="hidden md:block">
