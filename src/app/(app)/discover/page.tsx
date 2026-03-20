@@ -116,74 +116,17 @@ function getDestinationHref(rec: Recommendation): string {
 
 const FILTERS = ["All", "Culture", "Food", "Outdoor", "Adventure", "Beach", "City Break", "Asia", "Europe"];
 
-type CommunityTrip = {
-  tripId: string | null;
-  heroImage: string;
+type PublicTrip = {
+  id: string;
   title: string;
-  destination: string;
-  destCity: string;
-  destCountry: string;
-  duration: string;
-  tags: string[];
-  highlights: string[];
-  familyName: string;
+  destinationCity: string | null;
+  destinationCountry: string | null;
+  startDate: string | null;
+  endDate: string | null;
+  heroImageUrl: string | null;
+  _count: { savedItems: number };
+  familyProfile: { familyName: string | null } | null;
 };
-
-const COMMUNITY_TRIPS: CommunityTrip[] = [
-  {
-    tripId: "cmtrip-kyoto-may25",
-    heroImage: "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=400&auto=format&fit=crop&q=80",
-    title: "Kyoto with Kids",
-    destination: "Kyoto, Japan",
-    destCity: "Kyoto",
-    destCountry: "Japan",
-    duration: "7 days",
-    tags: ["Culture", "Food"],
-    highlights: ["Fushimi Inari", "Arashiyama", "Nishiki Market"],
-    familyName: "The Tanaka Family",
-  },
-  {
-    tripId: "cmtrip-madrid-jun25",
-    heroImage: "https://images.unsplash.com/photo-1539037116277-4db20889f2d4?w=400&auto=format&fit=crop&q=80",
-    title: "Madrid Long Weekend",
-    destination: "Madrid, Spain",
-    destCity: "Madrid",
-    destCountry: "Spain",
-    duration: "4 days",
-    tags: ["Food", "Culture"],
-    highlights: ["El Prado", "Retiro Park", "Mercado San Miguel"],
-    familyName: "The Garcia Family",
-  },
-  {
-    tripId: "cmtrip-lisbon-jul25",
-    heroImage: "https://images.unsplash.com/photo-1555881400-74d7acaacd8b?w=400&auto=format&fit=crop&q=80",
-    title: "Long Weekend in Lisbon",
-    destination: "Lisbon, Portugal",
-    destCity: "Lisbon",
-    destCountry: "Portugal",
-    duration: "4 days",
-    tags: ["City Break", "Food"],
-    highlights: ["Alfama trams", "Pastéis de Belém", "Sintra day trip"],
-    familyName: "The Andersons",
-  },
-  {
-    tripId: null,
-    heroImage: "https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=400&auto=format&fit=crop&q=80",
-    title: "Bali Slow Travel",
-    destination: "Bali, Indonesia",
-    destCity: "Bali",
-    destCountry: "Indonesia",
-    duration: "14 days",
-    tags: ["Beach", "Culture"],
-    highlights: ["Ubud rice terraces", "Seminyak beach", "Tirta Empul"],
-    familyName: "The Park Family",
-  },
-];
-
-function getCommunityTripHref(trip: CommunityTrip): string {
-  if (trip.tripId) return `/trips/${trip.tripId}`;
-  return `/trips/new?destination=${encodeURIComponent(trip.destCity)}&country=${encodeURIComponent(trip.destCountry)}`;
-}
 
 // ── Travel Intel types ────────────────────────────────────────────────────────
 
@@ -336,6 +279,7 @@ export default function DiscoverPage() {
 
   const [activeFilter, setActiveFilter] = useState("All");
   const [intelTab, setIntelTab] = useState<"articles" | "videos" | "community">("articles");
+  const [publicTrips, setPublicTrips] = useState<PublicTrip[]>([]);
   const [flokkArticles, setFlokkArticles] = useState<Article[]>([]);
   const [communityArticles, setCommunityArticles] = useState<Article[]>([]);
   const [flokkVideos, setFlokkVideos] = useState<TravelVideo[]>([]);
@@ -346,6 +290,14 @@ export default function DiscoverPage() {
   const [userTrips, setUserTrips] = useState<UserTrip[]>([]);
   const [isLoadingTrips, setIsLoadingTrips] = useState(false);
   const [publishingTrip, setPublishingTrip] = useState<string | null>(null);
+
+  // Fetch public community trips on mount
+  useEffect(() => {
+    fetch("/api/trips/public?limit=16")
+      .then((r) => r.json())
+      .then((d) => setPublicTrips(Array.isArray(d) ? d : []))
+      .catch(() => {});
+  }, []);
 
   // Fetch articles on mount
   useEffect(() => {
@@ -657,36 +609,47 @@ export default function DiscoverPage() {
             style={{ display: "flex", gap: "12px", overflowX: "auto", paddingBottom: "8px", scrollbarWidth: "none", msOverflowStyle: "none" }}
             className="hide-scrollbar"
           >
-            {COMMUNITY_TRIPS.map((trip) => (
-              <Link key={trip.tripId ?? trip.title} href={getCommunityTripHref(trip)} style={{ textDecoration: "none", flexShrink: 0 }}>
-                <div
-                  className="hover:shadow-md transition-shadow duration-200"
-                  style={{ width: "220px", backgroundColor: "#fff", borderRadius: "16px", overflow: "hidden", border: "1px solid #EEEEEE", boxShadow: "0 1px 6px rgba(0,0,0,0.06)" }}
-                >
-                  <div style={{ height: "120px", backgroundImage: `url(${trip.heroImage})`, backgroundSize: "cover", backgroundPosition: "center", position: "relative" }}>
-                    <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.5) 100%)" }} />
-                    <div style={{ position: "absolute", bottom: "8px", left: "10px", right: "10px" }}>
-                      <p style={{ fontSize: "13px", fontWeight: 700, color: "#fff", lineHeight: 1.2 }}>{trip.title}</p>
+            {publicTrips.length === 0 ? (
+              <p style={{ fontSize: "13px", color: "#AAAAAA", padding: "8px 0" }}>Loading trips…</p>
+            ) : (
+              publicTrips.map((trip) => {
+                const coverImage = getTripCoverImage(trip.destinationCity, trip.destinationCountry, trip.heroImageUrl);
+                const nights = trip.startDate && trip.endDate
+                  ? Math.round((new Date(trip.endDate).getTime() - new Date(trip.startDate).getTime()) / (1000 * 60 * 60 * 24))
+                  : null;
+                const destination = [trip.destinationCity, trip.destinationCountry].filter(Boolean).join(", ");
+                const familyName = trip.familyProfile?.familyName;
+                return (
+                  <Link key={trip.id} href={`/trips/${trip.id}`} style={{ textDecoration: "none", flexShrink: 0 }}>
+                    <div
+                      className="hover:shadow-md transition-shadow duration-200"
+                      style={{ width: "220px", backgroundColor: "#fff", borderRadius: "16px", overflow: "hidden", border: "1px solid #EEEEEE", boxShadow: "0 1px 6px rgba(0,0,0,0.06)" }}
+                    >
+                      <div style={{ height: "120px", backgroundImage: `url(${coverImage})`, backgroundSize: "cover", backgroundPosition: "center", position: "relative" }}>
+                        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.5) 100%)" }} />
+                        <div style={{ position: "absolute", bottom: "8px", left: "10px", right: "10px" }}>
+                          <p style={{ fontSize: "13px", fontWeight: 700, color: "#fff", lineHeight: 1.2 }}>{trip.title}</p>
+                        </div>
+                      </div>
+                      <div style={{ padding: "10px 12px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "4px", marginBottom: "4px" }}>
+                          <MapPin size={11} style={{ color: "#C4664A", flexShrink: 0 }} />
+                          <span style={{ fontSize: "11px", color: "#2d2d2d", fontWeight: 600 }}>{destination}</span>
+                        </div>
+                        <p style={{ fontSize: "11px", color: "#717171", marginBottom: "6px" }}>
+                          {nights ? `${nights} nights` : ""}
+                          {nights && trip._count.savedItems > 0 ? " · " : ""}
+                          {trip._count.savedItems > 0 ? `${trip._count.savedItems} saves` : ""}
+                        </p>
+                        {familyName && (
+                          <p style={{ fontSize: "10px", color: "#AAAAAA" }}>by {familyName}</p>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                  <div style={{ padding: "10px 12px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "4px", marginBottom: "4px" }}>
-                      <MapPin size={11} style={{ color: "#C4664A", flexShrink: 0 }} />
-                      <span style={{ fontSize: "11px", color: "#2d2d2d", fontWeight: 600 }}>{trip.destination}</span>
-                    </div>
-                    <p style={{ fontSize: "11px", color: "#717171", marginBottom: "6px" }}>{trip.duration} · {trip.tags.join(", ")}</p>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
-                      {trip.highlights.slice(0, 2).map((h) => (
-                        <span key={h} style={{ fontSize: "10px", backgroundColor: "rgba(196,102,74,0.08)", color: "#C4664A", borderRadius: "6px", padding: "2px 7px", fontWeight: 500 }}>
-                          {h}
-                        </span>
-                      ))}
-                    </div>
-                    <p style={{ fontSize: "10px", color: "#AAAAAA", marginTop: "8px" }}>by {trip.familyName}</p>
-                  </div>
-                </div>
-              </Link>
-            ))}
+                  </Link>
+                );
+              })
+            )}
           </div>
         </div>
 
