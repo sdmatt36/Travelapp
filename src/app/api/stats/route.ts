@@ -51,5 +51,10 @@ export async function GET() {
     avgTripLength: avgTripLength !== null ? Math.round(avgTripLength * 10) / 10 : null,
     tier: user.familyProfile.tier,
     points: user.familyProfile.points,
+    trips: completed.map((t) => ({
+      destinationCity: t.destinationCity,
+      destinationCountry: t.destinationCountry,
+      status: t.status,
+    })),
   });
 }

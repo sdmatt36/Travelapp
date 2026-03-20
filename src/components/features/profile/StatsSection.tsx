@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import {
   Bookmark, Globe,
   Map, Utensils, Star, Camera, Heart, Users,
@@ -8,6 +9,7 @@ import {
   Copy, Download,
 } from "lucide-react";
 import { WorldMap } from "@/components/features/profile/WorldMap";
+import { calculateTravelStats, TOTAL_COUNTRIES, type TravelStats } from "@/lib/travel-stats";
 
 interface StatsData {
   tripsTaken: number;
@@ -16,6 +18,7 @@ interface StatsData {
   avgTripLength: number | null;
   tier: "EXPLORER" | "NAVIGATOR" | "PIONEER";
   points: number;
+  trips?: { destinationCity: string | null; destinationCountry: string | null; status: string }[];
 }
 
 const TIER_CONFIG = {
@@ -351,6 +354,7 @@ function Badge({ badge }: { badge: BadgeDef }) {
 
 export function StatsSection() {
   const [data, setData] = useState<StatsData | null>(null);
+  const [travelStats, setTravelStats] = useState<TravelStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [inviteEmail, setInviteEmail] = useState("");
   const [copied, setCopied] = useState(false);
@@ -361,7 +365,11 @@ export function StatsSection() {
   useEffect(() => {
     fetch("/api/stats")
       .then((r) => r.json())
-      .then((d) => { setData(d); setLoading(false); })
+      .then((d) => {
+        setData(d);
+        if (Array.isArray(d.trips)) setTravelStats(calculateTravelStats(d.trips));
+        setLoading(false);
+      })
       .catch(() => setLoading(false));
   }, []);
 
@@ -449,13 +457,115 @@ export function StatsSection() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
 
-      {/* A — Stat cards */}
-      <div className="grid grid-cols-2 gap-6">
-        <StatCard value={String(data?.tripsTaken ?? 0)} label="Trips taken" />
-        <StatCard value={String(placesSaved)} label="Places saved" />
-        <StatCard value={String(data?.countriesVisited ?? 0)} label="Countries visited" />
-        <StatCard value={data?.avgTripLength != null ? String(data.avgTripLength) : "—"} label="Avg. trip length (days)" />
-      </div>
+      {/* A — Travel stats (cities / countries / world %) */}
+      {!travelStats || travelStats.totalTrips === 0 ? (
+        <div style={{ ...cardStyle, textAlign: "center", padding: "48px 32px" }}>
+          <div style={{ fontSize: "48px", marginBottom: "16px" }}>🌍</div>
+          <p style={{ fontSize: "20px", fontWeight: 700, color: "#1B3A5C", margin: "0 0 8px" }}>
+            Your travel map starts here
+          </p>
+          <p style={{ fontSize: "14px", color: "#717171", margin: "0 0 20px", lineHeight: 1.6 }}>
+            Add past trips to see your countries visited,<br />cities explored, and how much of the world you&apos;ve seen.
+          </p>
+          <Link
+            href="/trips/past/new"
+            style={{ display: "inline-block", backgroundColor: "#C4664A", color: "#fff", borderRadius: "20px", padding: "10px 20px", fontSize: "14px", fontWeight: 600, textDecoration: "none" }}
+          >
+            Add a past trip →
+          </Link>
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+
+          {/* Hero stats row */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "12px" }}>
+            {[
+              { value: travelStats.totalTrips, label: "Trips" },
+              { value: travelStats.totalCountries, label: "Countries" },
+              { value: travelStats.totalCities, label: "Cities" },
+            ].map((s) => (
+              <div key={s.label} style={{ ...cardStyle, padding: "20px 16px", textAlign: "center", borderTop: "3px solid #1B3A5C" }}>
+                <p style={{ fontSize: "36px", fontWeight: 800, color: "#1B3A5C", margin: 0, lineHeight: 1 }}>{s.value}</p>
+                <p style={{ fontSize: "12px", color: "#717171", margin: "6px 0 0", fontWeight: 500 }}>{s.label}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* % of world */}
+          <div style={cardStyle}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px" }}>
+              <div>
+                <p style={{ fontSize: "15px", fontWeight: 600, color: "#1B3A5C", margin: 0 }}>World explored</p>
+                <p style={{ fontSize: "13px", color: "#717171", margin: "2px 0 0" }}>
+                  {travelStats.totalCountries} of {TOTAL_COUNTRIES} countries
+                </p>
+              </div>
+              <p style={{ fontSize: "32px", fontWeight: 800, color: "#C4664A", margin: 0, lineHeight: 1 }}>
+                {travelStats.percentOfWorld}%
+              </p>
+            </div>
+            <div style={{ width: "100%", height: "10px", backgroundColor: "#F0F0F0", borderRadius: "999px", overflow: "hidden" }}>
+              <div style={{
+                width: `max(${travelStats.percentOfWorld}%, 4px)`,
+                height: "100%",
+                backgroundColor: "#C4664A",
+                borderRadius: "999px",
+                transition: "width 0.6s ease",
+              }} />
+            </div>
+            <p style={{ fontSize: "12px", color: "#717171", margin: "8px 0 0", fontStyle: "italic" }}>
+              Keep going — there&apos;s so much left to discover
+            </p>
+          </div>
+
+          {/* Per-country breakdown */}
+          <div style={cardStyle}>
+            <p style={{ fontSize: "15px", fontWeight: 600, color: "#1B3A5C", margin: "0 0 16px" }}>By country</p>
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              {travelStats.countriesVisited.map((c) => (
+                <div key={c.country}>
+                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "6px" }}>
+                    <div style={{ minWidth: 0 }}>
+                      <p style={{ fontSize: "14px", fontWeight: 600, color: "#1B3A5C", margin: 0 }}>{c.country}</p>
+                      <p style={{ fontSize: "12px", color: "#717171", margin: "2px 0 0" }}>
+                        {c.cities.slice(0, 3).join(", ")}
+                        {c.cities.length > 3 && ` +${c.cities.length - 3} more`}
+                      </p>
+                    </div>
+                    <span style={{ fontSize: "12px", fontWeight: 600, color: "#717171", flexShrink: 0, marginLeft: "12px" }}>
+                      {c.cityCount} {c.cityCount === 1 ? "city" : "cities"}
+                    </span>
+                  </div>
+                  <div style={{ width: "100%", height: "6px", backgroundColor: "#F0F0F0", borderRadius: "999px", overflow: "hidden" }}>
+                    <div style={{
+                      width: `max(${c.percent}%, 4px)`,
+                      height: "100%",
+                      backgroundColor: "#1B3A5C",
+                      borderRadius: "999px",
+                    }} />
+                  </div>
+                  <p style={{ fontSize: "11px", color: "#AAAAAA", margin: "4px 0 0" }}>
+                    {c.percent}% of major cities
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Add more trips nudge */}
+          <div style={{ ...cardStyle, backgroundColor: "rgba(27,58,92,0.03)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px" }}>
+            <p style={{ fontSize: "14px", color: "#717171", margin: 0 }}>
+              Been somewhere not on your map yet?
+            </p>
+            <Link
+              href="/trips/past/new"
+              style={{ flexShrink: 0, fontSize: "13px", fontWeight: 600, color: "#C4664A", textDecoration: "none", whiteSpace: "nowrap" }}
+            >
+              + Add a past trip
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* B — World map */}
       <div style={cardStyle}>
@@ -486,8 +596,8 @@ export function StatsSection() {
           </button>
         </div>
         <p style={{ fontSize: "13px", margin: "0 0 12px" }}>
-          {data?.countriesVisited ? (
-            <span style={{ color: "#C4664A", fontWeight: 500 }}>{data.countriesVisited} {data.countriesVisited === 1 ? "country" : "countries"}</span>
+          {travelStats && travelStats.totalCountries > 0 ? (
+            <span style={{ color: "#C4664A", fontWeight: 500 }}>{travelStats.totalCountries} {travelStats.totalCountries === 1 ? "country" : "countries"}</span>
           ) : (
             <span style={{ color: "#717171" }}>Your map is waiting. Complete a trip to start filling it in.</span>
           )}
