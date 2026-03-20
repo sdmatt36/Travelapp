@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { X, MapPin, Sparkles, ExternalLink, ChevronDown } from "lucide-react";
+import { getTripCoverImage } from "@/lib/destination-images";
 
 type SaveItem = {
   id: string;
@@ -175,6 +176,15 @@ export function SaveDetailModal({
   const gradient = getGradient(tags);
   const location = [item?.destinationCity, item?.destinationCountry].filter(Boolean).join(", ");
 
+  function getDisplayTitle(rawTitle: string | null, sourceUrl: string | null): string {
+    if (rawTitle && !rawTitle.startsWith("http")) return rawTitle;
+    const fallbackUrl = rawTitle ?? sourceUrl;
+    if (fallbackUrl) {
+      try { return new URL(fallbackUrl).hostname.replace(/^www\./, ""); } catch { /* */ }
+    }
+    return "Saved place";
+  }
+
   return (
     <>
       <style>{`.directions-link:hover { text-decoration: underline; }`}</style>
@@ -208,7 +218,7 @@ export function SaveDetailModal({
           {item?.mediaThumbnailUrl ? (
             <div style={{ width: "100%", height: "100%", backgroundImage: `url('${item.mediaThumbnailUrl.replace("http://", "https://")}')`, backgroundSize: "cover", backgroundPosition: "center" }} />
           ) : (
-            <div style={{ width: "100%", height: "100%", background: gradient }} />
+            <div style={{ width: "100%", height: "100%", backgroundImage: `url('${getTripCoverImage(item?.destinationCity, item?.destinationCountry, null)}')`, backgroundSize: "cover", backgroundPosition: "center", backgroundColor: "#1a1a1a" }} />
           )}
           {/* dark overlay for text legibility */}
           <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(0,0,0,0.0) 30%, rgba(0,0,0,0.65) 100%)" }} />
@@ -231,7 +241,7 @@ export function SaveDetailModal({
           {item && (
             <div style={{ position: "absolute", bottom: "16px", left: "20px", right: "48px", zIndex: 2 }}>
               <h2 style={{ fontSize: "22px", fontWeight: 900, color: "#fff", lineHeight: 1.1, marginBottom: "4px", textShadow: "0 2px 8px rgba(0,0,0,0.4)" }}>
-                {item.rawTitle ?? "Saved place"}
+                {getDisplayTitle(item.rawTitle, item.sourceUrl)}
               </h2>
               {location && (
                 <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>

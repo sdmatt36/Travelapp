@@ -167,7 +167,7 @@ export function DropLinkModal({
         body: JSON.stringify({
           url: trimmed,
           tripId: isLater ? undefined : effectiveId,
-          title: editedTitle || extracted?.title || trimmed,
+          title: editedTitle || extracted?.title || getDomainLabel(trimmed),
           description: extracted?.description ?? "",
           thumbnailUrl: extracted?.img || undefined,
           tags: selectedCategory ? [selectedCategory] : (extracted?.tags ?? []),
@@ -392,7 +392,7 @@ export function DropLinkModal({
                       width: "100%",
                     }}
                   >
-                    {editedTitle || extracted.title || url}
+                    {editedTitle || extracted.title || getDomainLabel(url)}
                     <span style={{ fontSize: "11px", color: "#C4664A", marginLeft: "6px", fontWeight: 500 }}>edit</span>
                   </button>
                 )}
